@@ -1,0 +1,15 @@
+{{ extends "global/Page.html" }}
+{{ block title }}Chat{{ endblock }}
+{{ block content }}
+
+    <p>
+        You can use this page to chat with people in your group for 1 minute before making your decision.
+        You can exit this page at anytime by clicking the next button. This first round will be purely for chat practice.
+        Your payoff will not be affected. Please test that you can communicate with the 3 other members in your group.
+    </p>
+
+    {{ chat nickname=player.participant.label}}
+
+    {{ next_button }}
+
+{{ endblock }}

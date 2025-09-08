@@ -1,0 +1,23 @@
+{{ block title }}Instructions 3{{ endblock }}
+{{ block content }}
+
+    <p>
+Each segment consists of an uncertain number of <b>periods</b>. The number of periods in
+a segment is determined as follows:
+    </p>
+  <ul>
+    <li>For each period, the computer has randomly selected a number from 1 to 5, each
+with a 20% chance, for the entire session to determine whether another period of the
+same segment will follow.</li>
+    <li> If the selected number is from 1 to 4, the next period will follow. If the selected
+number is 5, the segment will end.</li>
+    <li>We will reveal the selected number to you at the end of each period. So, at the
+beginning of each period, you only know that there is an 80% chance that another
+period of the same segment will follow and there is a 20% chance that the segment
+will end after this period.</li>
+  </ul>
+
+
+    {{ next_button }}
+
+{{ endblock }}

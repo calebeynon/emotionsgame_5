@@ -1,0 +1,95 @@
+{{ block content }}
+
+<p>Before you proceed to segment 1, please answer the following quiz
+questions to make sure you fully understand the instructions. Your quiz answers will
+not affect your earnings from this part. If an answer is wrong and you do not understand
+why it is wrong, please raise your hand.</p>
+
+<form id="quizForm">
+    <p>1. How many participants are in a group?</p>
+    <input type="number" id="q1" required> <span id="feedback1"></span>
+
+    <p>2. How many segments are in this study?</p>
+    <input type="number" id="q2" required> <span id="feedback2"></span>
+
+    <p>3. The number of periods in each segment is uncertain. True/False</p>
+    <input type="text" id="q3" required> <span id="feedback3"></span>
+
+    <p>4. During each period, the probability that it is the last period of the segment is 80%. True/False</p>
+    <input type="text" id="q4" required> <span id="feedback4"></span>
+
+    <p>5. Between any two segments, other participants assigned to your group
+    will be different. True/False</p>
+    <input type="text" id="q5" required> <span id="feedback5"></span>
+
+    <p>6. Between any two periods of the same segment, other participants assigned to your group
+    will be different. True/False</p>
+    <input type="text" id="q6" required> <span id="feedback6"></span>
+
+    <p>7. In stage 2 of each period, each participant is endowed with __ tokens.</p>
+    <input type="number" id="q7" required> <span id="feedback7"></span>
+
+    <p>8. If each participant in a group allocates 10 tokens to the Group Account,
+    each participant's earnings will be __ ECUs.</p>
+    <input type="number" id="q8" required> <span id="feedback8"></span>
+
+    <p>9. If you allocate 25 tokens to your Group Account while all other participants in your
+    group allocate zero tokens to your Group Account, your earnings will be __ ECUs.</p>
+    <input type="number" id="q9" required> <span id="feedback9"></span>
+
+    <p>10. Your cash earnings from the study is the sum of the ECUs that you earn in all segments. True/False</p>
+    <input type="text" id="q10" required> <span id="feedback10"></span>
+
+    <br><br>
+    <button type="button" id="checkAnswersBtn">Check Answers</button>
+</form>
+
+<br>
+<div id="nextButtonContainer">
+    {{ next_button }}
+</div>
+
+
+
+<script>
+    document.getElementById("checkAnswersBtn").addEventListener("click", function() {
+        let answers = {
+            q1: "4",
+            q2: "4",
+            q3: "true",
+            q4: "false",
+            q5: "true",
+            q6: "false",
+            q7: "25",
+            q8: "31",
+            q9: "10",
+            q10: "false"
+        };
+
+        let allCorrect = true;
+
+        for (let i = 1; i <= 10; i++) {
+            let userAnswer = document.getElementById(`q${i}`).value.trim().toLowerCase();
+            let correctAnswer = answers[`q${i}`];
+
+            if (userAnswer === correctAnswer) {
+                document.getElementById(`feedback${i}`).textContent = "✔ Correct!";
+                document.getElementById(`feedback${i}`).style.color = "green";
+            } else {
+                document.getElementById(`feedback${i}`).textContent = "✘ Try again!";
+                document.getElementById(`feedback${i}`).style.color = "red";
+                allCorrect = false;
+            }
+        }
+
+        // Enable or disable the next button based on correctness
+        let nextButtonContainer = document.getElementById("nextButtonContainer");
+        nextButtonContainer.style.pointerEvents = allCorrect ? "auto" : "none";
+        nextButtonContainer.style.opacity = allCorrect ? "1" : "0.5";
+    });
+
+    // Disable next button on page load
+    document.getElementById("nextButtonContainer").style.pointerEvents = "none";
+    document.getElementById("nextButtonContainer").style.opacity = "0.5";
+</script>
+{{ endblock }}

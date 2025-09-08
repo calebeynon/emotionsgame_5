@@ -1,0 +1,20 @@
+{{ extends "global/Page.html" }}
+{{ block title }}<div style="text-align: center;">End of Segment</div>{{ endblock }}
+{{ block content }}    
+<style>
+body {
+  font-size: 18px; /* You can adjust this value as needed */
+}
+
+p {
+  font-size: 24px;  
+  line-height: 1.5; /* Improves line spacing for better readability */
+}
+li {
+  font-size: 1em; /* Same as the body font size */
+</style>
+    <p>Segment 1 has now ended. You will be regrouped, i.e. you will be matched with 3 new participants for this new segment.</p>
+    <p>The new segment will begin when you click next.</p>
+    {{ next_button }}
+
+{{ endblock }}

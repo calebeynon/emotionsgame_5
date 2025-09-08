@@ -1,0 +1,24 @@
+{{ extends "global/Page.html" }}
+{{ block title }}<div style="text-align: center;">Payment</div>{{ endblock }}
+{{ block content }}
+<style>
+body {
+  font-size: 18px; /* You can adjust this value as needed */
+}
+
+p {
+  font-size: 24px;  
+  line-height: 1.5; /* Improves line spacing for better readability */
+}
+li {
+  font-size: 1em; /* Same as the body font size */
+}
+</style>
+    <p>The computer has selected segment {{ segment_chosen}} at random for payment. Recall, your total earnings today are calculated as the sum of your earnings from all rounds of this segment.
+      For every 10 ECUs, you receive $1.00. Your total earnings from this segment were {{ pay }} ECUs. Additionally, you receive a $7.50 participation fee.
+    Therefore your payment is {{ payoff }}.<br>
+    </p>
+
+  <p><strong> Please remain quietly seated and you will be directed to collect your payment shortly.</strong></p>
+
+{{ endblock }}

@@ -1,0 +1,104 @@
+{{ extends "global/Page.html" }}
+{{ block title }}<div style="text-align: center;">Results</div>{{ endblock }}
+
+{{ block content }}
+<style>
+  /* Expand to full width */
+  .otree-body {
+    max-width: 95% !important;
+    width: 95% !important;
+    padding: 0 !important;
+  }
+
+  .otree-timer{
+    display: none;
+  }
+
+  /* Set base font size globally */
+  body {
+    font-size: 1.2rem !important;  /* ~19px */
+    line-height: 1.6;
+  }
+
+  /* Flex layout for panels */
+  .wrapper {
+    display: flex;
+    width: 100%;
+    height: 100vh;
+  }
+
+  .split {
+    flex: 1;
+    overflow-y: auto;
+    padding: 30px;
+    box-sizing: border-box;
+  }
+
+  .left {
+    background-color: #f8f9fa;
+    border-right: 1px solid #ccc;
+  }
+
+  /* Tables */
+  table {
+    width: 100%;
+    font-size: 1.1rem;
+    border-collapse: collapse;
+  }
+
+  th, td {
+    padding: 10px;
+    text-align: center;
+    border:1px solid black;
+    border-radius: 10px;
+  }
+
+  /* Buttons and form elements */
+  .otree-btn-next, .btn, input, textarea {
+    font-size: 1.1rem;
+  }
+
+  h1, h2, h3 {
+    font-size: 1.5rem;
+  }
+</style>
+<div class="wrapper">
+  <div class="split left">
+  <p style="font-size:24px;">
+    You placed {{ pcont }} tokens in the Group Account, therefore your Private Account balance is <span style = "color:red;">{{ priv }}</span> tokens.
+    Your group members allocated the following to the Group Account:<br><br>
+    <b>{{ one }}: {{ one_cont }} tokens<br>
+    {{ two }}: {{ two_cont }} tokens<br>
+    {{ three }}: {{ three_cont }} tokens</b><br><br>
+    <b>Your Group Account's balance is <span style="color:blue;">{{ gcont }}</span> tokens.</b><br>
+    <b>Your share of earnings is therefore &frac14; x 1.6 x <span style = "color:blue;">{{ gcont }}</span> = {{ pay_share }} ECUs.</b><br>
+    <b>Your total earnings are therefore <span style="color:red;">{{ priv }}</span> + &frac14; x 1.6 x <span style = "color:blue;">{{ gcont }}</span> = {{ pay }} ECUs.</b>
+  </p><br><br>
+  <h2 style="font-size:20px;">Table of Previous Results</h2>
+   <table border="1" style="font-size:16px; max-width: 90%; margin: 0 auto;">
+     <tr>
+       <th style="padding: 6px;">Round</th>
+       <th style="width:60px; padding: 6px;"></th>
+       {% for label in player_labels %}
+         <th style="padding: 6px;">Player {{ label }}</th>
+       {% endfor %}
+     </tr>
+     {% for row in table_data %}
+       <tr>
+         <td rowspan="2" style="vertical-align:middle; padding: 6px;">{{ row.round }}</td>
+         <td style="font-style:italic; padding: 4px;">Contribution</td>
+         {% for c in row.contributions %}
+           <td style="padding: 4px;">{{ c }} tokens</td>
+         {% endfor %}
+       </tr>
+       <tr>
+         <td style="font-style:italic; background-color:#e0e0e0; padding: 4px;">Earnings</td>
+         {% for p in row.payoffs %}
+           <td style="background-color:#e0e0e0; padding: 4px;">{{ p }} ECUs</td>
+         {% endfor %}
+       </tr>
+     {% endfor %}
+   </table>
+  </div>
+</div>
+{{ endblock }}

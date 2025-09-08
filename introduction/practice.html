@@ -1,0 +1,61 @@
+{{ block content }}
+<p>Use this page to practice your allocation to the Group Account. You will start with 
+25 ECU's at the beginning of every round that you must allocate between your Private
+Account and the shared Group Account. You will input your
+own allocation to the Group Account and then see what happens when you change the group members'
+allocations of other group members. Click the calculate button to determine your payoff based on the allocations. Recall the
+payoff formula for the group account is: <br>
+&frac14; x 1.6 x the total number of tokens in the Group Account<br>
+You will keep whatever is left in your private account plus your group account share.
+Also, remember that this is just practice. In the actual game, you will only be able
+to control your own allocation, not your group members.<br>
+When you understand the calculation, click the next button. <b> You will not be able to come
+back to this page.</b>
+</p>
+
+<label><b>Your</b> allocation to the Group Account: <input type="number" id="input_you" name="input_you" min="0" max="25"></label><br>
+<label>Group member 1 allocation to Group Account: <input type="number" id="input2" name="input2" min="0" max="25"></label><br>
+<label>Group member 2 allocation to Group Account: <input type="number" id="input3" name="input3" min="0" max="25"></label><br>
+<label>Group member 3 allocation to Group Account: <input type="number" id="input4" name="input4" min="0" max="25"></label><br>
+
+<p>Your total earnings: <span id="result_display">-</span></p>
+
+{{ next_button }}
+
+<button type="button" id="calculateBtn">Calculate</button>
+
+<script>
+    document.getElementById("calculateBtn").addEventListener("click", function() {
+        let input_you = document.getElementById("input_you").value;
+        let input2 = document.getElementById("input2").value;
+        let input3 = document.getElementById("input3").value;
+        let input4 = document.getElementById("input4").value;
+
+        // Convert to numbers
+        input_you = input_you === "" ? NaN : parseFloat(input_you);
+        input2 = input2 === "" ? NaN : parseFloat(input2);
+        input3 = input3 === "" ? NaN : parseFloat(input3);
+        input4 = input4 === "" ? NaN : parseFloat(input4);
+
+        // Check for invalid or empty inputs
+        if (isNaN(input_you) || isNaN(input2) || isNaN(input3) || isNaN(input4)) {
+            alert("Please enter all four numbers.");
+            return;
+        }
+
+        // Ensure values are within [0, 25]
+        if ([input_you, input2, input3, input4].some(num => num < 0 || num > 25)) {
+            alert("Please enter numbers between 0 and 25.");
+            return;
+        }
+
+        // Perform correct calculation
+        let total_group_tokens = input_you + input2 + input3 + input4;
+        let result = ((1.6 / 4) * total_group_tokens)+(25-input_you);
+
+        // Display result
+        document.getElementById("result_display").innerText = result.toFixed(2);
+    });
+</script>
+{{ endblock }}
+

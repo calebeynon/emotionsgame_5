@@ -1,0 +1,27 @@
+{{ extends "global/Page.html" }}
+{{ block title }}<div style="text-align: center;"></div>Survey</div>{{ endblock }}
+
+{{ block content }}
+<style>
+body {
+  font-size: 18px; /* You can adjust this value as needed */
+}
+
+p {
+  font-size: 24px;  
+  line-height: 1.5; /* Improves line spacing for better readability */
+}
+li {
+  font-size: 1em; /* Same as the body font size */
+</style>
+
+
+{{ formfield 'q1' }}
+<br/>{{ formfield 'q2' }}
+<br/>{{ formfield 'q3' }}
+<br/>{{ formfield 'q4'}}
+<br/>{{ formfield 'q5'}}
+<br/>{{ formfield 'q6'}}
+{{ next_button }}
+
+{{ endblock }}

@@ -1,0 +1,31 @@
+{{ extends "global/Page.html" }}
+{{ block title }}Chat{{ endblock }}
+{{ block content }}
+<style>
+body {
+  font-size: 18px; /* You can adjust this value as needed */
+}
+
+p {
+  font-size: 24px;  
+  line-height: 1.5; /* Improves line spacing for better readability */
+}
+li {
+  font-size: 1em; /* Same as the body font size */
+</style>
+    <p>
+        Use this page to chat with people in your group before making your decision.
+
+    </p>
+
+    {{ chat nickname=player.participant.label}}
+    
+    <b>Remember to click the send button after typing your chat.</b><br>
+<p>As a reminder, last round you allocated {{ mycont }} to the group account. Your group members allocated the following to the group account:<br>
+{{lab3}}: {{cont3}}<br>
+{{lab1}}: {{cont1}}<br>
+{{lab2}}: {{cont2}}<br>
+And you received a profit of {{mypay}}
+</p>
+
+{{ endblock }}
