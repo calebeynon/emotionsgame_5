@@ -80,7 +80,12 @@
        <th style="padding: 6px;">Round</th>
        <th style="width:60px; padding: 6px;"></th>
        {% for label in player_labels %}
-         <th style="padding: 6px;">Player {{ label }}</th>
+         <th style="padding: 6px;">
+           {% if label == my_label %}
+             <div style="color:red;">(Me)</div>
+           {% endif %}
+           Player {{ label }}
+         </th>
        {% endfor %}
      </tr>
      {% for row in table_data %}

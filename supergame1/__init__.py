@@ -162,6 +162,7 @@ class ResultsOnly(Page):
             'one_cont': int(conts[0]),
             'two_cont': int(conts[1]),
             'three_cont': int(conts[2]),
+            'my_label': player.participant.label,
             'one': labels_others[0],
             'two': labels_others[1],
             'three': labels_others[2],
@@ -220,8 +221,10 @@ class Results(Page):
     def get_timeout_seconds(player):
         if player.round_number == 1:
             return 90
-        else:
+        elif player.round_number == 2 or player.round_number == 3:
             return 60
+        else:
+            return 45
     
 class RegroupingMessage(Page):
     @staticmethod

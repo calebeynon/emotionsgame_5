@@ -211,10 +211,7 @@ class Results(Page):
         }
     @staticmethod
     def get_timeout_seconds(player):
-        if player.round_number == 1:
-            return 90
-        else:
-            return 60
+        return 45
 
 class EndMessage(Page):
     @staticmethod
@@ -238,8 +235,6 @@ class EndMessage(Page):
             player.participant.vars['seg_chosen'] = '4'
         else:
             player.participant.vars['seg_chosen'] = '5'
-        else:
-            player.participant.vars['seg_chosen'] = '4'
     @staticmethod
     def vars_for_template(player):
         return {

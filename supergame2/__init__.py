@@ -216,10 +216,7 @@ class Results(Page):
         }
     @staticmethod
     def get_timeout_seconds(player):
-        if player.round_number == 1:
-            return 90
-        else:
-            return 60
+        return 45
 class RegroupingMessage(Page):
     @staticmethod
     def is_displayed(player):
