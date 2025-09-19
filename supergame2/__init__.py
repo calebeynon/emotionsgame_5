@@ -216,7 +216,7 @@ class Results(Page):
         }
     @staticmethod
     def get_timeout_seconds(player):
-        return 45
+        return 40
 class RegroupingMessage(Page):
     @staticmethod
     def is_displayed(player):
