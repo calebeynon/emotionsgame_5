@@ -13,27 +13,61 @@
 aiofiles==0.6.0
     # via otree
 click==7.1.2
+    # via nltk
     # via uvicorn
+contourpy==1.3.3
+    # via matplotlib
+cycler==0.12.1
+    # via matplotlib
+fonttools==4.60.0
+    # via matplotlib
 h11==0.16.0
     # via uvicorn
 itsdangerous==1.1.0
     # via otree
+joblib==1.5.2
+    # via nltk
+kiwisolver==1.4.9
+    # via matplotlib
 markupsafe==1.1.1
     # via otree
     # via wtforms
-numpy==2.3.2
+matplotlib==3.10.6
     # via emotionsgame
+    # via seaborn
+nltk==3.9.1
+    # via emotionsgame
+numpy==2.3.2
+    # via contourpy
+    # via emotionsgame
+    # via matplotlib
     # via pandas
+    # via scipy
+    # via seaborn
 otree==5.11.4
     # via emotionsgame
+packaging==25.0
+    # via matplotlib
 pandas==2.3.2
     # via emotionsgame
+    # via seaborn
+pillow==11.3.0
+    # via matplotlib
+pyparsing==3.2.5
+    # via matplotlib
 python-dateutil==2.9.0.post0
+    # via matplotlib
     # via pandas
 python-multipart==0.0.5
     # via otree
 pytz==2025.2
     # via pandas
+regex==2025.9.18
+    # via nltk
+scipy==1.16.2
+    # via emotionsgame
+seaborn==0.13.2
+    # via emotionsgame
 six==1.17.0
     # via python-dateutil
     # via python-multipart
@@ -44,6 +78,8 @@ starlette==0.14.1
     # via otree
 tabulate==0.9.0
     # via emotionsgame
+tqdm==4.67.1
+    # via nltk
 tzdata==2025.2
     # via pandas
 uvicorn==0.13.4

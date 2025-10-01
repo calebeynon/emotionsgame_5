@@ -19,6 +19,8 @@ class all_instructions(Page):
     pass
 class instructions_x_quiz(Page):
     pass
+class practice_only(Page):
+    pass
 class Intro(Page):
     pass
 class p2(Page):
@@ -39,5 +41,5 @@ class p7(Page):
 class quiz(Page):
     pass
 
-page_sequence = [instructions_x_quiz,all_instructions]
+page_sequence = [instructions_x_quiz,practice_only,all_instructions]
 #page_sequence = [Intro,p2,p3,p4,p5,p6,practice,p7,quiz]

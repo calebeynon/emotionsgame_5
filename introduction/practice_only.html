@@ -1,0 +1,88 @@
+{{ block title }}
+<div style="text-align: center;">Instructions for the Experiment</div>
+{{ endblock }}
+{{ block content }}
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Instruction Segments</title>
+    <style>
+        .segment { 
+        margin-bottom: 20px;
+        font-size: 24px; }  /* Show all segments */
+        .feedback { font-weight: bold; margin-left: 10px; }
+        /*.hidden { display: none; }*/
+    </style>
+</head>
+  <!-- Segment 6: Allocation Game -->
+    <div class="segment">
+        <b>Practice</b><br>
+    
+        <p>Use the payoff caculator to practice your allocation decision.</p>
+
+        <label><b>Your</b> allocation to the <b>Group Account</b>: <input type="number" id="input_you" min="0" max="25"></label><br>
+        <label>Now suppose other group member 1 allocates: <input type="number" id="input2" min="0" max="25"> to the <b>Group Account</b></label><br>
+        <label>Now suppose other group member 2 allocates: <input type="number" id="input3" min="0" max="25"> to the <b>Group Account</b></label><br>
+        <label>Now suppose other group member 3 allocates: <input type="number" id="input4" min="0" max="25"> to the <b>Group Account</b></label><br>
+        
+        
+        <button type="button" id="calculateBtn">Calculate</button><br><br>
+        <p>Therefore, your balance in your own <b>Private Account</b> is: 25 - <span id="you">__</span> = <span id="priv_acc" style="color: red;">__</span></p><br>
+        <p>So the total tokens in the <b>Group Account</b> is: <span id="i0">__</span> + <span id="i1">__</span> + <span id="i2">__</span> + <span id="i3">__</span> = <span id="group_total" style = "color: blue;">__</span></p><br>
+        <p>And your total earnings in this round would be : <span id="priv_acc2" style="color: red;">__</span> + &frac14; x 1.6 x <span id="group_total2" style="color: blue;">__</span> = <span id="result_display">__</span> ECUs</p><br>
+        <p>Remember that this is a practice round. You are not interacting with other players. In actual rounds, you will interact with other players and
+        you will not know the other group member allocations until after you submit your own allocation.</p><br> 
+        
+    </div>
+
+    <script>
+
+        // Allocation Game Calculation
+        document.getElementById("calculateBtn").addEventListener("click", function() {
+            let input_you = parseInt(document.getElementById("input_you").value) || 0;
+            let input2 = parseInt(document.getElementById("input2").value) || 0;
+            let input3 = parseInt(document.getElementById("input3").value) || 0;
+            let input4 = parseInt(document.getElementById("input4").value) || 0;
+            let opaque = true;
+            
+            // Check if any input is not a whole number or outside the valid range
+            let inputs = [input_you, input2, input3, input4];
+            let originalValues = [
+                document.getElementById("input_you").value,
+                document.getElementById("input2").value,
+                document.getElementById("input3").value,
+                document.getElementById("input4").value
+            ];
+            
+            // Check for decimals or invalid numbers
+            for (let i = 0; i < originalValues.length; i++) {
+                if (originalValues[i] !== "" && (originalValues[i] % 1 !== 0 || isNaN(originalValues[i]))) {
+                    alert("Please enter whole numbers only (no decimals).");
+                    return;
+                }
+            }
+            
+            if (inputs.some(num => num < 0 || num > 25)) {
+                opaque = false;
+            }            
+            if (inputs.some(num => num < 0 || num > 25)) {
+                alert("Enter numbers between 0 and 25.");
+                return;
+            }
+
+            let total_group_tokens = input_you + input2 + input3 + input4;
+            let result = ((1.6 / 4) * total_group_tokens) + (25 - input_you);
+            let priv = (25-input_you)
+            document.getElementById("result_display").innerText = result.toFixed(2);
+            document.getElementById("priv_acc").innerText = priv
+            document.getElementById("you").innerText = input_you
+            document.getElementById("i0").innerText = input_you
+            document.getElementById("i1").innerText = input2
+            document.getElementById("i2").innerText = input3
+            document.getElementById("i3").innerText = input4
+            document.getElementById("group_total").innerText = total_group_tokens
+            document.getElementById("priv_acc2").innerText = priv
+            document.getElementById("group_total2").innerText = total_group_tokens
+        });
+    </script>
+{{ endblock }}
