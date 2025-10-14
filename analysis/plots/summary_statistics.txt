@@ -1,0 +1,50 @@
+EXPERIMENTAL DATA SUMMARY STATISTICS
+==================================================
+
+Overall:
+  Total observations: 352
+  Mean contribution: 19.74
+  Std contribution: 8.55
+  Mean payoff: 36.83
+  Std payoff: 6.41
+
+Supergame 1:
+  Observations: 48
+  Rounds: 3
+  Mean contribution: 17.00
+  Std contribution: 7.83
+  Mean payoff: 35.17
+  Std payoff: 5.92
+
+Supergame 2:
+  Observations: 64
+  Rounds: 4
+  Mean contribution: 21.56
+  Std contribution: 6.30
+  Mean payoff: 37.94
+  Std payoff: 4.41
+
+Supergame 3:
+  Observations: 48
+  Rounds: 3
+  Mean contribution: 19.92
+  Std contribution: 8.00
+  Mean payoff: 37.00
+  Std payoff: 5.35
+
+Supergame 4:
+  Observations: 112
+  Rounds: 7
+  Mean contribution: 20.46
+  Std contribution: 8.63
+  Mean payoff: 37.26
+  Std payoff: 6.80
+
+Supergame 5:
+  Observations: 80
+  Rounds: 5
+  Mean contribution: 18.80
+  Std contribution: 10.08
+  Mean payoff: 36.25
+  Std payoff: 7.69
+
