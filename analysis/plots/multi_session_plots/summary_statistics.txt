@@ -1,0 +1,84 @@
+MULTI-SESSION EXPERIMENTAL DATA SUMMARY STATISTICS
+============================================================
+
+Overall Statistics:
+  Total sessions: 8
+  Total observations: 2816
+  Total participants: 16
+  Mean contribution: 20.117
+  Std contribution: 8.719
+  Mean payoff: 37.074
+  Std payoff: 6.917
+
+Treatment 1:
+  Sessions: 4
+  Observations: 1408
+  Participants: 16
+  Mean contribution: 20.108
+  Std contribution: 8.598
+  Mean payoff: 37.068
+  Std payoff: 6.440
+
+Treatment 2:
+  Sessions: 4
+  Observations: 1408
+  Participants: 16
+  Mean contribution: 20.126
+  Std contribution: 8.842
+  Mean payoff: 37.079
+  Std payoff: 7.365
+
+Supergame 1:
+  Observations: 384
+  Sessions: 8
+  Mean contribution: 18.492
+  Std contribution: 8.308
+  Mean payoff: 36.060
+  Std payoff: 6.720
+
+Supergame 2:
+  Observations: 512
+  Sessions: 8
+  Mean contribution: 20.725
+  Std contribution: 7.946
+  Mean payoff: 37.447
+  Std payoff: 6.467
+
+Supergame 3:
+  Observations: 384
+  Sessions: 8
+  Mean contribution: 19.609
+  Std contribution: 9.014
+  Mean payoff: 36.766
+  Std payoff: 7.189
+
+Supergame 4:
+  Observations: 896
+  Sessions: 8
+  Mean contribution: 20.202
+  Std contribution: 9.178
+  Mean payoff: 37.137
+  Std payoff: 7.286
+
+Supergame 5:
+  Observations: 640
+  Sessions: 8
+  Mean contribution: 20.791
+  Std contribution: 8.594
+  Mean payoff: 37.478
+  Std payoff: 6.632
+
+Chat Statistics:
+  Total messages: 3941
+  Sessions with chat: 7
+  Messages per session: 563.000
+  Average sentiment: 0.106
+  Positive messages (%): 33.012
+  Negative messages (%): 8.196
+
+Survey Statistics:
+  Total responses: 128
+  Sessions with surveys: 8
+  Response rate: 128/16 participants
+  Average age: 21.148
+

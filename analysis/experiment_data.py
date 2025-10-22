@@ -485,6 +485,37 @@ class Experiment:
         if not records:
             return None
         return pd.DataFrame.from_records(records)
+    
+    def to_dataframe_chat(self) -> Optional[pd.DataFrame]:
+        """Flatten chat messages across all sessions into a DataFrame.
+        Columns: session, segment, round, group, player, timestamp, message
+        Returns None if no chat data found.
+        """
+        records: List[Dict[str, Any]] = []
+        for session_code, session in self.sessions.items():
+            for segment_name, segment in session.segments.items():
+                # Only process supergame segments (skip introduction, finalresults, etc.)
+                if not segment_name.startswith('supergame'):
+                    continue
+                    
+                for round_num, round_obj in segment.rounds.items():
+                    for group_id, group in round_obj.groups.items():
+                        for player_label, player in group.players.items():
+                            # Add each chat message for this player
+                            for message in player.chat_messages:
+                                records.append({
+                                    'session': session_code,
+                                    'segment': segment_name,
+                                    'round': round_num,
+                                    'group': group_id,
+                                    'player': player_label,
+                                    'timestamp': message.timestamp,
+                                    'message': message.body
+                                })
+        
+        if not records:
+            return None
+        return pd.DataFrame.from_records(records)
 
 
 def load_chat_data(chat_csv_path: str) -> Dict[int, Dict[int, Dict[str, List[ChatMessage]]]]:
@@ -650,11 +681,13 @@ def _load_single_session_data(csv_path: str, chat_csv_path: Optional[str] = None
     session.metadata['real_world_currency_per_point'] = df['session.config.real_world_currency_per_point'].iloc[0]
     session.metadata['room'] = df['session.config.room'].iloc[0]
     
-    # Create participant label mapping
+    # Create participant label mapping (filter out NaN labels)
     for _, row in df.iterrows():
         participant_id = row['participant.id_in_session']
         label = row['participant.label']
-        session.participant_labels[participant_id] = label
+        # Only add valid (non-NaN) labels to avoid corrupted data
+        if pd.notna(label):
+            session.participant_labels[participant_id] = label
     
     # Get all column names to parse segments
     columns = df.columns.tolist()
@@ -695,6 +728,10 @@ def _load_single_session_data(csv_path: str, chat_csv_path: Optional[str] = None
                 participant_id = row['participant.id_in_session']
                 label = row['participant.label']
                 
+                # Skip rows with NaN labels (corrupted data)
+                if pd.isna(label):
+                    continue
+                
                 # Get player data
                 player_cols = [col for col in columns if col.startswith(f'{segment_name}.{round_num}.player.')]
                 if player_cols and not pd.isna(row.get(f'{segment_name}.{round_num}.player.id_in_group')):
@@ -730,11 +767,12 @@ def _load_single_session_data(csv_path: str, chat_csv_path: Optional[str] = None
             for group_id, group in groups_in_round.items():
                 group_cols = [col for col in columns if col.startswith(f'{segment_name}.{round_num}.group.')]
                 if group_cols:
-                    # Use first player in group to get group data
+                    # Use first player in group to get group data (skip NaN labels)
                     first_player_row = None
                     for _, row in df.iterrows():
                         if (not pd.isna(row.get(f'{segment_name}.{round_num}.player.id_in_group')) and
-                            int(row[f'{segment_name}.{round_num}.player.id_in_group']) == group_id):
+                            int(row[f'{segment_name}.{round_num}.player.id_in_group']) == group_id and
+                            pd.notna(row['participant.label'])):
                             first_player_row = row
                             break
                     
@@ -849,6 +887,8 @@ def main():
         print(f"Segments in data: {df['segment'].unique()}")
     else:
         print("No contribution data found")
+    
+    return experiment
 
 
 if __name__ == '__main__':

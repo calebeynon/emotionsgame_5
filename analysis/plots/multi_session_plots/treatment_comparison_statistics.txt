@@ -1,0 +1,37 @@
+TREATMENT COMPARISON STATISTICS
+==================================================
+
+Treatment 1:
+  Sessions: 4
+  Total observations: 1408
+  Mean contribution: 20.1080
+  Std contribution: 8.5979
+  Mean payoff: 37.0682
+  Std payoff: 6.4402
+  Chat messages: 2405
+  Avg sentiment: 0.1070
+  Survey responses: 64
+
+Treatment 2:
+  Sessions: 4
+  Total observations: 1408
+  Mean contribution: 20.1257
+  Std contribution: 8.8421
+  Mean payoff: 37.0788
+  Std payoff: 7.3655
+  Chat messages: 1536
+  Avg sentiment: 0.1049
+  Survey responses: 64
+
+Statistical Tests:
+  Contribution t-test statistic: -0.0540
+  Contribution t-test p-value: 0.9569
+  Contribution difference significant (p<0.05): No
+  Effect size (Cohens d): -0.0020
+
+Session-Level Comparison:
+  Treatment 1 session means: 20.11 ± 0.86
+  Treatment 2 session means: 20.13 ± 1.79
+  Between-session variability T1: 0.8587
+  Between-session variability T2: 1.7869
+
