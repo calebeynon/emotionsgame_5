@@ -39,21 +39,40 @@ Transforms raw oTree PageTimes export data into a normalized format with timing 
    - Time elapsed since recording start (in days, seconds, milliseconds)
 
 ### Configuration
-Edit the global constants at the top of the script:
 
-```python
-PATH_PAGETIMES = "/path/to/PageTimes-YYYY-MM-DD.csv"
-PATH_TIMESHEET = "/path/to/timesheet.xlsx"
-PATH_OUTPUT = "/path/to/edited_data_output.csv"
-TZ_NAME = "America/Chicago"
-CDT_OFFSET_HOURS = 5
+**Command-line Arguments (recommended):**
+
+```bash
+rye run python annotations/build_edited_data_csv.py \
+  --pagetimes "/path/to/PageTimes-YYYY-MM-DD.csv" \
+  --timesheet "/path/to/timesheet.xlsx" \
+  --output "/path/to/edited_data_output.csv"
 ```
 
+**Default Values:**
+- `--pagetimes`: `/Users/caleb/Research/emotionsgame_5/analysis/datastore/annotations/PageTimes-2025-09-11.csv`
+- `--timesheet`: `/Users/caleb/Research/emotionsgame_5/analysis/datastore/timesheet.xlsx`
+- `--output`: `/Users/caleb/Research/emotionsgame_5/analysis/datastore/annotations/edited_data_output.csv`
+- `TZ_NAME`: `"America/Chicago"` (hardcoded constant)
+- `CDT_OFFSET_HOURS`: `5` (hardcoded constant)
+
 ### Usage
+
+**Run with default paths:**
 
 ```bash
 cd /Users/caleb/Research/emotionsgame_5/analysis
 rye run python annotations/build_edited_data_csv.py
+```
+
+**Run with custom paths:**
+
+```bash
+cd /Users/caleb/Research/emotionsgame_5/analysis
+rye run python annotations/build_edited_data_csv.py \
+  --pagetimes "/custom/path/PageTimes-2025-10-24.csv" \
+  --timesheet "/custom/path/timesheet.xlsx" \
+  --output "/custom/path/output.csv"
 ```
 
 ### Output Columns
@@ -96,27 +115,44 @@ Generates annotation markers from event data with duration filtering and occurre
    - Second "Contribute" in supergame1 → `Contribute_2`
 
 ### Configuration
-Edit global constants if needed:
 
-```python
-INPUT_FILENAME = "edited_data_output.csv"
-OUTPUT_FILENAME = "annotation_generated.csv"
-DURATION_THRESHOLD_MS = 1000  # Minimum event duration in milliseconds
+**Command-line Arguments (recommended):**
+
+```bash
+rye run python annotations/generate_annotations.py \
+  --input "/path/to/edited_data_output.csv" \
+  --output "/path/to/annotation_generated.csv" \
+  --duration-threshold 1000
 ```
+
+**Default Values:**
+- `--input`: `annotations/edited_data_output.csv` (script-relative path)
+- `--output`: `annotations/annotation_generated.csv` (script-relative path)
+- `--duration-threshold`: `1000` (milliseconds)
 
 ### Usage
 
-Basic usage:
+**Run with default paths:**
+
 ```bash
 cd /Users/caleb/Research/emotionsgame_5/analysis
 rye run python annotations/generate_annotations.py
 ```
 
-With custom filenames:
+**Run with custom paths:**
+
 ```bash
+cd /Users/caleb/Research/emotionsgame_5/analysis
 rye run python annotations/generate_annotations.py \
-  --input edited_data_output.csv \
-  --output my_annotations.csv
+  --input "/custom/path/edited_data_output.csv" \
+  --output "/custom/path/my_annotations.csv" \
+  --duration-threshold 500
+```
+
+**Run with just a different threshold:**
+
+```bash
+rye run python annotations/generate_annotations.py --duration-threshold 2000
 ```
 
 ### Output Format

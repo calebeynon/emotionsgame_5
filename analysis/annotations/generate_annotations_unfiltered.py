@@ -1,11 +1,11 @@
 """
-Generate annotation CSV from edited_data_output.csv
+Generate annotation CSV from edited_data_output.csv (unfiltered version)
 
 Transforms page event data into annotation format with:
 - Respondent name mapping (participant_id_in_session -> A1, B1, etc.)
 - Marker names with occurrence counters within supergames
 - Start/end times calculated from successive page timestamps
-- Filtering for events > 1 second duration
+- NO duration filtering (includes all events regardless of duration)
 """
 
 import argparse
@@ -17,8 +17,7 @@ from pathlib import Path
 # Global constants
 SCRIPT_DIR = Path(__file__).parent.resolve()
 DEFAULT_INPUT = str((SCRIPT_DIR / "edited_data_output.csv").resolve())
-DEFAULT_OUTPUT = str((SCRIPT_DIR / "annotation_generated.csv").resolve())
-DEFAULT_DURATION_THRESHOLD_MS = 1000
+DEFAULT_OUTPUT = str((SCRIPT_DIR / "annotation_generated_unfiltered.csv").resolve())
 RESPONDENT_LABELS = ["A", "B", "C", "D", "E", "F", "G", "H", "J", "K", "L", "M", "N", "P", "Q", "R"]
 SEG_ROUND_NUMS = [3,4,3,7,5]
 
@@ -92,13 +91,32 @@ def id_to_respondent(pid, session_num):
 
 
 def compute_durations(df, time_col):
-    """Compute start/end times and durations for each page event."""
+    """Compute start/end times and durations for each page event.
+    
+    Timestamps in the input data represent page completion times.
+    For each event/page:
+    - start_time_ms = previous page's completion time (within same participant)
+    - end_time_ms = current page's completion time
+    - First event per participant has start_time_ms == end_time_ms (zero duration)
+    """
+    # Ensure proper sorting by participant and timestamp
     df = df.sort_values(['participant_id_in_session', time_col]).reset_index(drop=True)
     
-    df['start_time_ms'] = df[time_col].astype(int)
-    df['end_time_ms'] = df.groupby('participant_id_in_session')[time_col].shift(-1)
-    df['end_time_ms'] = df['end_time_ms'].fillna(df['start_time_ms']).astype(int)
+    # Convert timestamp to integer milliseconds
+    df[time_col] = df[time_col].astype(int)
+    
+    # FIXED: start_time is previous row's timestamp, end_time is current row's timestamp
+    df['start_time_ms'] = df.groupby('participant_id_in_session')[time_col].shift(1)
+    df['end_time_ms'] = df[time_col]
+    
+    # For first row per participant, set start_time equal to end_time (zero duration)
+    df['start_time_ms'] = df['start_time_ms'].fillna(df['end_time_ms']).astype(int)
+    
+    # Compute duration
     df['duration_ms'] = df['end_time_ms'] - df['start_time_ms']
+    
+    # Sanity checks
+    assert (df['duration_ms'] >= 0).all(), "Found negative durations"
     
     return df
 
@@ -204,7 +222,7 @@ def build_marker_names(df):
 def parse_arguments():
     """Parse command line arguments."""
     parser = argparse.ArgumentParser(
-        description="Generate annotation CSV from edited data output with duration filtering."
+        description="Generate annotation CSV from edited data output WITHOUT duration filtering."
     )
     parser.add_argument(
         "--input",
@@ -217,12 +235,6 @@ def parse_arguments():
         type=str,
         default=DEFAULT_OUTPUT,
         help=f"Full path to output CSV file (default: {DEFAULT_OUTPUT})"
-    )
-    parser.add_argument(
-        "--duration-threshold",
-        type=int,
-        default=DEFAULT_DURATION_THRESHOLD_MS,
-        help=f"Duration threshold in milliseconds (default: {DEFAULT_DURATION_THRESHOLD_MS})"
     )
     return parser.parse_args()
 
@@ -258,15 +270,14 @@ def main():
     
     input_path = Path(args.input)
     output_path = Path(args.output)
-    duration_threshold = args.duration_threshold
     
     # Extract session number from input filename
     session_num = extract_session_number(input_path.name)
     
     print(f"Loading data from: {input_path}")
     print(f"Output path: {output_path}")
-    print(f"Duration threshold: {duration_threshold}ms")
-    print(f"Detected session number: {session_num}\n")
+    print(f"Detected session number: {session_num}")
+    print("NOTE: This script does NOT filter by duration threshold\n")
     
     df = load_data(input_path)
     print(f"Loaded {len(df)} rows")
@@ -282,10 +293,7 @@ def main():
     
     df = build_marker_names(df)
     
-    df_filtered = df[df['duration_ms'] > duration_threshold].copy()
-    print(f"After filtering (duration > {duration_threshold}ms): {len(df_filtered)} rows")
-    
-    output = assemble_output(df_filtered)
+    output = assemble_output(df)
     
     print("\nSample output (first 5 rows):")
     print(output.head())

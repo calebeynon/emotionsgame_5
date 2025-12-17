@@ -8,6 +8,7 @@ This script processes PageTimes CSV data by:
 4. Adding derived time columns (date time, gmt, LOCAL, RECORDING, and unnamed L/M/N)
 """
 
+import argparse
 import re
 import sys
 from datetime import datetime
@@ -17,11 +18,11 @@ import pandas as pd
 from dateutil import parser as date_parser
 
 # GLOBAL CONFIGURATION
-PATH_PAGETIMES = "/Users/caleb/Research/emotionsgame_5/analysis/datastore/annotations/PageTimes-2025-09-11.csv"
-PATH_TIMESHEET = "/Users/caleb/Research/emotionsgame_5/analysis/datastore/timesheet.xlsx"
-PATH_OUTPUT = "/Users/caleb/Research/emotionsgame_5/analysis/datastore/annotations/edited_data_output.csv"
+DEFAULT_PAGETIMES = "/Users/caleb/Research/emotionsgame_5/analysis/datastore/annotations/PageTimes-2025-09-11.csv"
+DEFAULT_TIMESHEET = "/Users/caleb/Research/emotionsgame_5/analysis/datastore/timesheet.xlsx"
+DEFAULT_OUTPUT = "/Users/caleb/Research/emotionsgame_5/analysis/datastore/annotations/edited_data_output.csv"
 TZ_NAME = "America/Chicago"
-CDT_OFFSET_HOURS = 5
+CST_OFFSET_HOURS = 6
 LETTER_TO_ID = {
     "A": 1, "B": 2, "C": 3, "D": 4, "E": 5, "F": 6, "G": 7, "H": 8,
     "J": 9, "K": 10, "L": 11, "M": 12, "N": 13, "P": 14, "Q": 15, "R": 16
@@ -94,13 +95,13 @@ def load_timesheet(path):
     
     recording_map = {}
     
-    # Extract columns D (index 3) and E (index 4)
+    # Extract columns C (index 2) and D (index 3)
     for idx, row in df.iterrows():
         if idx < 2:  # Skip header rows
             continue
         
-        participant_letter = str(row.get(3, "")).strip().upper()
-        start_time_str = row.get(4)
+        participant_letter = str(row.get(2, "")).strip().upper()
+        start_time_str = row.get(3)
         
         if participant_letter in LETTER_TO_ID and start_time_str:
             participant_id = LETTER_TO_ID[participant_letter]
@@ -168,8 +169,8 @@ def add_time_columns(df, recording_map):
     # I: gmt (same as H)
     df["gmt"] = df["date time"]
     
-    # J: LOCAL (CDT offset)
-    df["LOCAL"] = df["date time"] - (CDT_OFFSET_HOURS / 24.0)
+    # J: LOCAL (CST offset)
+    df["LOCAL"] = df["date time"] - (CST_OFFSET_HOURS / 24.0)
     
     # K: RECORDING (from timesheet)
     df["RECORDING"] = df["participant_id_in_session"].map(recording_map)
@@ -281,13 +282,44 @@ def write_output_csv(df, path, session_code):
                   f"M={str(m_val)[:8]:8s} N={str(n_val)[:10]:10s}")
 
 
+def parse_arguments():
+    """Parse command line arguments."""
+    parser = argparse.ArgumentParser(
+        description="Transform PageTimes CSV to edited data format with time calculations."
+    )
+    parser.add_argument(
+        "--pagetimes",
+        type=str,
+        default=DEFAULT_PAGETIMES,
+        help=f"Path to PageTimes CSV file (default: {DEFAULT_PAGETIMES})"
+    )
+    parser.add_argument(
+        "--timesheet",
+        type=str,
+        default=DEFAULT_TIMESHEET,
+        help=f"Path to timesheet Excel file (default: {DEFAULT_TIMESHEET})"
+    )
+    parser.add_argument(
+        "--output",
+        type=str,
+        default=DEFAULT_OUTPUT,
+        help=f"Path for output CSV file (default: {DEFAULT_OUTPUT})"
+    )
+    return parser.parse_args()
+
+
 def main():
     """Main execution function."""
+    args = parse_arguments()
+    
     print("Starting PageTimes to Edited Data transformation\n")
+    print(f"Input PageTimes: {args.pagetimes}")
+    print(f"Input Timesheet: {args.timesheet}")
+    print(f"Output Path: {args.output}\n")
     
     # Load inputs
-    df = load_pagetimes(PATH_PAGETIMES)
-    recording_map = load_timesheet(PATH_TIMESHEET)
+    df = load_pagetimes(args.pagetimes)
+    recording_map = load_timesheet(args.timesheet)
     
     # Transform data
     df, session_code = filter_most_recent_session(df)
@@ -297,7 +329,7 @@ def main():
     df = build_output_frame(df)
     
     # Write output
-    write_output_csv(df, PATH_OUTPUT, session_code)
+    write_output_csv(df, args.output, session_code)
     
     print(f"\n{'='*60}")
     print("Transformation complete!")
