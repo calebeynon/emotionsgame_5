@@ -76,6 +76,8 @@ Each supergame app follows this structure:
 
 ## Analysis Module
 
+**Use `/experiment-data` skill when working with the `experiment_data.py` data object.**
+
 ### Data Loading
 ```python
 from experiment_data import load_experiment_data
