@@ -41,7 +41,7 @@ staticfiles/
 # Data files (per user rules)
 *.h5
 *.csv
-analysis/
+*.png
 
 # IDE
 .vscode/

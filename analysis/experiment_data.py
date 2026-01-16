@@ -538,7 +538,8 @@ def load_chat_data(chat_csv_path: str) -> Dict[int, Dict[int, Dict[str, List[Cha
     print(f"Loaded {len(chat_df)} chat messages")
     
     # Parse channel information to extract supergame and chatgroup
-    channel_pattern = re.compile(r'^1\-supergame(\d+)\-(.+)$')
+    # Channel format: {session_num}-supergame{N}-{chatgroup}
+    channel_pattern = re.compile(r'^\d+\-supergame(\d+)\-(\d+)$')
     
     chat_data = {}  # supergame -> chatgroup -> nickname -> [ChatMessage]
     
@@ -770,8 +771,8 @@ def _load_single_session_data(csv_path: str, chat_csv_path: Optional[str] = None
                     # Use first player in group to get group data (skip NaN labels)
                     first_player_row = None
                     for _, row in df.iterrows():
-                        if (not pd.isna(row.get(f'{segment_name}.{round_num}.player.id_in_group')) and
-                            int(row[f'{segment_name}.{round_num}.player.id_in_group']) == group_id and
+                        if (not pd.isna(row.get(f'{segment_name}.{round_num}.group.id_in_subsession')) and
+                            int(row[f'{segment_name}.{round_num}.group.id_in_subsession']) == group_id and
                             pd.notna(row['participant.label'])):
                             first_player_row = row
                             break
