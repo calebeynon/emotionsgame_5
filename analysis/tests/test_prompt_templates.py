@@ -80,7 +80,8 @@ class TestBuildClassificationPrompt:
 
         prompt = build_classification_prompt(message, context)
 
-        assert "EDGE CASES" in prompt
+        assert "IMPORTANT - WHAT IS A PROMISE" in prompt
+        assert "IMPORTANT - WHAT IS NOT A PROMISE" in prompt
         assert "okay" in prompt.lower() or "yes" in prompt.lower()
         assert "sounds good" in prompt.lower()
         assert "proposal" in prompt.lower()

@@ -134,6 +134,6 @@ def _classify_with_retry(model, prompt: str) -> dict:
 
 def _parse_classification(response_text: str) -> int:
     """Parse LLM response to extract 0 or 1 classification."""
-    if "1" in response_text:
+    if response_text.strip() == "1":
         return 1
     return 0

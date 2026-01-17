@@ -138,7 +138,7 @@ def _make_api_call(client: anthropic.Anthropic, prompt: str) -> dict[str, Any]:
 
 def _parse_response(raw: str) -> int:
     """Parse API response to get 0 or 1 classification."""
-    if '1' in raw:
+    if raw.strip() == '1':
         return 1
     return 0
 
