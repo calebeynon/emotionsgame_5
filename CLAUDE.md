@@ -26,6 +26,7 @@ uv run otree zip
 # Analysis (run from analysis/ directory)
 uv run python analysis/analysis_plots.py
 uv run python analysis/multi_session_analysis.py
+uv run python analysis/classify_promises.py
 uv run python annotations/build_edited_data_csv.py
 uv run python annotations/generate_annotations.py
 ```
