@@ -1,8 +1,8 @@
 """
 Promise classification script for experimental chat messages.
 
-Iterates through experiment data, classifies each message using dual LLM
-classifiers (OpenAI + Anthropic), and outputs aggregated player-round level results.
+Iterates through experiment data, classifies each message using OpenAI GPT-5-mini,
+and outputs aggregated player-round level results.
 
 Author: Claude Code
 Date: 2026-01-16
@@ -11,6 +11,7 @@ Date: 2026-01-16
 import json
 import sys
 from pathlib import Path
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from dotenv import load_dotenv
 import pandas as pd
@@ -27,8 +28,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 sys.path.insert(0, str(Path(__file__).parent))
 
 from experiment_data import load_experiment_data, Experiment
-from dual_classifier import classify_batch_parallel, calculate_agreement_rate
-from llm_clients import get_openai_cost_estimate, get_anthropic_cost_estimate
+from llm_clients import classify_promise_openai, get_openai_cost_estimate
 
 # FILE PATHS
 DATA_DIR = Path(__file__).parent.parent / 'datastore'
@@ -123,17 +123,13 @@ def print_cost_estimate(total_messages: int, messages_data: list):
     """Print cost estimate for the classification run."""
     avg_context = calculate_avg_context(messages_data)
     openai_cost = get_openai_cost_estimate(total_messages, avg_context)
-    anthropic_cost = get_anthropic_cost_estimate(total_messages, avg_context)
-    total_cost = openai_cost['estimated_cost_usd'] + anthropic_cost['estimated_cost_usd']
 
     log("\n" + "=" * 50)
     log("COST ESTIMATE")
     log("=" * 50)
     log(f"Messages to classify: {total_messages}")
     log(f"Average context length: {avg_context:.1f} messages")
-    log(f"\nOpenAI estimated cost: ${openai_cost['estimated_cost_usd']:.4f}")
-    log(f"Anthropic estimated cost: ${anthropic_cost['estimated_cost_usd']:.4f}")
-    log(f"Total estimated cost: ${total_cost:.4f}")
+    log(f"OpenAI (GPT-5-mini) estimated cost: ${openai_cost['estimated_cost_usd']:.4f}")
     log("=" * 50 + "\n")
 
 
@@ -155,11 +151,36 @@ def calculate_avg_context(messages_data: list) -> float:
 def classify_all_messages(messages_data: list, max_workers: int = 20) -> list:
     """Classify all messages in parallel and aggregate to player-round level."""
     flat_messages, index_map = flatten_messages(messages_data)
-    log(f"Classifying {len(flat_messages)} messages with {max_workers} workers...")
+    log(f"Classifying {len(flat_messages)} messages with OpenAI GPT-5-mini using {max_workers} workers...")
 
-    classifications = classify_batch_parallel(flat_messages, max_workers=max_workers)
+    classifications = classify_messages_parallel(flat_messages, max_workers=max_workers)
 
     return aggregate_results(messages_data, classifications, index_map)
+
+
+def classify_messages_parallel(messages: list, max_workers: int = 20) -> list:
+    """Classify messages in parallel using OpenAI."""
+    results = []
+    completed = 0
+
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        future_to_idx = {
+            executor.submit(classify_promise_openai, msg['message'], msg['context']): idx
+            for idx, msg in enumerate(messages)
+        }
+
+        for future in as_completed(future_to_idx):
+            idx = future_to_idx[future]
+            result = future.result()
+            results.append((idx, result['classification']))
+
+            completed += 1
+            if completed % 100 == 0:
+                log(f"Processed {completed}/{len(messages)} messages ({completed/len(messages)*100:.1f}%)")
+
+    # Sort by original index and return classifications
+    results.sort(key=lambda x: x[0])
+    return [r[1] for r in results]
 
 
 def flatten_messages(messages_data: list) -> tuple:
@@ -180,20 +201,13 @@ def flatten_messages(messages_data: list) -> tuple:
 
 def aggregate_results(messages_data: list, classifications: list, index_map: list) -> list:
     """Aggregate flat classification results back to player-round level."""
-    player_results = {i: {'cls': [], 'openai': [], 'anthropic': [], 'disputed': 0}
-                      for i in range(len(messages_data))}
+    player_results = {i: [] for i in range(len(messages_data))}
 
-    for cls_idx, result in enumerate(classifications):
+    for cls_idx, classification in enumerate(classifications):
         player_idx = index_map[cls_idx]
-        player_results[player_idx]['cls'].append(result['consensus'])
-        player_results[player_idx]['openai'].append(result['openai'])
-        player_results[player_idx]['anthropic'].append(result['anthropic'])
-        if result['disputed']:
-            player_results[player_idx]['disputed'] += 1
+        player_results[player_idx].append(classification)
 
-    return [build_result_record(messages_data[i], player_results[i]['cls'],
-                                player_results[i]['openai'], player_results[i]['anthropic'],
-                                player_results[i]['disputed'])
+    return [build_result_record(messages_data[i], player_results[i])
             for i in range(len(messages_data))]
 
 
@@ -207,7 +221,7 @@ def build_context(all_group_msgs: list, target_msg: str, target_label: str) -> l
     return context
 
 
-def build_result_record(player_data, classifications, openai_cls, anthropic_cls, disputed) -> dict:
+def build_result_record(player_data, classifications) -> dict:
     """Build final result record for a player-round."""
     promise_count = sum(1 for c in classifications if c == 1)
     message_count = len(classifications)
@@ -224,11 +238,8 @@ def build_result_record(player_data, classifications, openai_cls, anthropic_cls,
         'message_count': message_count,
         'promise_count': promise_count,
         'promise_percentage': promise_count / max(message_count, 1) * 100,
-        'disputed_count': disputed,
         'messages': json.dumps(player_data['messages']),
         'classifications': json.dumps(classifications),
-        'openai_classifications': json.dumps(openai_cls),
-        'anthropic_classifications': json.dumps(anthropic_cls),
     }
 
 
@@ -244,20 +255,19 @@ def save_results(df: pd.DataFrame):
 
 def print_summary(results: list):
     """Print final summary statistics."""
-    all_cls, total_disputed = [], 0
+    all_cls = []
     for r in results:
         all_cls.extend(json.loads(r['classifications']))
-        total_disputed += r['disputed_count']
 
     total = len(all_cls)
-    agreement_rate = (total - total_disputed) / max(total, 1) * 100
+    promises = sum(all_cls)
 
     log("\n" + "=" * 50)
     log("CLASSIFICATION SUMMARY")
     log("=" * 50)
     log(f"Total messages classified: {total}")
-    log(f"Agreement rate: {agreement_rate:.1f}%")
-    log(f"Disputed classifications: {total_disputed}")
+    log(f"Promises identified: {promises} ({promises/max(total,1)*100:.1f}%)")
+    log(f"Non-promises: {total - promises} ({(total-promises)/max(total,1)*100:.1f}%)")
     log("=" * 50)
 
 

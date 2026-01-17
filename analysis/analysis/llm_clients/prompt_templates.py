@@ -123,17 +123,25 @@ def _format_examples() -> str:
 def _get_edge_case_instructions() -> str:
     """Return instructions for handling edge cases."""
     return """IMPORTANT - WHAT IS A PROMISE (classify as 1):
-- Proposals to contribute: "lets all do 25", "everyone put in 25", "I'll do 25"
-- Agreements/affirmations responding to a proposal: "okay", "yes", "sounds good", "I'm in", "deal"
-- Explicit commitments: "I promise to put 25", "I'll contribute everything"
+- Affirmations/agreements responding to a proposal or question in the prior context: "okay", "yes", "sounds good", "I'm in", "deal"
+  * Check the conversation context - if someone proposed an amount or action, affirmations are promises
+- "Same" or "me too" responding to someone else's promise or commitment in the prior context
+- Explicit personal commitments: "I promise to put 25", "I'll contribute everything", "I'll do 25"
+- Proposals that have been accepted by at least one other person in the prior context
 
 IMPORTANT - WHAT IS NOT A PROMISE (classify as 0):
-- Questions with question marks: "lets all do 25?" or "should we do 25?"
+- Initial proposals/suggestions WITHOUT acceptance in the prior context: "lets all do 25", "should we do 25?", "i'm thinking we all give 20"
+  * These become promises only if someone responds with agreement (check the prior context)
+  * Questions about contribution amounts are NOT promises unless accepted by others first
+- Affirmations that are NOT responding to a proposal: "yes" in isolation, "okay" without a prior proposal
 - Statements about current state: "we are in order lol", "we're doing well"
 - Encouragements without commitment: "we should earn max guys", "come on team"
 - Statements about past actions: "I put 20", "I contributed last round"
 - Vague suggestions without commitment: "like around 15-20ish range"
-- General chat unrelated to contributions"""
+- General chat unrelated to contributions
+
+KEY RULE: Context matters! An affirmation like "ok" or "yes" is only a promise if it's responding to a
+proposal or question about contributions in the prior messages."""
 
 
 def _format_context(context: List[Dict[str, str]]) -> str:
