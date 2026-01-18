@@ -4,6 +4,14 @@ Test that promise classification output data matches source experiment data.
 Verifies that contribution, payoff, and message data flow correctly from
 experiment_data.py through the classification pipeline to the output CSV.
 
+Chat Pairing Semantics:
+    Both the CSV and experiment_data.py use the SAME semantics: chat is paired
+    with the round it INFLUENCED. Chat that occurred after round N-1's
+    contribution is stored on round N (because it influenced round N's decision).
+
+    Round 1 has no chat (no prior round to influence it).
+    Last round's chat is stored in segment.orphan_chats (no next round).
+
 Author: Claude Code
 Date: 2026-01-17
 """
@@ -80,9 +88,8 @@ def verify_all_rows(csv_df: pd.DataFrame, experiment) -> None:
             )
             continue
 
-        # Get source messages
-        group = get_player_group(experiment, row)
-        source_messages = get_player_messages(group, row['label'])
+        # Get source messages from same round (both CSV and source use same semantics)
+        source_messages = get_player_messages(experiment, row)
         csv_messages = json.loads(row['messages'])
 
         # Check each field
@@ -108,22 +115,30 @@ def get_source_player(experiment, row):
     return None
 
 
-def get_player_group(experiment, row):
-    """Get group object containing player."""
+def get_player_messages(experiment, row) -> list:
+    """Get player messages from source data.
+
+    Both CSV and source use the same semantics: chat is paired with the
+    round it influenced. Messages are retrieved directly from the same round.
+    """
     session = experiment.get_session(row['session_code'])
     segment = session.segments[row['segment']]
-    round_obj = segment.rounds[row['round']]
+    round_num = row['round']
+    label = row['label']
 
+    if round_num not in segment.rounds:
+        return []
+
+    round_obj = segment.rounds[round_num]
+
+    # Get messages from player's chat_messages in this round
+    all_msgs = []
     for group in round_obj.groups.values():
-        if row['label'] in group.players:
-            return group
-    return None
-
-
-def get_player_messages(group, label: str) -> list:
-    """Get all messages sent by player in group."""
-    all_msgs = sorted(group.chat_messages, key=lambda m: m.timestamp)
-    return [m.body for m in all_msgs if m.nickname == label]
+        if label in group.players:
+            player_msgs = [m for m in group.chat_messages if m.nickname == label]
+            all_msgs.extend(player_msgs)
+    all_msgs.sort(key=lambda m: m.timestamp)
+    return [m.body for m in all_msgs]
 
 
 def check_field(mismatches: list, row_idx: int, field_name: str, csv_value, source_value):

@@ -260,11 +260,15 @@ class Round:
 
 class Segment:
     """A segment of the experiment (introduction, supergame1-5, finalresults)."""
-    
+
     def __init__(self, name: str):
         self.name = name
         self.rounds: Dict[int, Round] = {}  # round_number -> Round
         self.data = {}
+        # Orphan chats: last-round chats that influenced no subsequent contribution.
+        # Chat occurs after contribution, so last round's chat has no next round to pair with.
+        # Keyed by player label (e.g., "A", "B", etc.)
+        self.orphan_chats: Dict[str, List[ChatMessage]] = {}
     
     def add_round(self, round_obj: Round):
         """Add a round to this segment."""
@@ -282,12 +286,35 @@ class Segment:
                 player_data[round_num] = round_obj.players[label]
         return player_data
     
-    def get_all_chat_messages(self) -> List[ChatMessage]:
-        """Get all chat messages for this segment across all rounds."""
+    def get_all_chat_messages(
+        self, include_orphans: bool = False
+    ) -> List[ChatMessage]:
+        """Get all chat messages for this segment across all rounds.
+
+        Args:
+            include_orphans: If True, include orphan chats from the last round.
+        """
         all_messages = []
         for round_obj in self.rounds.values():
             all_messages.extend(round_obj.chat_messages)
+        if include_orphans:
+            all_messages.extend(self.get_orphan_chats_flat())
         return all_messages
+
+    def get_orphan_chats(self) -> Dict[str, List[ChatMessage]]:
+        """Get orphan chats keyed by player label.
+
+        Orphan chats are last-round chats that influenced no subsequent
+        contribution because the supergame ended.
+        """
+        return self.orphan_chats
+
+    def get_orphan_chats_flat(self) -> List[ChatMessage]:
+        """Get all orphan chat messages as a flat list."""
+        messages: List[ChatMessage] = []
+        for player_messages in self.orphan_chats.values():
+            messages.extend(player_messages)
+        return messages
     
     def get_chat_sentiment(self) -> Optional[SentimentAnalysis]:
         """Get sentiment analysis for all chat messages in this segment."""
@@ -486,22 +513,37 @@ class Experiment:
             return None
         return pd.DataFrame.from_records(records)
     
-    def to_dataframe_chat(self) -> Optional[pd.DataFrame]:
+    def to_dataframe_chat(
+        self, include_orphans: bool = False
+    ) -> Optional[pd.DataFrame]:
         """Flatten chat messages across all sessions into a DataFrame.
-        Columns: session, segment, round, group, player, timestamp, message
-        Returns None if no chat data found.
+
+        Chat messages are stored on the round they INFLUENCED, not the round
+        they occurred in. For example, chat that occurred after round 1's
+        contribution decision is stored on round 2 (because it influenced
+        round 2's contribution). Round 1 has no chat because no prior chat
+        influenced it.
+
+        Args:
+            include_orphans: If True, include orphan chats (last-round chats
+                that influenced no subsequent contribution because the
+                supergame ended). Orphan chats have round=None.
+
+        Returns:
+            DataFrame with columns: session, segment, round, group, player,
+            timestamp, message. Returns None if no chat data found.
         """
         records: List[Dict[str, Any]] = []
         for session_code, session in self.sessions.items():
             for segment_name, segment in session.segments.items():
-                # Only process supergame segments (skip introduction, finalresults, etc.)
+                # Only process supergame segments
                 if not segment_name.startswith('supergame'):
                     continue
-                    
+
+                # Add regular chat messages (assigned to influenced round)
                 for round_num, round_obj in segment.rounds.items():
                     for group_id, group in round_obj.groups.items():
                         for player_label, player in group.players.items():
-                            # Add each chat message for this player
                             for message in player.chat_messages:
                                 records.append({
                                     'session': session_code,
@@ -512,7 +554,30 @@ class Experiment:
                                     'timestamp': message.timestamp,
                                     'message': message.body
                                 })
-        
+
+                # Add orphan chats if requested
+                if include_orphans and segment.orphan_chats:
+                    # Get last round's group assignments for player->group mapping
+                    max_round = max(segment.rounds.keys())
+                    last_round = segment.get_round(max_round)
+
+                    for player_label, messages in segment.orphan_chats.items():
+                        # Find group_id from last round
+                        group_id = None
+                        if last_round and player_label in last_round.players:
+                            group_id = last_round.players[player_label].group_id
+
+                        for message in messages:
+                            records.append({
+                                'session': session_code,
+                                'segment': segment_name,
+                                'round': None,  # Orphan: no influenced round
+                                'group': group_id,
+                                'player': player_label,
+                                'timestamp': message.timestamp,
+                                'message': message.body
+                            })
+
         if not records:
             return None
         return pd.DataFrame.from_records(records)
@@ -577,77 +642,99 @@ def load_chat_data(chat_csv_path: str) -> Dict[int, Dict[int, Dict[str, List[Cha
 def assign_chat_messages(session: Session, chat_data: Dict[int, Dict[int, Dict[str, List[ChatMessage]]]]):
     """
     Assign chat messages to the appropriate groups and players.
-    
+
+    Chat happens AFTER contribution decisions, so chat from round N influences
+    round N+1's contribution. Therefore:
+    - Round 1 gets EMPTY chat_messages (no prior chat influenced it)
+    - Round N (N>1) gets chat from round N-1
+    - Last round's chat goes to segment.orphan_chats (no subsequent round)
+
     The chatgroup numbering system:
     - Each round has 4 consecutive chatgroup numbers (for 4 groups)
     - Round 1: chatgroups N, N+1, N+2, N+3
     - Round 2: chatgroups N+4, N+5, N+6, N+7
     - Round 3: chatgroups N+8, N+9, N+10, N+11
     - And so on...
-    
+
     Args:
         session: Session object with loaded experimental data
         chat_data: Chat data organized by supergame and chatgroup
     """
     print("Assigning chat messages to groups and players...")
-    
+
     for supergame_num in chat_data.keys():
         supergame = session.get_supergame(supergame_num)
         if not supergame:
             continue
-            
+
         # Get chat data for this supergame
         sg_chat_data = chat_data[supergame_num]
         chatgroups = sorted(sg_chat_data.keys())
-        
+
         if not chatgroups:
             continue
-            
+
         # Find the starting chatgroup number for this supergame
         min_chatgroup = min(chatgroups)
-        
-        # Map chatgroups to rounds and groups
-        for round_num in sorted(supergame.rounds.keys()):
-            round_obj = supergame.get_round(round_num)
-            if not round_obj:
-                continue
-            
-            # Calculate the chatgroup range for this round
-            # Round 1: min_chatgroup to min_chatgroup + 3
-            # Round 2: min_chatgroup + 4 to min_chatgroup + 7
-            # Round 3: min_chatgroup + 8 to min_chatgroup + 11
-            round_start_chatgroup = min_chatgroup + (round_num - 1) * 4
+
+        # Determine max round for this supergame
+        max_round = max(supergame.rounds.keys())
+
+        # Process chat from each round and assign to the NEXT round
+        for source_round_num in sorted(supergame.rounds.keys()):
+            # Calculate the chatgroup range for this source round
+            round_start_chatgroup = min_chatgroup + (source_round_num - 1) * 4
             round_chatgroups = list(range(round_start_chatgroup, round_start_chatgroup + 4))
-            
+
+            # Determine target round (next round) or orphan status
+            is_last_round = (source_round_num == max_round)
+            target_round_num = source_round_num + 1
+            target_round = supergame.get_round(target_round_num) if not is_last_round else None
+
             # Map each chatgroup to a game group
             for i, chatgroup_id in enumerate(round_chatgroups):
-                if chatgroup_id in sg_chat_data:
-                    game_group_id = i + 1  # Game groups are numbered 1-4
-                    game_group = round_obj.get_group(game_group_id)
-                    
-                    if game_group:
-                        # Get all chat messages for this chatgroup
-                        for nickname, messages in sg_chat_data[chatgroup_id].items():
+                if chatgroup_id not in sg_chat_data:
+                    continue
+
+                game_group_id = i + 1  # Game groups are numbered 1-4
+
+                # Get all chat messages for this chatgroup
+                for nickname, messages in sg_chat_data[chatgroup_id].items():
+                    if is_last_round:
+                        # Last round chat goes to orphan_chats
+                        if nickname not in supergame.orphan_chats:
+                            supergame.orphan_chats[nickname] = []
+                        supergame.orphan_chats[nickname].extend(messages)
+                    else:
+                        # Assign to next round
+                        target_group = target_round.get_group(game_group_id)
+
+                        if target_group:
                             # Add messages to group
-                            game_group.chat_messages.extend(messages)
-                            
-                            # Add messages to individual player if they exist in this group
-                            if nickname in game_group.players:
-                                player = game_group.players[nickname]
+                            target_group.chat_messages.extend(messages)
+
+                            # Add messages to individual player
+                            if nickname in target_group.players:
+                                player = target_group.players[nickname]
                                 player.chat_messages.extend(messages)
-                            
+
                             # Add messages to round
-                            round_obj.chat_messages.extend(messages)
-    
+                            target_round.chat_messages.extend(messages)
+
     # Sort chat messages by timestamp
     for segment in session.segments.values():
+        # Sort orphan chats
+        for nickname in segment.orphan_chats:
+            segment.orphan_chats[nickname].sort(key=lambda x: x.timestamp)
+
+        # Sort round/group/player chat messages
         for round_obj in segment.rounds.values():
             round_obj.chat_messages.sort(key=lambda x: x.timestamp)
             for group in round_obj.groups.values():
                 group.chat_messages.sort(key=lambda x: x.timestamp)
                 for player in group.players.values():
                     player.chat_messages.sort(key=lambda x: x.timestamp)
-    
+
     print(f"Chat assignment complete!")
 
 

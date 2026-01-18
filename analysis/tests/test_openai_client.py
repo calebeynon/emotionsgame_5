@@ -13,8 +13,8 @@ from unittest.mock import MagicMock, patch
 import sys
 from pathlib import Path
 
-# Add analysis directory to path
-sys.path.insert(0, str(Path(__file__).parent.parent / "analysis"))
+# Add derived directory to path (where llm_clients package lives)
+sys.path.insert(0, str(Path(__file__).parent.parent / "derived"))
 
 from llm_clients.openai_client import (
     classify_promise_openai,

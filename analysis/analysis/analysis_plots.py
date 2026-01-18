@@ -12,7 +12,7 @@ This script generates comprehensive plots including:
   * Correlation between chat activity and group contributions
 - Sentiment analysis:
   * Distribution of sentiment scores across all messages
-  * Correlation between sentiment in round t-1 and contribution in round t
+  * Correlation between pre-contribution chat sentiment and contribution decisions
   * Box plots of sentiment scores grouped by supergame
 """
 
@@ -807,110 +807,108 @@ Negative: {negative_msgs} ({negative_msgs/len(all_sentiments)*100:.1f}%)"""
 
 
 def plot_sentiment_contribution_correlation(session):
-    """Plot correlation between player sentiment in round t-1 and contribution in round t."""
+    """
+    Plot correlation between pre-contribution chat sentiment and contribution decisions.
+
+    Chat is paired with the round it INFLUENCED: round N's chat_messages contains
+    the chat that preceded round N's contribution decision. Round 1 has no chat
+    (nothing preceded it), so we skip round 1 in this analysis.
+    """
     print("Generating sentiment-contribution correlation plot...")
-    
-    # Collect data points: sentiment in round t-1 vs contribution in round t
-    sentiment_t_minus_1 = []
-    contribution_t = []
+
+    sentiments = []
+    contributions = []
     supergame_labels = []
     player_labels = []
-    
     color_map = {1: 'red', 2: 'blue', 3: 'green', 4: 'orange', 5: 'purple'}
-    
+
     for sg_num in range(1, 6):
         sg = session.get_supergame(sg_num)
-        if sg and len(sg.rounds) > 1:  # Need at least 2 rounds for t-1 and t
-            # For each player, look at their sentiment in round t-1 and contribution in round t
+        if not sg:
+            continue
+
+        for round_num in sorted(sg.rounds.keys()):
+            # Skip round 1 - no chat preceded it
+            if round_num == 1:
+                continue
+
+            round_obj = sg.get_round(round_num)
+            if not round_obj:
+                continue
+
             for player_label in session.participant_labels.values():
-                rounds = sorted(sg.rounds.keys())
-                
-                for i in range(1, len(rounds)):  # Start from second round
-                    round_t_minus_1 = sg.get_round(rounds[i-1])
-                    round_t = sg.get_round(rounds[i])
-                    
-                    if (round_t_minus_1 and round_t and 
-                        player_label in round_t_minus_1.players and 
-                        player_label in round_t.players):
-                        
-                        player_prev = round_t_minus_1.players[player_label]
-                        player_curr = round_t.players[player_label]
-                        
-                        # Get sentiment from previous round
-                        prev_sentiment = player_prev.get_chat_sentiment()
-                        
-                        if (prev_sentiment and prev_sentiment.message_count > 0 and 
-                            player_curr.contribution is not None):
-                            
-                            sentiment_t_minus_1.append(prev_sentiment.compound)
-                            contribution_t.append(player_curr.contribution)
-                            supergame_labels.append(sg_num)
-                            player_labels.append(player_label)
-    
-    if len(sentiment_t_minus_1) < 2:
+                if player_label not in round_obj.players:
+                    continue
+
+                player = round_obj.players[player_label]
+                sentiment = player.get_chat_sentiment()
+
+                # Only include if player has chat messages and a contribution
+                if sentiment and sentiment.message_count > 0 and player.contribution is not None:
+                    sentiments.append(sentiment.compound)
+                    contributions.append(player.contribution)
+                    supergame_labels.append(sg_num)
+                    player_labels.append(player_label)
+
+    if len(sentiments) < 2:
         print("Insufficient data for sentiment-contribution correlation!")
         return
-    
-    # Calculate correlation
-    from scipy.stats import pearsonr
-    correlation, p_value = pearsonr(sentiment_t_minus_1, contribution_t)
-    
-    # Create plot
+
+    correlation, p_value = pearsonr(sentiments, contributions)
+
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 6))
-    
+
     # Scatter plot colored by supergame
     for sg_num in range(1, 6):
         sg_color = color_map[sg_num]
-        sg_sentiment = [sentiment_t_minus_1[i] for i, sg in enumerate(supergame_labels) if sg == sg_num]
-        sg_contrib = [contribution_t[i] for i, sg in enumerate(supergame_labels) if sg == sg_num]
-        
+        sg_sentiment = [sentiments[i] for i, sg in enumerate(supergame_labels) if sg == sg_num]
+        sg_contrib = [contributions[i] for i, sg in enumerate(supergame_labels) if sg == sg_num]
+
         if sg_sentiment:
-            ax1.scatter(sg_sentiment, sg_contrib, c=sg_color, alpha=0.7, 
+            ax1.scatter(sg_sentiment, sg_contrib, c=sg_color, alpha=0.7,
                        label=f'Supergame {sg_num}', s=60)
-    
+
     # Add trend line
-    if len(sentiment_t_minus_1) > 1:
-        z = np.polyfit(sentiment_t_minus_1, contribution_t, 1)
+    if len(sentiments) > 1:
+        z = np.polyfit(sentiments, contributions, 1)
         p = np.poly1d(z)
-        x_trend = np.linspace(min(sentiment_t_minus_1), max(sentiment_t_minus_1), 100)
+        x_trend = np.linspace(min(sentiments), max(sentiments), 100)
         ax1.plot(x_trend, p(x_trend), "k--", alpha=0.8, linewidth=2)
-    
-    ax1.set_xlabel('Player Sentiment in Round t-1')
-    ax1.set_ylabel('Player Contribution in Round t')
-    ax1.set_title(f'Sentiment → Contribution Correlation\n(r = {correlation:.3f}, p = {p_value:.3f})', 
+
+    ax1.set_xlabel('Pre-Contribution Chat Sentiment')
+    ax1.set_ylabel('Player Contribution')
+    ax1.set_title(f'Chat Sentiment vs Contribution\n(r = {correlation:.3f}, p = {p_value:.3f})',
                  fontweight='bold')
     ax1.legend()
     ax1.grid(True, alpha=0.3)
-    
-    # Histogram of sentiment scores used
-    ax2.hist(sentiment_t_minus_1, bins=20, alpha=0.7, color='skyblue', edgecolor='black')
-    ax2.set_xlabel('Sentiment Score (t-1)')
+
+    ax2.hist(sentiments, bins=20, alpha=0.7, color='skyblue', edgecolor='black')
+    ax2.set_xlabel('Chat Sentiment Score')
     ax2.set_ylabel('Frequency')
     ax2.set_title('Distribution of Sentiment Scores\nUsed in Correlation', fontweight='bold')
     ax2.grid(True, alpha=0.3, axis='y')
-    
-    # Add statistics text
+
     stats_text = f"""Correlation Analysis:
 Pearson r = {correlation:.3f}
 p-value = {p_value:.3f}
-Sample size = {len(sentiment_t_minus_1)} observations
+Sample size = {len(sentiments)} observations
 
-Mean sentiment (t-1): {np.mean(sentiment_t_minus_1):.3f}
-Mean contribution (t): {np.mean(contribution_t):.1f}
+Mean sentiment: {np.mean(sentiments):.3f}
+Mean contribution: {np.mean(contributions):.1f}
 
 Interpretation:
 {'Strong' if abs(correlation) >= 0.5 else 'Moderate' if abs(correlation) >= 0.3 else 'Weak'} {'positive' if correlation > 0 else 'negative'} correlation
-{'Significant' if p_value < 0.05 else 'Not significant'} at α = 0.05"""
-    
-    ax2.text(0.02, 0.98, stats_text, transform=ax2.transAxes, 
+{'Significant' if p_value < 0.05 else 'Not significant'} at alpha = 0.05"""
+
+    ax2.text(0.02, 0.98, stats_text, transform=ax2.transAxes,
             verticalalignment='top', horizontalalignment='left',
             bbox=dict(boxstyle='round', facecolor='white', alpha=0.9),
             fontsize=9)
-    
+
     plt.tight_layout()
     plt.savefig(f'{OUTPUT_DIR}/sentiment_contribution_correlation.png', dpi=300, bbox_inches='tight')
     print(f"Saved: {OUTPUT_DIR}/sentiment_contribution_correlation.png")
-    print(f"Sentiment → Contribution correlation: r = {correlation:.3f}, p = {p_value:.3f}")
+    print(f"Chat Sentiment vs Contribution correlation: r = {correlation:.3f}, p = {p_value:.3f}")
     plt.close()
 
 

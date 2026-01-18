@@ -145,3 +145,96 @@ def sample_experiment(t1_session_paths: tuple, t2_session_paths: tuple) -> Exper
     file_pairs.append((str(t2_data), t2_chat_str, 2))
 
     return load_experiment_data(file_pairs, name="Sample Experiment")
+
+
+# =====
+# Chat pairing verification helpers
+# =====
+@pytest.fixture
+def chat_pairing_helper():
+    """Provide helper functions for verifying chat-round pairing semantics.
+
+    Chat-round pairing rules:
+    - Round 1 of each supergame has empty chat_messages
+    - Round N (N>1) has chat from round N-1 (chat influences next decision)
+    - Last round's chat is in segment.orphan_chats (no subsequent round)
+    - segment.get_all_chat_messages(include_orphans=True) returns all messages
+    """
+    class ChatPairingHelper:
+        """Helper class for chat pairing verification."""
+
+        @staticmethod
+        def get_all_session_chats(session: Session, include_orphans: bool = True):
+            """Get all chat messages from a session's supergames.
+
+            Args:
+                session: Session object to extract chats from
+                include_orphans: Include orphan chats from last rounds
+
+            Returns:
+                List of all ChatMessage objects
+            """
+            all_messages = []
+            for segment in session.segments.values():
+                if segment.name.startswith('supergame'):
+                    all_messages.extend(
+                        segment.get_all_chat_messages(include_orphans=include_orphans)
+                    )
+            return all_messages
+
+        @staticmethod
+        def verify_round1_has_no_chat(session: Session) -> list:
+            """Verify round 1 of each supergame has empty chat_messages.
+
+            Returns:
+                List of violations (empty if all pass)
+            """
+            violations = []
+            for sg_num in range(1, 6):
+                supergame = session.get_supergame(sg_num)
+                if supergame is None:
+                    continue
+                round1 = supergame.get_round(1)
+                if round1 and len(round1.chat_messages) > 0:
+                    violations.append({
+                        'supergame': sg_num,
+                        'round': 1,
+                        'chat_count': len(round1.chat_messages)
+                    })
+            return violations
+
+        @staticmethod
+        def get_orphan_chat_counts(session: Session) -> dict:
+            """Get orphan chat counts per supergame.
+
+            Returns:
+                Dict mapping supergame number to orphan chat count
+            """
+            counts = {}
+            for sg_num in range(1, 6):
+                supergame = session.get_supergame(sg_num)
+                if supergame is None:
+                    continue
+                counts[sg_num] = len(supergame.get_orphan_chats_flat())
+            return counts
+
+        @staticmethod
+        def verify_chat_message_totals(session: Session, raw_chat_df) -> dict:
+            """Compare loaded chat totals with raw CSV.
+
+            Must include orphans to match raw CSV totals.
+
+            Returns:
+                Dict with 'loaded', 'raw', and 'match' keys
+            """
+            loaded_count = len(
+                ChatPairingHelper.get_all_session_chats(session, include_orphans=True)
+            )
+            raw_count = len(raw_chat_df)
+            return {
+                'loaded': loaded_count,
+                'raw': raw_count,
+                'match': loaded_count == raw_count
+            }
+
+    return ChatPairingHelper()

@@ -4,6 +4,16 @@ Promise classification script for experimental chat messages.
 Iterates through experiment data, classifies each message using OpenAI GPT-5-mini,
 and outputs aggregated player-round level results.
 
+Chat Pairing Semantics:
+    Chat messages are paired with the contribution they INFLUENCED. In the experiment,
+    chat occurs after contribution decisions, so chat from round N influences round N+1.
+    The experiment_data module stores chat on the influenced round:
+    - Round 1 has no chat (nothing preceded it)
+    - Round N (N>1) contains chat that occurred after round N-1's contribution
+
+    This means when we pair chat with contribution in the same round, we are correctly
+    associating promises/chat with the contribution decision they influenced.
+
 Author: Claude Code
 Date: 2026-01-16
 """
@@ -88,7 +98,20 @@ def extract_treatment(filename: str) -> int:
 # Message collection
 # =====
 def collect_all_messages(experiment: Experiment) -> list:
-    """Collect all messages organized by player-round from experiment data."""
+    """Collect all messages organized by player-round from experiment data.
+
+    Chat messages are paired with the contribution they influenced. The experiment_data
+    module stores chat on the round it influenced (round N's chat_messages contains
+    chat that preceded round N's contribution decision).
+
+    Round 1 naturally has no chat messages (nothing preceded it), so round 1 players
+    are automatically excluded from the results since we only include players who
+    sent messages (if player_msgs is non-empty).
+
+    Returns:
+        List of dicts, each containing player-round data with messages and the
+        contribution that was influenced by those messages.
+    """
     messages_data = []
     for session_code, session in experiment.sessions.items():
         for segment_name, segment in session.segments.items():
@@ -96,9 +119,11 @@ def collect_all_messages(experiment: Experiment) -> list:
                 continue
             for round_num, round_obj in segment.rounds.items():
                 for group_id, group in round_obj.groups.items():
+                    # Chat messages that influenced THIS round's contribution
                     all_msgs = sorted(group.chat_messages, key=lambda m: m.timestamp)
                     for label, player in group.players.items():
                         player_msgs = [m.body for m in all_msgs if m.nickname == label]
+                        # Only include if player sent messages (round 1 has none)
                         if player_msgs:
                             messages_data.append({
                                 'session_code': session_code,
@@ -108,6 +133,7 @@ def collect_all_messages(experiment: Experiment) -> list:
                                 'group': group_id,
                                 'label': label,
                                 'participant_id': player.participant_id,
+                                # Contribution influenced by the chat messages above
                                 'contribution': player.contribution,
                                 'payoff': player.payoff,
                                 'messages': player_msgs,
@@ -222,7 +248,12 @@ def build_context(all_group_msgs: list, target_msg: str, target_label: str) -> l
 
 
 def build_result_record(player_data, classifications) -> dict:
-    """Build final result record for a player-round."""
+    """Build final result record for a player-round.
+
+    The contribution and payoff in the result are from the round that was
+    INFLUENCED by the classified chat messages. This allows analysis of
+    whether promises correlate with actual contribution behavior.
+    """
     promise_count = sum(1 for c in classifications if c == 1)
     message_count = len(classifications)
     return {
