@@ -8,12 +8,12 @@ from pathlib import Path
 
 import pandas as pd
 
-sys.path.insert(0, str(Path(__file__).parent))
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from experiment_data import load_experiment_data, Experiment
 
 # FILE PATHS
-DATA_DIR = Path(__file__).parent / 'datastore'
+DATA_DIR = Path(__file__).parent.parent / 'datastore'
 RAW_DIR = DATA_DIR / 'raw'
 PROMISE_FILE = DATA_DIR / 'derived' / 'promise_classifications.csv'
 OUTPUT_FILE = DATA_DIR / 'derived' / 'behavior_classifications.csv'

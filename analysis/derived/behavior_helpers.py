@@ -4,11 +4,13 @@ For DataFrame-based operations, see behavior_helpers_df.py.
 Author: Claude Code | Date: 2026-01-17
 """
 
+import sys
 from pathlib import Path
 from typing import List, Dict, Optional
 
 import pandas as pd
 
+sys.path.insert(0, str(Path(__file__).parent.parent))
 from experiment_data import Experiment
 
 # Re-export DataFrame API functions for backwards compatibility

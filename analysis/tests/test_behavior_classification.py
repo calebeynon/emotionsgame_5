@@ -13,8 +13,8 @@ import pandas as pd
 from pathlib import Path
 import sys
 
-# Add parent directory to path for imports
-sys.path.insert(0, str(Path(__file__).parent.parent))
+# Add derived directory to path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent / 'derived'))
 
 from behavior_helpers import (
     is_promise_broken_strict,
