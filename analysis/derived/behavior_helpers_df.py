@@ -122,49 +122,47 @@ def _compute_sucker_for_segment_df(
 ) -> None:
     """Compute sucker flags within a single segment (DataFrame API)."""
     rounds = sorted(segment_df['round'].unique())
-    group_has_liar, player_is_sucker = {}, {}
+    player_is_sucker = {}
 
     for round_num in rounds:
         round_df = segment_df[segment_df['round'] == round_num]
-        if round_num == 1:
-            _process_round_1_sucker_df(result, round_df, threshold_func, group_has_liar, col_name)
-        else:
-            _process_later_round_sucker_df(
-                result, round_df, threshold_func, group_has_liar, player_is_sucker, col_name
-            )
+        _process_round_sucker_df(
+            result, round_df, round_num, threshold_func, player_is_sucker, col_name
+        )
 
 
-def _process_round_1_sucker_df(result, round_df, threshold_func, group_has_liar, col_name):
-    """Process round 1 for sucker classification (DataFrame API)."""
-    for _, row in round_df.iterrows():
-        idx = row.name
-        result.loc[idx, col_name] = False
-
-        group = row['group']
-        if row['made_promise'] and threshold_func(row['contribution']):
-            group_has_liar[group] = True
-
-
-def _process_later_round_sucker_df(
-    result, round_df, threshold_func,
-    group_has_liar, player_is_sucker, col_name
+def _process_round_sucker_df(
+    result, round_df, round_num, threshold_func, player_is_sucker, col_name
 ):
-    """Process rounds after round 1 for sucker classification (DataFrame API)."""
+    """Process a single round for sucker classification (DataFrame API)."""
+    # Find groups with promise-breakers in THIS round only
+    groups_with_liar_this_round = _find_groups_with_liar(round_df, threshold_func)
+
+    # Set flags and check for new suckering events
     for _, row in round_df.iterrows():
         idx = row.name
         label = row['label']
         group = row['group']
 
-        if player_is_sucker.get(label, False):
+        if round_num == 1:
+            result.loc[idx, col_name] = False
+        elif player_is_sucker.get(label, False):
             result.loc[idx, col_name] = True
-        elif group_has_liar.get(group, False) and row['contribution'] == MAX_CONTRIBUTION:
-            result.loc[idx, col_name] = True
-            player_is_sucker[label] = True
         else:
             result.loc[idx, col_name] = False
 
+        # Check if suckered THIS round (contribution 25 + groupmate broke promise)
+        if group in groups_with_liar_this_round and row['contribution'] == MAX_CONTRIBUTION:
+            player_is_sucker[label] = True
+
+
+def _find_groups_with_liar(round_df, threshold_func) -> set:
+    """Find groups that have a promise-breaker in this specific round."""
+    groups = set()
+    for _, row in round_df.iterrows():
         if row['made_promise'] and threshold_func(row['contribution']):
-            group_has_liar[group] = True
+            groups.add(row['group'])
+    return groups
 
 
 # =====

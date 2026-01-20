@@ -485,6 +485,41 @@ class TestNonChatterCanBeSucker:
         assert d_round_2['is_sucker_strict'].iloc[0] == True
 
 
+class TestSuckerRequiresSameRound:
+    """Tests that sucker classification requires same-round broken promise."""
+
+    def test_no_sucker_when_promise_broken_in_prior_round_only(self):
+        """Player is NOT sucker if they contribute 25 when no promise broken THIS round.
+
+        Regression test: Ensures sucker check uses same-round logic, not accumulated
+        group_has_liar from prior rounds.
+        """
+        df = pd.DataFrame({
+            'session_code': ['abc123'] * 4,
+            'treatment': [1] * 4,
+            'segment': ['supergame1'] * 4,
+            'round': [1, 1, 2, 2],
+            'group': [1, 1, 1, 1],
+            'label': ['A', 'B', 'A', 'B'],
+            'participant_id': [1, 2, 1, 2],
+            # Round 1: A breaks promise (contrib 10), B contributes 20 (not suckered)
+            # Round 2: A honors promise (contrib 25), B contributes 25
+            # B should NOT be sucker in round 2 (no promise broken in round 2)
+            'contribution': [10, 20, 25, 25],
+            'made_promise': [True, True, True, True],
+        })
+
+        result = compute_sucker_flags(df, threshold='strict')
+
+        # B round 2: Should NOT be sucker (no promise broken in round 2)
+        b_round_2 = result[(result['label'] == 'B') & (result['round'] == 2)]
+        assert b_round_2['is_sucker_strict'].iloc[0] == False
+
+        # B round 1: Should NOT be sucker (contributed 20, not 25)
+        b_round_1 = result[(result['label'] == 'B') & (result['round'] == 1)]
+        assert b_round_1['is_sucker_strict'].iloc[0] == False
+
+
 class TestNoPromiseNoLiar:
     """Tests that players who never promise cannot be liars."""
 
