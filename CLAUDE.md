@@ -27,6 +27,7 @@ uv run otree zip
 uv run python analysis/analysis_plots.py
 uv run python analysis/multi_session_analysis.py
 uv run python derived/classify_promises.py
+uv run python derived/classify_behavior.py
 uv run python annotations/build_edited_data_csv.py
 uv run python annotations/generate_annotations.py
 ```
@@ -50,8 +51,8 @@ Experiment (multi-session with treatments)
 |-----------|--------|--------------|
 | supergame1 | 3 | 120s first round, 30s after |
 | supergame2 | 4 | 120s first round, 30s after |
-| supergame3 | 4 | 120s first round, 30s after |
-| supergame4 | 4 | 120s first round, 30s after |
+| supergame3 | 3 | 120s first round, 30s after |
+| supergame4 | 7 | 120s first round, 30s after |
 | supergame5 | 5 | 120s first round, 30s after |
 
 Each supergame uses different grouping matrices defined in `creating_session()` to study repeated game effects.
