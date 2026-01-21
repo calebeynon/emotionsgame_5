@@ -26,7 +26,7 @@ from behavior_helpers_df import (
 )
 
 # FILE PATHS
-DEFAULT_PROMISE_FILE = Path(__file__).parent / 'datastore' / 'derived' / 'promise_classifications.csv'
+DEFAULT_PROMISE_FILE = Path(__file__).parent.parent / 'datastore' / 'derived' / 'promise_classifications.csv'
 
 
 # =====
