@@ -9,8 +9,8 @@ import pytest
 import sys
 from pathlib import Path
 
-# Add parent directory to path for imports
-sys.path.insert(0, str(Path(__file__).parent.parent / "analysis" / "llm_clients"))
+# Add derived/llm_clients to path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent / "derived" / "llm_clients"))
 
 from prompt_templates import (
     build_classification_prompt,

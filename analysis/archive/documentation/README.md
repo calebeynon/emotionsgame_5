@@ -23,8 +23,9 @@ df = experiment.to_dataframe_contributions()
 session = experiment.get_session(list(experiment.sessions.keys())[0])
 contribution = session.get_supergame(1).get_round(1).get_player('A').contribution
 
-# Access chat messages
-chat_messages = session.get_supergame(1).get_round(1).get_group(1).chat_messages
+# Access chat messages (note: round 1 has no chat - use round 2+ for chat that influenced contribution)
+# Chat is paired with the round it INFLUENCED, not the round it occurred in
+chat_messages = session.get_supergame(1).get_round(2).get_group(1).chat_messages
 for msg in chat_messages:
     print(f"{msg.datetime.strftime('%H:%M:%S')} - {msg.nickname}: {msg.body}")
 ```
@@ -115,22 +116,39 @@ for group_id, group in round_obj.groups.items():
 
 ### Chat Message Access
 
+**Important: Chat-Round Pairing Semantics**
+
+Chat messages are paired with the round they **influenced**, not the round they occurred in.
+This means:
+- **Round 1**: Always has empty `chat_messages` (no prior chat to influence the first contribution)
+- **Rounds 2+**: Contains chat from the previous round that influenced this contribution
+- **Orphan chats**: Chat after the last round (which influenced no contribution) is stored at the segment level
+
 ```python
 # Access chat messages at different levels
 
-# All chat messages in a round
-round_messages = session.get_supergame(1).get_round(1).chat_messages
-print(f"Round has {len(round_messages)} total messages")
+# Round 1 has no chat (no prior chat influenced this contribution)
+round1_messages = session.get_supergame(1).get_round(1).chat_messages
+print(f"Round 1 has {len(round1_messages)} messages")  # Always 0
+
+# Round 2 contains chat from round 1 that influenced round 2's contribution
+round2_messages = session.get_supergame(1).get_round(2).chat_messages
+print(f"Round 2 has {len(round2_messages)} messages from prior chat")
 
 # Chat messages from a specific group
-group_messages = session.get_supergame(1).get_round(1).get_group(1).chat_messages
+group_messages = session.get_supergame(1).get_round(2).get_group(1).chat_messages
 for msg in group_messages:
     print(f"{msg.datetime.strftime('%H:%M:%S')} - {msg.nickname}: {msg.body}")
 
 # Chat messages from a specific player in a specific round
-player = session.get_supergame(1).get_round(1).get_player('A')
+player = session.get_supergame(1).get_round(2).get_player('A')
 player_messages = player.chat_messages
-print(f"Player A sent {len(player_messages)} messages in this round")
+print(f"Player A's chat (that influenced round 2): {len(player_messages)} messages")
+
+# Access orphan chats (chat after last round that influenced no contribution)
+supergame1 = session.get_supergame(1)
+orphan_chats = supergame1.orphan_chats  # List of ChatMessage objects
+print(f"Orphan chats after last round: {len(orphan_chats)} messages")
 
 # Chat messages across all rounds for a player
 all_player_messages = []
@@ -141,6 +159,8 @@ for segment_name in ['supergame1', 'supergame2', 'supergame3']:
             player = round_obj.get_player('A')
             if player:
                 all_player_messages.extend(player.chat_messages)
+        # Include orphan chats from this segment
+        all_player_messages.extend(segment.orphan_chats.get('A', []))
 
 print(f"Player A sent {len(all_player_messages)} total messages")
 ```
@@ -178,6 +198,7 @@ print(f"Player A sent {len(all_player_messages)} total messages")
 ### Segment Attributes
 - `name`: Segment name ('supergame1', 'introduction', etc.)
 - `rounds`: Dictionary of rounds (round_number → Round)
+- `orphan_chats`: List of ChatMessage objects from chat after the last round (no contribution to influence)
 - `data`: Dictionary of additional segment-specific data
 
 ### Experiment Attributes
@@ -294,3 +315,21 @@ for msg in sg1.get_round(1).chat_messages[:3]:
 - **Sentiment analysis** is automatically computed for all chat messages using NLTK's VADER sentiment analyzer
 - Sentiment scores are available at all levels: individual messages, players, groups, rounds, segments, and session
 - Each sentiment analysis includes positive, negative, neutral, and compound scores plus message count
+
+## Chat-Round Pairing
+
+**Chat messages are paired with the round they influenced, not the round they occurred in.**
+
+This semantic change ensures proper causal analysis:
+
+| Chat occurred... | Paired with... | Rationale |
+|------------------|----------------|-----------|
+| Before round 1 contribution | (none - no prior chat exists) | N/A |
+| After round 1, before round 2 | Round 2 | This chat influenced round 2 contribution |
+| After round N-1, before round N | Round N | This chat influenced round N contribution |
+| After last round (round N) | Segment orphan_chats | No contribution to influence |
+
+**Implications:**
+- `round.chat_messages` for round 1 is always empty
+- `round.chat_messages` for round N contains chat from round N-1
+- `segment.orphan_chats` contains chat after the last round
