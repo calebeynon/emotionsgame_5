@@ -39,9 +39,11 @@ uv run python annotations/generate_annotations.py
 Experiment (multi-session with treatments)
   └─ Session (16 participants, session_code)
       └─ Segment/Supergame (introduction, supergame1-5, finalresults)
+          ├─ orphan_chats: Dict[str, List[ChatMessage]] (last round's chat, keyed by player label)
           └─ Round (numbered within segment)
               └─ Group (4 players, group_id_in_subsession)
                   └─ Player (label A-R, skips I/O to avoid confusion with 1/0)
+                      └─ chat_messages: List[ChatMessage] (chat that INFLUENCED this contribution)
 ```
 
 ### Supergame Configuration
@@ -119,6 +121,13 @@ Two-stage process for behavioral video annotation:
 - Uses oTree's built-in `{{ chat }}` with participant labels as nicknames
 - Previous round feedback (others' contributions, own payoff) shown during chat phases
 - Complex `vars_for_template()` logic handles round-specific display
+
+**Chat-Round Pairing Semantics (Analysis Module):**
+- In the oTree experiment, chat happens AFTER contribution in each round
+- In `experiment_data.py`, `chat_messages` is paired with the contribution it INFLUENCED (next round's contribution)
+- Round 1 of each supergame has empty `chat_messages` (no prior chat to influence it)
+- Last round's chat influenced no subsequent contribution and is stored as `segment.orphan_chats`
+- `orphan_chats` is a `Dict[str, List[ChatMessage]]` keyed by player label
 
 ### Participant Labels
 - Labels A-R loaded from `participant_labels.txt`

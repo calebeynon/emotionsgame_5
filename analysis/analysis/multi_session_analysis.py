@@ -85,17 +85,41 @@ def extract_contributions_data(experiment: Experiment) -> pd.DataFrame:
     return pd.DataFrame(records)
 
 
-def extract_chat_data(experiment: Experiment) -> pd.DataFrame:
-    """Extract all chat data from the experiment into a DataFrame."""
+def extract_chat_data(
+    experiment: Experiment, include_orphans: bool = False
+) -> pd.DataFrame:
+    """Extract all chat data from the experiment into a DataFrame.
+
+    Chat messages are stored on the round they INFLUENCED, not the round they
+    occurred in. For example, chat that occurred after round 1's contribution
+    is stored on round 2 (the round it influenced). Round 1 has no chat because
+    no prior chat influenced it.
+
+    The 'round' column shows the influenced round (the round where the contribution
+    decision was made after reading the chat). To get the round where chat occurred,
+    use 'chat_occurred_in_round' column (which equals influenced_round - 1).
+
+    Args:
+        experiment: Experiment object containing session data
+        include_orphans: If True, include orphan chats (last-round chats that
+            influenced no subsequent contribution because the supergame ended).
+            Orphan chats have round=None and chat_occurred_in_round set to the
+            last round of the supergame.
+
+    Returns:
+        DataFrame with chat data. The 'round' column shows the influenced round.
+    """
     records = []
-    
+
     for session_code, session in experiment.sessions.items():
         for segment_name, segment in session.segments.items():
             if not segment_name.startswith('supergame'):
                 continue
-                
+
             supergame_num = int(segment_name.replace('supergame', ''))
-            
+            max_round = max(segment.rounds.keys()) if segment.rounds else 0
+
+            # Extract regular chat messages (assigned to influenced round)
             for round_num, round_obj in segment.rounds.items():
                 for msg in round_obj.chat_messages:
                     records.append({
@@ -103,6 +127,7 @@ def extract_chat_data(experiment: Experiment) -> pd.DataFrame:
                         'treatment': session.treatment,
                         'supergame': supergame_num,
                         'round': round_num,
+                        'chat_occurred_in_round': round_num - 1,
                         'player_label': msg.nickname,
                         'message_body': msg.body,
                         'timestamp': msg.timestamp,
@@ -111,7 +136,26 @@ def extract_chat_data(experiment: Experiment) -> pd.DataFrame:
                         'negative_sentiment': msg.negative_sentiment,
                         'neutral_sentiment': msg.neutral_sentiment
                     })
-    
+
+            # Extract orphan chats if requested
+            if include_orphans:
+                for player_label, messages in segment.orphan_chats.items():
+                    for msg in messages:
+                        records.append({
+                            'session_code': session_code,
+                            'treatment': session.treatment,
+                            'supergame': supergame_num,
+                            'round': None,  # No influenced round
+                            'chat_occurred_in_round': max_round,
+                            'player_label': player_label,
+                            'message_body': msg.body,
+                            'timestamp': msg.timestamp,
+                            'sentiment': msg.sentiment,
+                            'positive_sentiment': msg.positive_sentiment,
+                            'negative_sentiment': msg.negative_sentiment,
+                            'neutral_sentiment': msg.neutral_sentiment
+                        })
+
     return pd.DataFrame(records)
 
 
