@@ -136,9 +136,7 @@ def example_4_all_messages_from_player(session):
                         messages_a.append(msg)
             # Include orphan chats
             if hasattr(segment, 'orphan_chats'):
-                for msg in segment.orphan_chats:
-                    if msg.nickname == 'A':
-                        messages_a.append(msg)
+                messages_a.extend(segment.orphan_chats.get('A', []))
 
     print(f"Player A sent {len(messages_a)} messages:")
     for i, msg in enumerate(messages_a[:3]):
@@ -160,7 +158,7 @@ def example_5_word_frequency(session):
                 for msg in round_obj.chat_messages:
                     all_messages.append(msg.body.lower())
             if hasattr(segment, 'orphan_chats'):
-                for msg in segment.orphan_chats:
+                for msg in segment.get_orphan_chats_flat():
                     all_messages.append(msg.body.lower())
 
     all_text = " ".join(all_messages)
@@ -187,7 +185,7 @@ def example_6_communication_by_round(session):
             # Track orphan chats separately
             if hasattr(segment, 'orphan_chats'):
                 orphan_key = f"{segment.name}_orphan"
-                round_message_counts[orphan_key] = len(segment.orphan_chats)
+                round_message_counts[orphan_key] = len(segment.get_orphan_chats_flat())
 
     print("Messages per round (note: round 1 always 0):")
     for round_name, count in sorted(round_message_counts.items()):
@@ -210,7 +208,7 @@ def example_7_player_participation(session):
                     player_message_counts[msg.nickname] += 1
             # Include orphan chats
             if hasattr(segment, 'orphan_chats'):
-                for msg in segment.orphan_chats:
+                for msg in segment.get_orphan_chats_flat():
                     if msg.nickname not in player_message_counts:
                         player_message_counts[msg.nickname] = 0
                     player_message_counts[msg.nickname] += 1

@@ -160,7 +160,7 @@ for segment_name in ['supergame1', 'supergame2', 'supergame3']:
             if player:
                 all_player_messages.extend(player.chat_messages)
         # Include orphan chats from this segment
-        all_player_messages.extend([m for m in segment.orphan_chats if m.nickname == 'A'])
+        all_player_messages.extend(segment.orphan_chats.get('A', []))
 
 print(f"Player A sent {len(all_player_messages)} total messages")
 ```
