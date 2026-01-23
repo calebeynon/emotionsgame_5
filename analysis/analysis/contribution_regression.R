@@ -118,7 +118,8 @@ export_latex_table <- function(model_strict, model_lenient, filepath) {
             made_promise = "Made Promise",
             is_sucker_strict = "Is Sucker (Strict)",
             is_sucker_lenient = "Is Sucker (Lenient)",
-            treatment = "Treatment"
+            treatment = "Treatment",
+            cluster_id = "session-segment-group"
         ),
         headers = c("Strict Sucker", "Lenient Sucker"),
         title = "Contribution Regression: Promise and Sucker Effects"
