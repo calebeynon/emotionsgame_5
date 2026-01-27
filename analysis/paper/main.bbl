@@ -1,0 +1,39 @@
+\begin{thebibliography}{}
+
+\bibitem[Lastname, tiona]{AuthorYearBook}
+Lastname, F. (Year of Publicationa).
+\newblock {\em The Complete Title of the Book}.
+\newblock Publisher Name, City, State (or Country) of Publisher, edition number (optional) edition.
+
+\bibitem[Lastname, tionb]{AuthorYearDiss}
+Lastname, F. (Year of Publicationb).
+\newblock {\em Title of Dissertation}.
+\newblock Phd thesis, University Name, City, State (or Country) of University.
+
+\bibitem[Lastname, tionc]{AuthorYearReport}
+Lastname, F. (Year of Publicationc).
+\newblock Title of technical report.
+\newblock Technical Report Report Number (Optional), Issuing Institution.
+
+\bibitem[Lastname, tiond]{AuthorYearThesis}
+Lastname, F. (Year of Publicationd).
+\newblock Title of thesis.
+\newblock Master's thesis, University Name, City, State (or Country) of University.
+
+\bibitem[Lastname and SecondAuthorLastname, ence]{AuthorYearConf}
+Lastname, F. and SecondAuthorLastname, S. (Year of Conference).
+\newblock Title of paper in conference proceedings.
+\newblock In {\em Full Title of the Conference Proceedings}, page Page Range, Location of Conference (Optional). Publisher of Proceedings (Optional).
+
+\bibitem[Lastname and SecondAuthorLastname, tion]{AuthorYear}
+Lastname, F. and SecondAuthorLastname, S. (Year of Publication).
+\newblock The full title of the journal article.
+\newblock {\em The Full Name of the Journal}, Volume Number(Issue Number):Page Range (e.g., 100--120).
+
+\bibitem[Lastname, cess]{AuthorYearWebsite}
+Lastname, F. o. O.~N. (Year of Access).
+\newblock Title of web page or document.
+\newblock \url{Full URL Here}.
+\newblock Accessed on [Date].
+
+\end{thebibliography}
