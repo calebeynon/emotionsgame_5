@@ -32,7 +32,10 @@ SENTIMENT_COLS = [
 PROMISE_COLS = ['message_count', 'promise_count', 'promise_percentage']
 
 LAGGED_SENTIMENT_COLS = ['sentiment_compound_mean']
-LAGGED_LIAR_COLS = ['is_liar_strict', 'is_liar_lenient']
+
+# Liar thresholds (contribution below threshold after promise = lie)
+STRICT_THRESHOLD = 20
+LENIENT_THRESHOLD = 5
 
 
 # =====
@@ -47,7 +50,7 @@ def main():
     print_input_summary(behavior_df, sentiment_df, promise_df)
 
     merged_df = merge_datasets(behavior_df, sentiment_df, promise_df)
-    merged_df = compute_lagged_variables(merged_df)
+    merged_df = compute_derived_variables(merged_df)
     validate_output(merged_df)
 
     save_results(merged_df)
@@ -85,22 +88,25 @@ def merge_datasets(behavior_df: pd.DataFrame, sentiment_df: pd.DataFrame,
     return merged
 
 
-def compute_lagged_variables(df: pd.DataFrame) -> pd.DataFrame:
-    """Compute lagged variables for regression analysis.
+def compute_derived_variables(df: pd.DataFrame) -> pd.DataFrame:
+    """Compute derived variables for regression analysis.
 
-    Creates period-specific liar flags and lagged sentiment. Unlike cumulative
-    is_liar_* flags, lied_prev_period_* is True only if the player lied in
-    the immediately preceding round within the same segment.
+    Creates contemporaneous liar flags and lagged sentiment. The lied_this_period
+    flags indicate whether the player lied in the chat immediately preceding THIS
+    round's contribution (chat and contribution are already paired in the data).
     """
     df = df.sort_values(MERGE_KEYS)
     group_cols = ['session_code', 'segment', 'label']
 
-    # Lag liar indicators
-    for col in LAGGED_LIAR_COLS:
-        new_col = col.replace('is_liar', 'lied_prev_period')
-        df[new_col] = df.groupby(group_cols)[col].shift(1)
+    # Contemporaneous liar flags (chat already paired with contribution it influenced)
+    df['lied_this_period_strict'] = (
+        (df['made_promise'] == True) & (df['contribution'] < STRICT_THRESHOLD)
+    )
+    df['lied_this_period_lenient'] = (
+        (df['made_promise'] == True) & (df['contribution'] < LENIENT_THRESHOLD)
+    )
 
-    # Lag sentiment
+    # Lag sentiment (previous round's sentiment)
     for col in LAGGED_SENTIMENT_COLS:
         df[f'{col}_prev'] = df.groupby(group_cols)[col].shift(1)
 
@@ -116,7 +122,7 @@ def validate_output(df: pd.DataFrame):
         raise ValueError(f"Expected {expected_rows} rows, got {actual_rows}")
 
     _validate_round_1_nulls(df)
-    _validate_lagged_nulls(df)
+    _validate_lagged_sentiment(df)
     _validate_no_duplicate_columns(df)
 
     print("\nValidation passed!")
@@ -131,32 +137,25 @@ def _validate_round_1_nulls(df: pd.DataFrame):
             raise ValueError(f"Round 1 should have NaN for {col}, found {non_null_count} non-null")
 
 
-def _validate_lagged_nulls(df: pd.DataFrame):
-    """Verify expected NaN structure for lagged columns.
+def _validate_lagged_sentiment(df: pd.DataFrame):
+    """Verify expected NaN structure for lagged sentiment column.
 
-    Round 1: All lagged columns should be NaN (no previous round exists).
+    Round 1: sentiment_compound_mean_prev should be NaN (no previous round).
     Round 2: sentiment_compound_mean_prev should be NaN (round 1 sentiment is NaN).
     """
-    lagged_cols = ['lied_prev_period_strict', 'lied_prev_period_lenient',
-                   'sentiment_compound_mean_prev']
+    col = 'sentiment_compound_mean_prev'
 
-    # Round 1: all lagged columns must be NaN
+    # Round 1: lagged sentiment must be NaN (no previous round)
     round_1 = df[df['round'] == 1]
-    for col in lagged_cols:
-        non_null_count = round_1[col].notna().sum()
-        if non_null_count > 0:
-            raise ValueError(
-                f"Round 1 should have NaN for {col}, found {non_null_count} non-null"
-            )
+    non_null_count = round_1[col].notna().sum()
+    if non_null_count > 0:
+        raise ValueError(f"Round 1 should have NaN for {col}, found {non_null_count} non-null")
 
     # Round 2: lagged sentiment must be NaN (because round 1 sentiment is NaN)
     round_2 = df[df['round'] == 2]
-    non_null_count = round_2['sentiment_compound_mean_prev'].notna().sum()
+    non_null_count = round_2[col].notna().sum()
     if non_null_count > 0:
-        raise ValueError(
-            f"Round 2 should have NaN for sentiment_compound_mean_prev, "
-            f"found {non_null_count} non-null"
-        )
+        raise ValueError(f"Round 2 should have NaN for {col}, found {non_null_count} non-null")
 
 
 def _validate_no_duplicate_columns(df: pd.DataFrame):
@@ -201,18 +200,21 @@ def print_output_summary(df: pd.DataFrame):
 
 
 def _print_merge_coverage(df: pd.DataFrame):
-    """Print how many rows have sentiment/promise data and lagged columns."""
+    """Print how many rows have sentiment/promise data and derived columns."""
     sentiment_count = df['sentiment_compound_mean'].notna().sum()
     promise_count = df['promise_count'].notna().sum()
-    lied_prev_count = df['lied_prev_period_strict'].notna().sum()
+    lied_strict = (df['lied_this_period_strict'] == True).sum()
+    lied_lenient = (df['lied_this_period_lenient'] == True).sum()
     sentiment_prev_count = df['sentiment_compound_mean_prev'].notna().sum()
     total = len(df)
 
     print(f"\nMerge coverage:")
     print(f"  Rows with sentiment:      {sentiment_count:,} / {total:,} ({100*sentiment_count/total:.1f}%)")
     print(f"  Rows with promises:       {promise_count:,} / {total:,} ({100*promise_count/total:.1f}%)")
-    print(f"  Rows with lied_prev:      {lied_prev_count:,} / {total:,} ({100*lied_prev_count/total:.1f}%)")
     print(f"  Rows with sentiment_prev: {sentiment_prev_count:,} / {total:,} ({100*sentiment_prev_count/total:.1f}%)")
+    print(f"\nLiar counts (lied_this_period):")
+    print(f"  Strict (contrib < 20):    {lied_strict:,} / {total:,} ({100*lied_strict/total:.1f}%)")
+    print(f"  Lenient (contrib < 5):    {lied_lenient:,} / {total:,} ({100*lied_lenient/total:.1f}%)")
 
 
 def _print_column_list(df: pd.DataFrame):

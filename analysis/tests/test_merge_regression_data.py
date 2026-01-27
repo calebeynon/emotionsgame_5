@@ -23,7 +23,7 @@ from merge_regression_data import (
     load_sentiment_data,
     load_promise_data,
     merge_datasets,
-    compute_lagged_variables,
+    compute_derived_variables,
     validate_output,
     _validate_round_1_nulls,
     _validate_no_duplicate_columns,
@@ -31,7 +31,8 @@ from merge_regression_data import (
     SENTIMENT_COLS,
     PROMISE_COLS,
     LAGGED_SENTIMENT_COLS,
-    LAGGED_LIAR_COLS,
+    STRICT_THRESHOLD,
+    LENIENT_THRESHOLD,
 )
 
 # FILE PATHS (for direct file access tests)
@@ -121,17 +122,18 @@ def mock_promise_df():
 
 @pytest.fixture
 def mock_lagged_df():
-    """Create DataFrame with 3 rounds per player for testing lagged variables.
+    """Create DataFrame with 3 rounds per player for testing derived variables.
 
-    Includes varying liar flags and sentiment to verify lagging works.
+    Includes made_promise, contribution, and sentiment to verify computations.
+    Round 1 has no promises (no chat preceded it).
     """
     return pd.DataFrame({
         'session_code': ['abc123'] * 6,
         'segment': ['supergame1'] * 6,
         'round': [1, 2, 3, 1, 2, 3],
         'label': ['A', 'A', 'A', 'B', 'B', 'B'],
-        'is_liar_strict': [False, True, False, False, False, True],
-        'is_liar_lenient': [False, True, True, True, False, False],
+        'made_promise': [False, True, True, False, True, False],  # Round 1 has no promises
+        'contribution': [25.0, 10.0, 25.0, 20.0, 25.0, 3.0],  # A lies in r2, B lies in r3
         'sentiment_compound_mean': [np.nan, 0.5, 0.3, np.nan, -0.2, 0.1],
     })
 
@@ -497,82 +499,89 @@ class TestColumnDefinitions:
         expected = ['sentiment_compound_mean']
         assert LAGGED_SENTIMENT_COLS == expected
 
-    def test_lagged_liar_cols_complete(self):
-        """Lagged liar columns should include both strict and lenient."""
-        expected = ['is_liar_strict', 'is_liar_lenient']
-        assert LAGGED_LIAR_COLS == expected
+    def test_liar_thresholds_correct(self):
+        """Liar thresholds should be set correctly."""
+        assert STRICT_THRESHOLD == 20
+        assert LENIENT_THRESHOLD == 5
 
 
 # =====
-# Test compute_lagged_variables
+# Test compute_derived_variables
 # =====
-class TestComputeLaggedVariables:
-    """Tests for the compute_lagged_variables function."""
+class TestComputeDerivedVariables:
+    """Tests for the compute_derived_variables function."""
 
-    def test_creates_lied_prev_period_strict_column(self, mock_lagged_df):
-        """Should create lied_prev_period_strict column."""
-        result = compute_lagged_variables(mock_lagged_df)
-        assert 'lied_prev_period_strict' in result.columns
+    def test_creates_lied_this_period_strict_column(self, mock_lagged_df):
+        """Should create lied_this_period_strict column."""
+        result = compute_derived_variables(mock_lagged_df)
+        assert 'lied_this_period_strict' in result.columns
 
-    def test_creates_lied_prev_period_lenient_column(self, mock_lagged_df):
-        """Should create lied_prev_period_lenient column."""
-        result = compute_lagged_variables(mock_lagged_df)
-        assert 'lied_prev_period_lenient' in result.columns
+    def test_creates_lied_this_period_lenient_column(self, mock_lagged_df):
+        """Should create lied_this_period_lenient column."""
+        result = compute_derived_variables(mock_lagged_df)
+        assert 'lied_this_period_lenient' in result.columns
 
     def test_creates_sentiment_compound_mean_prev_column(self, mock_lagged_df):
         """Should create sentiment_compound_mean_prev column."""
-        result = compute_lagged_variables(mock_lagged_df)
+        result = compute_derived_variables(mock_lagged_df)
         assert 'sentiment_compound_mean_prev' in result.columns
 
-    def test_round_1_has_nan_lagged_liar_strict(self, mock_lagged_df):
-        """Round 1 should have NaN for lied_prev_period_strict."""
-        result = compute_lagged_variables(mock_lagged_df)
+    def test_round_1_has_false_lied_this_period(self, mock_lagged_df):
+        """Round 1 should have False for lied_this_period (no chat in round 1)."""
+        result = compute_derived_variables(mock_lagged_df)
         round_1 = result[result['round'] == 1]
-        assert round_1['lied_prev_period_strict'].isna().all()
-
-    def test_round_1_has_nan_lagged_liar_lenient(self, mock_lagged_df):
-        """Round 1 should have NaN for lied_prev_period_lenient."""
-        result = compute_lagged_variables(mock_lagged_df)
-        round_1 = result[result['round'] == 1]
-        assert round_1['lied_prev_period_lenient'].isna().all()
+        # Round 1 has no promises (made_promise=False), so lied_this_period=False
+        assert (round_1['lied_this_period_strict'] == False).all()
 
     def test_round_1_has_nan_lagged_sentiment(self, mock_lagged_df):
         """Round 1 should have NaN for sentiment_compound_mean_prev."""
-        result = compute_lagged_variables(mock_lagged_df)
+        result = compute_derived_variables(mock_lagged_df)
         round_1 = result[result['round'] == 1]
         assert round_1['sentiment_compound_mean_prev'].isna().all()
 
     def test_round_2_lagged_sentiment_is_nan(self, mock_lagged_df):
         """Round 2 should have NaN sentiment_prev (round 1 sentiment is NaN)."""
-        result = compute_lagged_variables(mock_lagged_df)
+        result = compute_derived_variables(mock_lagged_df)
         round_2 = result[result['round'] == 2]
         assert round_2['sentiment_compound_mean_prev'].isna().all()
 
-    def test_round_2_lagged_liar_has_values(self, mock_lagged_df):
-        """Round 2 should have valid lied_prev_period values."""
-        result = compute_lagged_variables(mock_lagged_df)
-        round_2 = result[result['round'] == 2]
-        assert round_2['lied_prev_period_strict'].notna().all()
-        assert round_2['lied_prev_period_lenient'].notna().all()
+    def test_lied_this_period_strict_logic(self):
+        """Test lied_this_period_strict = (made_promise & contribution < 20)."""
+        df = pd.DataFrame({
+            'session_code': ['abc'] * 4,
+            'segment': ['sg1'] * 4,
+            'round': [2, 2, 2, 2],
+            'label': ['A', 'B', 'C', 'D'],
+            'made_promise': [True, True, False, True],
+            'contribution': [25.0, 10.0, 5.0, 19.0],  # A: no lie, B: lie, C: no promise, D: lie
+            'sentiment_compound_mean': [0.5, -0.2, 0.3, 0.0],
+        })
 
-    def test_lagged_values_correctly_shifted(self, mock_lagged_df):
-        """Verify lagged values match previous round's values.
+        result = compute_derived_variables(df)
 
-        Player A: round 1 is_liar_strict=False, round 2 is_liar_strict=True
-        So round 2 lied_prev_period_strict=False, round 3 lied_prev_period_strict=True
-        """
-        result = compute_lagged_variables(mock_lagged_df)
-        result = result.sort_values(['label', 'round'])
+        assert result[result['label'] == 'A']['lied_this_period_strict'].iloc[0] == False  # contrib >= 20
+        assert result[result['label'] == 'B']['lied_this_period_strict'].iloc[0] == True   # contrib < 20
+        assert result[result['label'] == 'C']['lied_this_period_strict'].iloc[0] == False  # no promise
+        assert result[result['label'] == 'D']['lied_this_period_strict'].iloc[0] == True   # contrib < 20
 
-        player_a = result[result['label'] == 'A']
+    def test_lied_this_period_lenient_logic(self):
+        """Test lied_this_period_lenient = (made_promise & contribution < 5)."""
+        df = pd.DataFrame({
+            'session_code': ['abc'] * 4,
+            'segment': ['sg1'] * 4,
+            'round': [2, 2, 2, 2],
+            'label': ['A', 'B', 'C', 'D'],
+            'made_promise': [True, True, True, True],
+            'contribution': [10.0, 4.0, 5.0, 0.0],  # A: no lie, B: lie, C: no lie (=5), D: lie
+            'sentiment_compound_mean': [0.5, -0.2, 0.3, 0.0],
+        })
 
-        # Round 2: lagged from round 1 (is_liar_strict=False)
-        r2 = player_a[player_a['round'] == 2]
-        assert r2['lied_prev_period_strict'].iloc[0] == False
+        result = compute_derived_variables(df)
 
-        # Round 3: lagged from round 2 (is_liar_strict=True)
-        r3 = player_a[player_a['round'] == 3]
-        assert r3['lied_prev_period_strict'].iloc[0] == True
+        assert result[result['label'] == 'A']['lied_this_period_lenient'].iloc[0] == False  # contrib >= 5
+        assert result[result['label'] == 'B']['lied_this_period_lenient'].iloc[0] == True   # contrib < 5
+        assert result[result['label'] == 'C']['lied_this_period_lenient'].iloc[0] == False  # contrib == 5
+        assert result[result['label'] == 'D']['lied_this_period_lenient'].iloc[0] == True   # contrib < 5
 
     def test_lagged_sentiment_correctly_shifted(self, mock_lagged_df):
         """Verify lagged sentiment matches previous round's values.
@@ -580,7 +589,7 @@ class TestComputeLaggedVariables:
         Player A: round 2 sentiment=0.5, round 3 sentiment=0.3
         So round 3 sentiment_prev=0.5
         """
-        result = compute_lagged_variables(mock_lagged_df)
+        result = compute_derived_variables(mock_lagged_df)
         result = result.sort_values(['label', 'round'])
 
         player_a = result[result['label'] == 'A']
@@ -589,52 +598,46 @@ class TestComputeLaggedVariables:
         assert r3['sentiment_compound_mean_prev'].iloc[0] == 0.5
 
     def test_preserves_row_count(self, mock_lagged_df):
-        """compute_lagged_variables should not change row count."""
+        """compute_derived_variables should not change row count."""
         original_count = len(mock_lagged_df)
-        result = compute_lagged_variables(mock_lagged_df)
+        result = compute_derived_variables(mock_lagged_df)
         assert len(result) == original_count
 
-    def test_lagging_respects_player_boundaries(self):
-        """Lagged values should not cross player boundaries.
-
-        Each player's round 1 should have NaN, not values from previous player.
-        """
+    def test_lagged_sentiment_respects_player_boundaries(self):
+        """Lagged sentiment should not cross player boundaries."""
         df = pd.DataFrame({
             'session_code': ['abc'] * 4,
             'segment': ['sg1'] * 4,
             'round': [1, 2, 1, 2],
             'label': ['A', 'A', 'B', 'B'],
-            'is_liar_strict': [True, False, True, False],
-            'is_liar_lenient': [True, True, False, False],
+            'made_promise': [False, True, False, True],
+            'contribution': [25.0, 25.0, 25.0, 25.0],
             'sentiment_compound_mean': [np.nan, 0.5, np.nan, -0.2],
         })
 
-        result = compute_lagged_variables(df)
+        result = compute_derived_variables(df)
 
         # Player B round 1 should have NaN (not lagged from player A)
         b_r1 = result[(result['label'] == 'B') & (result['round'] == 1)]
-        assert b_r1['lied_prev_period_strict'].isna().all()
+        assert b_r1['sentiment_compound_mean_prev'].isna().all()
 
-    def test_lagging_respects_segment_boundaries(self):
-        """Lagged values should not cross segment boundaries.
-
-        Supergame2 round 1 should have NaN, not values from supergame1.
-        """
+    def test_lagged_sentiment_respects_segment_boundaries(self):
+        """Lagged sentiment should not cross segment boundaries."""
         df = pd.DataFrame({
             'session_code': ['abc'] * 4,
             'segment': ['sg1', 'sg1', 'sg2', 'sg2'],
             'round': [1, 2, 1, 2],
             'label': ['A', 'A', 'A', 'A'],
-            'is_liar_strict': [True, False, True, False],
-            'is_liar_lenient': [True, True, False, False],
+            'made_promise': [False, True, False, True],
+            'contribution': [25.0, 25.0, 25.0, 25.0],
             'sentiment_compound_mean': [np.nan, 0.5, np.nan, -0.2],
         })
 
-        result = compute_lagged_variables(df)
+        result = compute_derived_variables(df)
 
         # Supergame2 round 1 should have NaN (not lagged from supergame1)
         sg2_r1 = result[(result['segment'] == 'sg2') & (result['round'] == 1)]
-        assert sg2_r1['lied_prev_period_strict'].isna().all()
+        assert sg2_r1['sentiment_compound_mean_prev'].isna().all()
 
 
 # =====
