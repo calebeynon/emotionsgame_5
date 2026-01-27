@@ -31,6 +31,9 @@ SENTIMENT_COLS = [
 
 PROMISE_COLS = ['message_count', 'promise_count', 'promise_percentage']
 
+LAGGED_SENTIMENT_COLS = ['sentiment_compound_mean']
+LAGGED_LIAR_COLS = ['is_liar_strict', 'is_liar_lenient']
+
 
 # =====
 # Main function
@@ -44,6 +47,7 @@ def main():
     print_input_summary(behavior_df, sentiment_df, promise_df)
 
     merged_df = merge_datasets(behavior_df, sentiment_df, promise_df)
+    merged_df = compute_lagged_variables(merged_df)
     validate_output(merged_df)
 
     save_results(merged_df)
@@ -81,6 +85,28 @@ def merge_datasets(behavior_df: pd.DataFrame, sentiment_df: pd.DataFrame,
     return merged
 
 
+def compute_lagged_variables(df: pd.DataFrame) -> pd.DataFrame:
+    """Compute lagged variables for regression analysis.
+
+    Creates period-specific liar flags and lagged sentiment. Unlike cumulative
+    is_liar_* flags, lied_prev_period_* is True only if the player lied in
+    the immediately preceding round within the same segment.
+    """
+    df = df.sort_values(MERGE_KEYS)
+    group_cols = ['session_code', 'segment', 'label']
+
+    # Lag liar indicators
+    for col in LAGGED_LIAR_COLS:
+        new_col = col.replace('is_liar', 'lied_prev_period')
+        df[new_col] = df.groupby(group_cols)[col].shift(1)
+
+    # Lag sentiment
+    for col in LAGGED_SENTIMENT_COLS:
+        df[f'{col}_prev'] = df.groupby(group_cols)[col].shift(1)
+
+    return df
+
+
 def validate_output(df: pd.DataFrame):
     """Validate merged output meets requirements."""
     expected_rows = 3520
@@ -90,6 +116,7 @@ def validate_output(df: pd.DataFrame):
         raise ValueError(f"Expected {expected_rows} rows, got {actual_rows}")
 
     _validate_round_1_nulls(df)
+    _validate_lagged_nulls(df)
     _validate_no_duplicate_columns(df)
 
     print("\nValidation passed!")
@@ -102,6 +129,34 @@ def _validate_round_1_nulls(df: pd.DataFrame):
         non_null_count = round_1[col].notna().sum()
         if non_null_count > 0:
             raise ValueError(f"Round 1 should have NaN for {col}, found {non_null_count} non-null")
+
+
+def _validate_lagged_nulls(df: pd.DataFrame):
+    """Verify expected NaN structure for lagged columns.
+
+    Round 1: All lagged columns should be NaN (no previous round exists).
+    Round 2: sentiment_compound_mean_prev should be NaN (round 1 sentiment is NaN).
+    """
+    lagged_cols = ['lied_prev_period_strict', 'lied_prev_period_lenient',
+                   'sentiment_compound_mean_prev']
+
+    # Round 1: all lagged columns must be NaN
+    round_1 = df[df['round'] == 1]
+    for col in lagged_cols:
+        non_null_count = round_1[col].notna().sum()
+        if non_null_count > 0:
+            raise ValueError(
+                f"Round 1 should have NaN for {col}, found {non_null_count} non-null"
+            )
+
+    # Round 2: lagged sentiment must be NaN (because round 1 sentiment is NaN)
+    round_2 = df[df['round'] == 2]
+    non_null_count = round_2['sentiment_compound_mean_prev'].notna().sum()
+    if non_null_count > 0:
+        raise ValueError(
+            f"Round 2 should have NaN for sentiment_compound_mean_prev, "
+            f"found {non_null_count} non-null"
+        )
 
 
 def _validate_no_duplicate_columns(df: pd.DataFrame):
@@ -146,14 +201,18 @@ def print_output_summary(df: pd.DataFrame):
 
 
 def _print_merge_coverage(df: pd.DataFrame):
-    """Print how many rows have sentiment/promise data."""
+    """Print how many rows have sentiment/promise data and lagged columns."""
     sentiment_count = df['sentiment_compound_mean'].notna().sum()
     promise_count = df['promise_count'].notna().sum()
+    lied_prev_count = df['lied_prev_period_strict'].notna().sum()
+    sentiment_prev_count = df['sentiment_compound_mean_prev'].notna().sum()
     total = len(df)
 
     print(f"\nMerge coverage:")
-    print(f"  Rows with sentiment: {sentiment_count:,} / {total:,} ({100*sentiment_count/total:.1f}%)")
-    print(f"  Rows with promises:  {promise_count:,} / {total:,} ({100*promise_count/total:.1f}%)")
+    print(f"  Rows with sentiment:      {sentiment_count:,} / {total:,} ({100*sentiment_count/total:.1f}%)")
+    print(f"  Rows with promises:       {promise_count:,} / {total:,} ({100*promise_count/total:.1f}%)")
+    print(f"  Rows with lied_prev:      {lied_prev_count:,} / {total:,} ({100*lied_prev_count/total:.1f}%)")
+    print(f"  Rows with sentiment_prev: {sentiment_prev_count:,} / {total:,} ({100*sentiment_prev_count/total:.1f}%)")
 
 
 def _print_column_list(df: pd.DataFrame):
