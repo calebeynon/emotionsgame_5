@@ -23,6 +23,10 @@ uv run otree resetdb                # Reset database
 uv run otree prodserver
 uv run otree zip
 
+# Overleaf (analysis/paper synced via git subtree)
+git subtree pull --prefix=analysis/paper overleaf master --squash  # Pull from Overleaf
+git subtree push --prefix=analysis/paper overleaf master           # Push to Overleaf
+
 # Analysis (run from analysis/ directory)
 uv run python analysis/analysis_plots.py
 uv run python analysis/multi_session_analysis.py
