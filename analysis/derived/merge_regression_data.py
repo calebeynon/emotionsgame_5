@@ -14,11 +14,11 @@ from pathlib import Path
 import pandas as pd
 
 # FILE PATHS
-BOX_DERIVED = Path('/Users/caleb/Library/CloudStorage/Box-Box/SharedFolder_LPCP/derived')
-BEHAVIOR_FILE = BOX_DERIVED / 'behavior_classifications.csv'
-SENTIMENT_FILE = BOX_DERIVED / 'sentiment_scores.csv'
-PROMISE_FILE = BOX_DERIVED / 'promise_classifications.csv'
-OUTPUT_FILE = BOX_DERIVED / 'issue_17_regression_data.csv'
+DERIVED_DIR = Path(__file__).parent.parent / 'datastore' / 'derived'
+BEHAVIOR_FILE = DERIVED_DIR / 'behavior_classifications.csv'
+SENTIMENT_FILE = DERIVED_DIR / 'sentiment_scores.csv'
+PROMISE_FILE = DERIVED_DIR / 'promise_classifications.csv'
+OUTPUT_FILE = DERIVED_DIR / 'issue_17_regression_data.csv'
 
 # MERGE CONFIGURATION
 MERGE_KEYS = ['session_code', 'segment', 'round', 'label']
