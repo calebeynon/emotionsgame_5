@@ -1,0 +1,174 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\documentclass[11pt]{article}
+\usepackage{graphicx}
+\usepackage{bm}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{epsfig}
+\usepackage{setspace}
+\usepackage{dsfont}
+\usepackage[shortlabels]{enumitem}
+\usepackage{url}
+\usepackage{color}
+\usepackage[usenames,dvipsnames,svgnames,table]{xcolor}
+\usepackage[authoryear,round]{natbib}
+\usepackage[colorlinks = true, linkcolor = blue, citecolor = blue, citecolor = blue]{hyperref}
+\usepackage{tikz}
+\usepackage{pgfplots}
+\usepackage{subcaption}
+\usepackage{verbatim}
+\usepackage{caption}
+\usepackage{booktabs}
+\usepackage{float}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+\usepackage{xcolor}
+\usepackage{comment}
+\usepackage{indentfirst}
+\usepackage{setspace}
+\usepackage{soul}
+\usepackage[normalem]{ulem}
+
+\usetikzlibrary{automata,arrows,positioning,calc}
+\usetikzlibrary{plotmarks}
+
+\addtolength{\voffset}{-1.5cm} \addtolength{\hoffset}{-1cm}
+\addtolength{\textwidth}{2.5cm} \addtolength{\textheight}{2.5cm}
+
+
+\pgfplotsset{compat=1.17}
+\renewcommand{\baselinestretch}{1.5}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\title{Public Goods Emotions}
+%\author{Paan Jindapon}
+\date{February 2025}
+
+\begin{document}
+
+\maketitle
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+\section{Design}
+
+Between subjects
+
+Treatments
+\begin{enumerate}
+\item Both group contributions and individual contributions are observable
+\item Only group contributions are observable
+\end{enumerate}
+
+16 subjects in each session, 5 sessions for each treatment, total = $2 \times 5 \times 16 = 160 $ subjects.
+ 
+16 Alphabets (from A to R--skip I and O)
+
+Grouping:
+
+Segment 1: \{1,2,3,4\},\{5,6,7,8\},\{9,10,11,12\},\{13,14,15,16\}
+
+Segment 2: \{1,5,9,13\},\{2,6,10,14\},\{3,7,11,15\},\{4,8,12,16\}
+
+Segment 3: \{1,6,11,16\},\{2,5,12,15\},\{3,8,9,14\},\{4,7,10,13\}
+
+Segment 4: \{1,7,12,14\},\{2,8,11,13\},\{3,5,10,16\},\{4,6,9,15\}
+
+Segment 5: \{1,8,10,15\},\{2,7,9,16\},\{3,6,12,13\},\{4,5,11,14\}
+
+
+Number of period in each segment: (use sequence 1 in Lugovskyy et al):  
+
+Sequence 1: (3,4,3,7,5)=22 periods, 
+
+total decision time 22* 1 minute = 22 miuntes
+
+total result time 22*10 sec = 4 minutes
+
+
+%Sequence 2: (2,7,1,3,17)=30, and Sequence 3: (6,6,12,4,2)=30
+1  2  3  4  5  6  7 
+
+Chat time: 90 80 70 60 50 40 30 seconds
+
+240
+300
+240
+420
+350
+Total chat time = 26 minutes
+
+each period payoff: 
+
+
+Always nothing in Group account: lowest = 3*25 = 75 $=>$ \$7.5 + 7.5 = 15, highest =7*25 = 175 $=>$ \$17.5 +7.5 = 25
+
+lowest 10 (only one to contribute and contribute all), highest 55 (only one free rider, the rest contribute all)
+lowest possible 3*10=30 $=>$ \$3 +7.5 = 10.5
+
+highest possible 7*55=385 $=>$ \$38.5 +7.5 = 45
+
+
+
+
+
+
+\newpage
+
+\\\\
+\textbf{Instructions for participants, probabilistic with chat (draft)}\\
+    Welcome! Please make sure that your cellphone is shut off. Additionally, we ask that you do not talk to the other participants outside of the chat box.
+    Also, please do not peer onto the screen of other participants.
+    If you have questions during the experiment please raise you hand and an experimenter will answer your question in private.
+    You will be participating in interactive game where you will earn money based on your actions and the actions of others.
+\\\\
+    You will receive \$5 for showing up to this experiment and you will earn additional money based on your actions and the actions of others. 
+    Read the instructions carefully as they will demonstrate how you will earn additional money.    
+\\\\
+    This experiment will consist of 4 segments. Before each segment you will be grouped with 3 other participants (4 to a group). Each segment will consist of a random number of rounds.
+    At the end of each round, there will be an 80\% chance there will be another round and a 20\% chance the segment will end. Each round will consist of a chat portion and a decision portion.
+    In the chat portion, you will be able to communicate with other group members for up to 1 minute. You may not type identifying information or profanity.\\\\
+    Everyone in your group, including yourself, has a \textbf{Private Account.} At the beginning each round, 25 points will be placed in this account. Your group of 4 also has a \textbf{Group Account}.
+   This is a shared account. In the decision portion of each round, you must decide how to allocate your points between the two accounts.
+   You will type the number of points you would like to allocate into the group account. At the end of each round, your earnings will depend on the balances in each of these accounts.
+   Each individual will earn \$0.01 for each point in their private account, meaning if everyone decides to retain all of their points, the earnings for each person for that round will be \$0.25.
+   Each point in the group account earns \$0.012, this is shared equally among the group, regardless of the amount contributed by each person. This means that everyone in the group receives 1/4
+   of the group account balance in each round. After each round, you will be able to see the results which includes earnings as well the group account balance before moving to the next round.
+\\\\
+    To further clarify, your earnings in each round will be calculated as follows,$$(\$0.01 \times \text{Number of points in YOUR private account})$$ $$+$$ $$(\$0.003 \times \text{Number of points in the group account})$$
+\\\\
+    Remember that this experiment consists of 4 segments. In each segment you will be grouped with 3 others. Each segment consists of a random number of rounds. Your earnings in a segment will be the sum of your earnings in each round of the segment. Following the end of all 4 segments, your final earnings will be your earnings from a randomly selected segment.
+\\\\
+    Here is an example of how earnings in a round will be calculated. Remember every player starts with 25 points.\\
+    \textbf{Player 1 allocates 12 points to the group account, 13 left in private account}\\
+    \textbf{Player 2 allocates 0 points to the group account, 25 left in private account}\\
+    \textbf{Player 3 allocates 25 points to the group account, 0 left in private account}\\
+    \textbf{Player 4 allocates 6 points to the group account, 19 left in private account}\\
+
+    \noindent Group account balance $= 12+0+25+6=43$ points.\\
+    Player 1 earnings $= (\$0.01\times13)+(\$0.003\times43) = \$0.26$\\
+    Player 2 earnings $= (\$0.01\times25)+(\$0.003\times43) = \$0.38$\\
+    Player 3 earnings $= (\$0.01\times0)+(\$0.003\times43) = \$0.13$\\
+    Player 4 earnings $= (\$0.01\times19)+(\$0.003\times43) = \$0.32$\\\\
+
+    \noindent Here is another example. In this example, everyone allocates $0$ points to the group account, leaving everyone with 25 points each in their private account.\\
+    \noindent Group account balance $= 0+0+0+0=0$ points.\\
+    Player 1 earnings $= (\$0.01\times25)+(\$0.003\times0) = \$0.25$\\
+    Player 2 earnings $= (\$0.01\times25)+(\$0.003\times0) = \$0.25$\\
+    Player 3 earnings $= (\$0.01\times25)+(\$0.003\times0) = \$0.25$\\
+    Player 4 earnings $= (\$0.01\times25)+(\$0.003\times0) = \$0.25$\\\\
+
+    \noindent Here is one final example. In this example, everyone allocates all $25$ of their points to the group account. This leaves everyone with 0 points each in their private account.\\
+    \noindent Group account balance $= 25+25+25+25=100$ points.\\
+    Player 1 earnings $= (\$0.01\times0)+(\$0.003\times100) = \$0.30$\\
+    Player 2 earnings $= (\$0.01\times0)+(\$0.003\times100) = \$0.30$\\
+    Player 3 earnings $= (\$0.01\times0)+(\$0.003\times100) = \$0.30$\\
+    Player 4 earnings $= (\$0.01\times0)+(\$0.003\times100) = \$0.30$\\\\
+
+    \noindent To summarize, you will participate in 4 segments. At the beginning of each segment, you will be placed into a group of four. Each segment contains a random number of rounds. In each round you will be given 25 points, which you must allocate between your private account and the shared group account. Before making your decision, you will be able to chat with the other members of your group for up to \textbf{1 minute}. Following the chat, you will decide how many of your points you will place in the group account. Your earnings for that round will be calculated based on the method described above. At the end of the round, you will see your earnings and the group account balance. At the end of the segment, your earnings across rounds will be added together. At the end of all 4 segments, a random segment will be selected to determine your final pay.  
+    
+\end{document}
