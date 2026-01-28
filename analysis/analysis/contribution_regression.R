@@ -27,7 +27,7 @@ library(fixest)
 
 # FILE PATHS
 INPUT_CSV <- "datastore/derived/behavior_classifications.csv"
-OUTPUT_DIR <- "output/analysis"
+OUTPUT_DIR <- "output/tables"
 OUTPUT_TEX <- file.path(OUTPUT_DIR, "contribution_regression.tex")
 
 # =====
