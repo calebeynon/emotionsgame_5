@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'analysis/paper/**'
+      - 'analysis/output/**'
 
 jobs:
   sync:
@@ -19,6 +20,37 @@ jobs:
         run: |
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
+
+      - name: Copy referenced outputs to paper
+        run: |
+          mkdir -p analysis/paper/tables analysis/paper/plots
+
+          # Extract \input{...} references from all .tex files in paper/
+          grep -roh '\\input{[^}]*}' analysis/paper/*.tex | sed 's/\\input{//;s/}//' | sort -u | while read ref; do
+            filename=$(basename "$ref")
+            # Add .tex extension if missing
+            [[ "$filename" != *.* ]] && filename="${filename}.tex"
+            src="analysis/output/tables/${filename}"
+            if [ -f "$src" ]; then
+              cp "$src" "analysis/paper/tables/"
+              echo "Copied table: $filename"
+            fi
+          done
+
+          # Extract \includegraphics{...} references from all .tex files in paper/
+          grep -roh '\\includegraphics[^{]*{[^}]*}' analysis/paper/*.tex | grep -o '{[^}]*}' | tr -d '{}' | sort -u | while read ref; do
+            filename=$(basename "$ref")
+            src="analysis/output/plots/${filename}"
+            if [ -f "$src" ]; then
+              cp "$src" "analysis/paper/plots/"
+              echo "Copied plot: $filename"
+            fi
+          done
+
+      - name: Commit outputs locally
+        run: |
+          git add analysis/paper/tables/ analysis/paper/plots/ || true
+          git diff --staged --quiet || git commit -m "Auto-copy referenced outputs for Overleaf"
 
       - name: Push to Overleaf
         env:

@@ -39,6 +39,12 @@
 %%%%%%%%% NN styling %%%%%%%%%
 \usepackage{NNstyle}
 
+%%%%%%%%% Path resolution (Overleaf: tables/, plots/; Local: ../output/) %%%%%%%%%
+\graphicspath{{}{../output/plots/}}
+\makeatletter
+\def\input@path{{tables/}{../output/tables/}}
+\makeatother
+
 \linespread{1.3} % 1.5 spacing = 1.3, double spacing = 1.6
 
 \begin{document}
@@ -102,7 +108,7 @@
 		\centering
 		\caption{Contribution Summary Statistics by Treatment and Supergame}
 		\label{tab:contributions_aggregate}
-		\input{tables/contributions_summary_aggregate.tex}
+		\input{contributions_summary_aggregate.tex}
 	\end{table}
 
 
@@ -121,7 +127,7 @@
 		\centering
 		\caption{Behavioral Classifications by Treatment and Supergame}
 		\label{tab:behavior_aggregate}
-		\input{tables/behavior_summary_aggregate.tex}
+		\input{behavior_summary_aggregate.tex}
 	\end{table}
 
 
@@ -130,21 +136,21 @@
 
 	\begin{figure}[H]
 		\centering
-		\includegraphics[width=0.85\textwidth]{plots/mean_contribution_by_round.png}
+		\includegraphics[width=0.85\textwidth]{mean_contribution_by_round.png}
 		\caption{Mean contribution by round within each supergame. Vertical breaks separate supergames.}
 		\label{fig:mean_by_round}
 	\end{figure}
 
 	\begin{figure}[H]
 		\centering
-		\includegraphics[width=0.85\textwidth]{plots/mean_contribution_by_segment.png}
+		\includegraphics[width=0.85\textwidth]{mean_contribution_by_segment.png}
 		\caption{Mean contribution by supergame, split by treatment.}
 		\label{fig:mean_by_segment}
 	\end{figure}
 
 	\begin{figure}[H]
 		\centering
-		\includegraphics[width=0.85\textwidth]{plots/contribution_cdf_by_treatment.png}
+		\includegraphics[width=0.85\textwidth]{contribution_cdf_by_treatment.png}
 		\caption{Empirical CDF of contributions by treatment. The Treatment~2 distribution first-order stochastically dominates Treatment~1.}
 		\label{fig:cdf}
 	\end{figure}
@@ -168,7 +174,7 @@
 		\centering
 		\caption{Contribution Regression: Promise and Sucker Effects}
 		\label{tab:contribution_regression}
-		\input{tables/contribution_regression.tex}
+		\input{contribution_regression.tex}
 	\end{table}
 
 	\FloatBarrier
@@ -193,7 +199,7 @@
 		\centering
 		\caption{Sentiment--Contribution Regression with Liar Interaction}
 		\label{tab:sentiment_liar}
-		\input{tables/issue_17_sentiment_liar_regression.tex}
+		\input{issue_17_sentiment_liar_regression.tex}
 	\end{table}
 
 
@@ -226,7 +232,7 @@
 		\caption{Contribution Summary Statistics by Session and Supergame}
 		\label{tab:contributions_detail}
 		\small
-		\input{tables/contributions_summary.tex}
+		\input{contributions_summary.tex}
 	\end{table}
 
 	\begin{table}[H]
@@ -234,7 +240,7 @@
 		\caption{Behavioral Classifications by Session and Supergame}
 		\label{tab:behavior_detail}
 		\small
-		\input{tables/behavior_summary.tex}
+		\input{behavior_summary.tex}
 	\end{table}
 
 \end{document}

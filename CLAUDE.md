@@ -24,8 +24,9 @@ uv run otree prodserver
 uv run otree zip
 
 # Overleaf (analysis/paper synced via git subtree)
+# Auto-syncs to Overleaf on push to main via GitHub Action (.github/workflows/sync-overleaf.yml)
 git subtree pull --prefix=analysis/paper overleaf master --squash  # Pull from Overleaf
-git subtree push --prefix=analysis/paper overleaf master           # Push to Overleaf
+git subtree push --prefix=analysis/paper overleaf master           # Manual push to Overleaf
 
 # Analysis (run from analysis/ directory)
 uv run python analysis/analysis_plots.py
