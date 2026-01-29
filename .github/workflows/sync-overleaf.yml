@@ -25,5 +25,6 @@ jobs:
           OVERLEAF_GIT_TOKEN: ${{ secrets.OVERLEAF_GIT_TOKEN }}
         run: |
           git remote add overleaf https://git:${OVERLEAF_GIT_TOKEN}@git.overleaf.com/67b7ac1749a64b42e2d99e7c
+          git fetch overleaf
           git subtree split --prefix=analysis/paper -b overleaf-split
           git push overleaf overleaf-split:master --force
