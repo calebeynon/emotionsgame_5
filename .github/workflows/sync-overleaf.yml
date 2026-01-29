@@ -1,0 +1,29 @@
+name: Sync to Overleaf
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'analysis/paper/**'
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure git
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+
+      - name: Push to Overleaf
+        env:
+          OVERLEAF_GIT_TOKEN: ${{ secrets.OVERLEAF_GIT_TOKEN }}
+        run: |
+          git remote add overleaf https://git:${OVERLEAF_GIT_TOKEN}@git.overleaf.com/67b7ac1749a64b42e2d99e7c
+          git subtree split --prefix=analysis/paper -b overleaf-split
+          git push overleaf overleaf-split:master --force
