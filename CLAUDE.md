@@ -25,6 +25,7 @@ uv run otree zip
 
 # Overleaf (analysis/paper synced via git subtree)
 # Auto-syncs to Overleaf on push to main via GitHub Action (.github/workflows/sync-overleaf.yml)
+# Action parses .tex files for \input and \includegraphics, copies referenced files from output/
 git subtree pull --prefix=analysis/paper overleaf master --squash  # Pull from Overleaf
 git subtree push --prefix=analysis/paper overleaf master           # Manual push to Overleaf
 
@@ -36,6 +37,22 @@ uv run python derived/classify_behavior.py
 uv run python annotations/build_edited_data_csv.py
 uv run python annotations/generate_annotations.py
 ```
+
+### Paper Directory (`analysis/paper/`)
+All `.tex` files in the paper directory **must** include the following path resolution preamble so they compile both locally and on Overleaf:
+
+```latex
+%%%%%%%%% Path resolution (Overleaf: tables/, plots/; Local: ../output/) %%%%%%%%%
+\graphicspath{{plots/}{../output/plots/}}
+\makeatletter
+\def\input@path{{tables/}{../output/tables/}}
+\makeatother
+```
+
+- Use **bare filenames** in `\input{}` and `\includegraphics{}` (no directory prefix)
+- Locally, LaTeX resolves via `../output/tables/` and `../output/plots/`
+- On Overleaf, the GitHub Action copies referenced files into `tables/` and `plots/`
+- Do NOT manually commit files to `analysis/paper/tables/` or `analysis/paper/plots/` — the Action manages these
 
 ## Experimental Architecture
 
