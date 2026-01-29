@@ -13,50 +13,51 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
-      - name: Configure git
+      - name: Clone Overleaf repo
+        env:
+          OVERLEAF_GIT_TOKEN: ${{ secrets.OVERLEAF_GIT_TOKEN }}
         run: |
+          git clone https://git:${OVERLEAF_GIT_TOKEN}@git.overleaf.com/67b7ac1749a64b42e2d99e7c /tmp/overleaf
+          cd /tmp/overleaf
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
 
-      - name: Copy referenced outputs to paper
+      - name: Sync paper files to Overleaf
         run: |
-          mkdir -p analysis/paper/tables analysis/paper/plots
+          # Copy all paper files (excluding Action-managed tables/ and plots/)
+          rsync -av --delete \
+            --exclude='tables/' \
+            --exclude='plots/' \
+            analysis/paper/ /tmp/overleaf/
 
-          # Extract \input{...} references from all .tex files in paper/
+          # Create output directories
+          mkdir -p /tmp/overleaf/tables /tmp/overleaf/plots
+
+          # Extract \input{...} references and copy matching tables
           grep -roh '\\input{[^}]*}' analysis/paper/*.tex | sed 's/\\input{//;s/}//' | sort -u | while read ref; do
             filename=$(basename "$ref")
-            # Add .tex extension if missing
             [[ "$filename" != *.* ]] && filename="${filename}.tex"
             src="analysis/output/tables/${filename}"
             if [ -f "$src" ]; then
-              cp "$src" "analysis/paper/tables/"
+              cp "$src" "/tmp/overleaf/tables/"
               echo "Copied table: $filename"
             fi
           done
 
-          # Extract \includegraphics{...} references from all .tex files in paper/
+          # Extract \includegraphics{...} references and copy matching plots
           grep -roh '\\includegraphics[^{]*{[^}]*}' analysis/paper/*.tex | grep -o '{[^}]*}' | tr -d '{}' | sort -u | while read ref; do
             filename=$(basename "$ref")
             src="analysis/output/plots/${filename}"
             if [ -f "$src" ]; then
-              cp "$src" "analysis/paper/plots/"
+              cp "$src" "/tmp/overleaf/plots/"
               echo "Copied plot: $filename"
             fi
           done
 
-      - name: Commit outputs locally
-        run: |
-          git add analysis/paper/tables/ analysis/paper/plots/ || true
-          git diff --staged --quiet || git commit -m "Auto-copy referenced outputs for Overleaf"
-
       - name: Push to Overleaf
-        env:
-          OVERLEAF_GIT_TOKEN: ${{ secrets.OVERLEAF_GIT_TOKEN }}
         run: |
-          git remote add overleaf https://git:${OVERLEAF_GIT_TOKEN}@git.overleaf.com/67b7ac1749a64b42e2d99e7c
-          git fetch overleaf
-          git subtree split --prefix=analysis/paper -b overleaf-split
-          git push overleaf overleaf-split:master --force
+          cd /tmp/overleaf
+          git add -A
+          git diff --staged --quiet || git commit -m "Sync from GitHub Actions"
+          git push origin master
