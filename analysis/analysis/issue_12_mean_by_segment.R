@@ -40,9 +40,17 @@ load_contributions <- function(file_path) {
 # Data aggregation
 # =====
 aggregate_by_treatment_segment <- function(dt) {
-    # Compute mean contribution pooled across sessions and rounds
-    dt_agg <- dt[, .(mean_contribution = mean(contribution)),
-                 by = .(treatment, segment)]
+    # Compute mean, sd, n, and 95% CI pooled across sessions and rounds
+    dt_agg <- dt[, .(
+        mean_contribution = mean(contribution),
+        sd_contribution = sd(contribution),
+        n = .N
+    ), by = .(treatment, segment)]
+
+    # Calculate standard error and 95% CI bounds
+    dt_agg[, se := sd_contribution / sqrt(n)]
+    dt_agg[, ci_lower := mean_contribution - 1.96 * se]
+    dt_agg[, ci_upper := mean_contribution + 1.96 * se]
 
     # Extract segment number for proper ordering
     dt_agg[, segment_num := as.numeric(gsub("\\D", "", segment))]
@@ -56,16 +64,22 @@ aggregate_by_treatment_segment <- function(dt) {
 # =====
 create_plot <- function(dt_agg) {
     ggplot(dt_agg, aes(x = segment_num, y = mean_contribution,
-                       group = factor(treatment), color = factor(treatment))) +
+                       group = factor(treatment), color = factor(treatment),
+                       fill = factor(treatment))) +
+        geom_ribbon(aes(ymin = ci_lower, ymax = ci_upper),
+                    alpha = 0.2, color = NA) +
         geom_line(linewidth = 0.8) +
         geom_point(size = 2.5) +
         scale_x_continuous(breaks = 1:5, labels = 1:5) +
         scale_y_continuous(limits = c(0, 25), breaks = seq(0, 25, 5)) +
         scale_color_manual(values = TREATMENT_COLORS,
                           labels = c("1" = "Treatment 1", "2" = "Treatment 2")) +
-        labs(x = "Supergame", y = "Mean Contribution", color = NULL) +
+        scale_fill_manual(values = TREATMENT_COLORS,
+                         labels = c("1" = "Treatment 1", "2" = "Treatment 2")) +
+        labs(x = "Supergame", y = "Mean Contribution", color = NULL, fill = NULL) +
         theme_minimal(base_size = 11) +
-        theme(panel.grid.minor = element_blank(), legend.position = "bottom")
+        theme(panel.grid.minor = element_blank(), legend.position = "bottom") +
+        guides(fill = "none")
 }
 
 # =====

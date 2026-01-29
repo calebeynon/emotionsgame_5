@@ -39,8 +39,18 @@ load_contributions <- function(file_path) {
 # =====
 aggregate_by_treatment_round <- function(dt) {
     # Pool across all sessions and segments, group by treatment and round
-    dt_agg <- dt[, .(mean_contribution = mean(contribution)),
-                 by = .(treatment, round)]
+    # Compute mean, sd, n, and 95% CI
+    dt_agg <- dt[, .(
+        mean_contribution = mean(contribution),
+        sd_contribution = sd(contribution),
+        n = .N
+    ), by = .(treatment, round)]
+
+    # Calculate standard error and 95% CI bounds
+    dt_agg[, se := sd_contribution / sqrt(n)]
+    dt_agg[, ci_lower := mean_contribution - 1.96 * se]
+    dt_agg[, ci_upper := mean_contribution + 1.96 * se]
+
     dt_agg <- dt_agg[order(treatment, round)]
     return(dt_agg)
 }
@@ -51,19 +61,26 @@ aggregate_by_treatment_round <- function(dt) {
 create_plot <- function(dt_agg) {
     ggplot(dt_agg, aes(x = round, y = mean_contribution,
                        color = factor(treatment),
+                       fill = factor(treatment),
                        group = treatment)) +
+        geom_ribbon(aes(ymin = ci_lower, ymax = ci_upper),
+                    alpha = 0.2, color = NA) +
         geom_line(linewidth = 0.8) +
         geom_point(size = 2) +
         scale_x_continuous(breaks = 1:7) +
         scale_y_continuous(limits = c(0, 25), breaks = seq(0, 25, 5)) +
         scale_color_manual(values = TREATMENT_COLORS,
                           labels = c("1" = "Treatment 1", "2" = "Treatment 2")) +
-        labs(x = "Round (within segment)", y = "Mean Contribution", color = NULL) +
+        scale_fill_manual(values = TREATMENT_COLORS,
+                         labels = c("1" = "Treatment 1", "2" = "Treatment 2")) +
+        labs(x = "Round (within segment)", y = "Mean Contribution",
+             color = NULL, fill = NULL) +
         theme_minimal(base_size = 12) +
         theme(
             panel.grid.minor = element_blank(),
             legend.position = "bottom"
-        )
+        ) +
+        guides(fill = "none")
 }
 
 # =====
