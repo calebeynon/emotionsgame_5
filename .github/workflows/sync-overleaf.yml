@@ -25,8 +25,9 @@ jobs:
 
       - name: Sync paper files to Overleaf
         run: |
-          # Copy all paper files (excluding Action-managed tables/ and plots/)
+          # Copy all paper files (excluding .git, Action-managed tables/ and plots/)
           rsync -av --delete \
+            --exclude='.git/' \
             --exclude='tables/' \
             --exclude='plots/' \
             analysis/paper/ /tmp/overleaf/
