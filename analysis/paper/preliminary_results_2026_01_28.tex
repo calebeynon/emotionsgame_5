@@ -117,8 +117,8 @@
 
 	Chat messages are classified as promises using GPT-5-mini with context-aware prompting. From promise classifications, we derive two additional behavioral measures:
 	\begin{itemize}[nosep]
-		\item \textbf{Liar.} A player who made a promise in chat but subsequently contributed below a threshold. Under the \textit{strict} definition, a liar is a promise-maker who contributed $< 20$ (out of 25); under the \textit{lenient} definition, a liar contributed $< 5$. The lenient definition captures only extreme defection.
-		\item \textbf{Sucker.} A player who contributed the maximum (25 points) in a round where a groupmate lied. Under the \textit{strict} definition, a groupmate lied if they promised but contributed $< 20$; under the \textit{lenient} definition, the groupmate contributed $< 5$. Because the strict liar threshold is easier to meet, the strict sucker definition classifies \textit{more} players as suckers.
+		\item \textbf{Liar.} A player who made a promise in chat but subsequently contributed below a threshold. Under the \textit{high-threshold} definition, a liar is a promise-maker who contributed $< 20$ (out of 25); under the \textit{low-threshold} definition, a liar contributed $< 5$. The low-threshold definition captures only extreme defection.
+		\item \textbf{Sucker.} A player who contributed the maximum (25 points) in a round where a groupmate lied. Under the \textit{high-threshold} definition, a groupmate lied if they promised but contributed $< 20$; under the \textit{low-threshold} definition, the groupmate contributed $< 5$. Because the high-threshold liar definition is easier to meet, it classifies \textit{more} players as suckers.
 	\end{itemize}
 
 	Table~\ref{tab:behavior_aggregate} summarizes these classifications aggregated across sessions within each treatment. Promise counts are broadly similar across treatments (519 in Treatment~1 vs.\ 412 in Treatment~2 across all supergames). Lying and sucker incidence is concentrated in the longer supergames (supergame~4 in particular), suggesting that cooperation breakdowns are more likely in extended interactions.
@@ -166,7 +166,7 @@
 	\textbf{Key findings:}
 	\begin{itemize}[nosep]
 		\item \textit{Promise-making} is not significantly associated with higher contributions ($\hat{\beta} \approx 0.53$, $p > 0.10$). This likely reflects a ceiling effect: the contribution distribution is heavily right-skewed, with median contributions at the 25-point endowment in most treatment-supergame cells (Table~\ref{tab:contributions_aggregate}). Both promise-makers and non-promise-makers tend to contribute near the maximum, leaving insufficient variation for the promise indicator to explain. The promise variable thus captures a near-universal norm of high contribution rather than a behavioral distinction.
-		\item \textit{Sucker status} has a large, negative, and highly significant effect. Under the strict definition (groupmate contributed $< 20$ after promising), being a sucker reduces contributions by 5.99 points ($p < 0.01$). Under the lenient definition (groupmate contributed $< 5$), the effect is even larger at $-8.02$ points ($p < 0.01$).
+		\item \textit{Sucker status} has a large, negative, and highly significant effect. Under the high-threshold definition (groupmate contributed $< 20$ after promising), being a sucker reduces contributions by 5.99 points ($p < 0.01$). Under the low-threshold definition (groupmate contributed $< 5$), the effect is even larger at $-8.02$ points ($p < 0.01$).
 		\item \textit{Treatment} is positive and significant ($\hat{\beta} \approx 1.62$, $p < 0.01$), confirming that Treatment~2 participants contribute more than Treatment~1 participants.
 	\end{itemize}
 
@@ -190,8 +190,8 @@
 	\textbf{Key findings:}
 	\begin{itemize}[nosep]
 		\item \textit{Sentiment} positively predicts contributions: a one-unit increase in compound sentiment is associated with roughly 2.1--2.2 additional contribution points ($p < 0.01$). Players who express more positive sentiment in chat contribute more.
-		\item \textit{Lying} has a large negative main effect. Strict liars (promised but contributed $< 20$) contribute 17.16 points less ($p < 0.01$); lenient liars (contributed $< 5$) contribute 22.49 points less ($p < 0.01$).
-		\item \textit{Interaction (Sentiment $\times$ Lied):} Under the strict definition, the interaction is small and insignificant ($-0.23$, $p > 0.10$), suggesting sentiment remains equally predictive for liars and non-liars. Under the lenient definition, the interaction is negative and significant ($-2.65$, $p < 0.05$), indicating that for extreme liars, positive sentiment does \textit{not} translate into higher contributions---consistent with cheap talk.
+		\item \textit{Lying} has a large negative main effect. High-threshold liars (promised but contributed $< 20$) contribute 17.16 points less ($p < 0.01$); low-threshold liars (contributed $< 5$) contribute 22.49 points less ($p < 0.01$).
+		\item \textit{Interaction (Sentiment $\times$ Lied):} Under the high-threshold definition, the interaction is small and insignificant ($-0.23$, $p > 0.10$), suggesting sentiment remains equally predictive for liars and non-liars. Under the low-threshold definition, the interaction is negative and significant ($-2.65$, $p < 0.05$), indicating that for extreme liars, positive sentiment does \textit{not} translate into higher contributions---consistent with cheap talk.
 		\item \textit{Treatment} is not significant in either specification once sentiment and liar status are controlled, suggesting the treatment effect operates partly through the sentiment and honesty channels.
 	\end{itemize}
 

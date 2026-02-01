@@ -31,8 +31,8 @@ from merge_regression_data import (
     SENTIMENT_COLS,
     PROMISE_COLS,
     LAGGED_SENTIMENT_COLS,
-    STRICT_THRESHOLD,
-    LENIENT_THRESHOLD,
+    THRESHOLD_20,
+    THRESHOLD_5,
 )
 
 # FILE PATHS (for direct file access tests)
@@ -48,10 +48,10 @@ EXPECTED_PROMISE_ROWS = 2298
 
 # Column lists for validation
 LIAR_COLUMNS = [
-    'is_liar_strict',
-    'is_liar_lenient',
-    'is_sucker_strict',
-    'is_sucker_lenient',
+    'is_liar_20',
+    'is_liar_5',
+    'is_sucker_20',
+    'is_sucker_5',
 ]
 
 
@@ -75,10 +75,10 @@ def mock_behavior_df():
         'contribution': [25.0, 20.0, 15.0, 10.0, 25.0, 25.0, 20.0, 15.0],
         'payoff': [40.0, 35.0, 30.0, 25.0, 45.0, 45.0, 40.0, 35.0],
         'made_promise': [False, False, False, False, True, True, True, False],
-        'is_liar_strict': [False] * 8,
-        'is_liar_lenient': [False] * 8,
-        'is_sucker_strict': [False] * 8,
-        'is_sucker_lenient': [False] * 8,
+        'is_liar_20': [False] * 8,
+        'is_liar_5': [False] * 8,
+        'is_sucker_20': [False] * 8,
+        'is_sucker_5': [False] * 8,
     })
 
 
@@ -297,41 +297,41 @@ class TestRound1NaNHandling:
 class TestLiarColumnsPresent:
     """Tests for liar/sucker flag columns in merged output."""
 
-    def test_is_liar_strict_present(
+    def test_is_liar_20_present(
         self, mock_behavior_df, mock_sentiment_df, mock_promise_df
     ):
-        """Merged output should contain is_liar_strict column."""
+        """Merged output should contain is_liar_20 column."""
         merged = merge_datasets(
             mock_behavior_df, mock_sentiment_df, mock_promise_df
         )
-        assert 'is_liar_strict' in merged.columns
+        assert 'is_liar_20' in merged.columns
 
-    def test_is_liar_lenient_present(
+    def test_is_liar_5_present(
         self, mock_behavior_df, mock_sentiment_df, mock_promise_df
     ):
-        """Merged output should contain is_liar_lenient column."""
+        """Merged output should contain is_liar_5 column."""
         merged = merge_datasets(
             mock_behavior_df, mock_sentiment_df, mock_promise_df
         )
-        assert 'is_liar_lenient' in merged.columns
+        assert 'is_liar_5' in merged.columns
 
-    def test_is_sucker_strict_present(
+    def test_is_sucker_20_present(
         self, mock_behavior_df, mock_sentiment_df, mock_promise_df
     ):
-        """Merged output should contain is_sucker_strict column."""
+        """Merged output should contain is_sucker_20 column."""
         merged = merge_datasets(
             mock_behavior_df, mock_sentiment_df, mock_promise_df
         )
-        assert 'is_sucker_strict' in merged.columns
+        assert 'is_sucker_20' in merged.columns
 
-    def test_is_sucker_lenient_present(
+    def test_is_sucker_5_present(
         self, mock_behavior_df, mock_sentiment_df, mock_promise_df
     ):
-        """Merged output should contain is_sucker_lenient column."""
+        """Merged output should contain is_sucker_5 column."""
         merged = merge_datasets(
             mock_behavior_df, mock_sentiment_df, mock_promise_df
         )
-        assert 'is_sucker_lenient' in merged.columns
+        assert 'is_sucker_5' in merged.columns
 
 
 # =====
@@ -501,8 +501,8 @@ class TestColumnDefinitions:
 
     def test_liar_thresholds_correct(self):
         """Liar thresholds should be set correctly."""
-        assert STRICT_THRESHOLD == 20
-        assert LENIENT_THRESHOLD == 5
+        assert THRESHOLD_20 == 20
+        assert THRESHOLD_5 == 5
 
 
 # =====
@@ -511,15 +511,15 @@ class TestColumnDefinitions:
 class TestComputeDerivedVariables:
     """Tests for the compute_derived_variables function."""
 
-    def test_creates_lied_this_period_strict_column(self, mock_lagged_df):
-        """Should create lied_this_period_strict column."""
+    def test_creates_lied_this_period_20_column(self, mock_lagged_df):
+        """Should create lied_this_period_20 column."""
         result = compute_derived_variables(mock_lagged_df)
-        assert 'lied_this_period_strict' in result.columns
+        assert 'lied_this_period_20' in result.columns
 
-    def test_creates_lied_this_period_lenient_column(self, mock_lagged_df):
-        """Should create lied_this_period_lenient column."""
+    def test_creates_lied_this_period_5_column(self, mock_lagged_df):
+        """Should create lied_this_period_5 column."""
         result = compute_derived_variables(mock_lagged_df)
-        assert 'lied_this_period_lenient' in result.columns
+        assert 'lied_this_period_5' in result.columns
 
     def test_creates_sentiment_compound_mean_prev_column(self, mock_lagged_df):
         """Should create sentiment_compound_mean_prev column."""
@@ -531,7 +531,7 @@ class TestComputeDerivedVariables:
         result = compute_derived_variables(mock_lagged_df)
         round_1 = result[result['round'] == 1]
         # Round 1 has no promises (made_promise=False), so lied_this_period=False
-        assert (round_1['lied_this_period_strict'] == False).all()
+        assert (round_1['lied_this_period_20'] == False).all()
 
     def test_round_1_has_nan_lagged_sentiment(self, mock_lagged_df):
         """Round 1 should have NaN for sentiment_compound_mean_prev."""
@@ -545,8 +545,8 @@ class TestComputeDerivedVariables:
         round_2 = result[result['round'] == 2]
         assert round_2['sentiment_compound_mean_prev'].isna().all()
 
-    def test_lied_this_period_strict_logic(self):
-        """Test lied_this_period_strict = (made_promise & contribution < 20)."""
+    def test_lied_this_period_20_logic(self):
+        """Test lied_this_period_20 = (made_promise & contribution < 20)."""
         df = pd.DataFrame({
             'session_code': ['abc'] * 4,
             'segment': ['sg1'] * 4,
@@ -559,13 +559,13 @@ class TestComputeDerivedVariables:
 
         result = compute_derived_variables(df)
 
-        assert result[result['label'] == 'A']['lied_this_period_strict'].iloc[0] == False  # contrib >= 20
-        assert result[result['label'] == 'B']['lied_this_period_strict'].iloc[0] == True   # contrib < 20
-        assert result[result['label'] == 'C']['lied_this_period_strict'].iloc[0] == False  # no promise
-        assert result[result['label'] == 'D']['lied_this_period_strict'].iloc[0] == True   # contrib < 20
+        assert result[result['label'] == 'A']['lied_this_period_20'].iloc[0] == False  # contrib >= 20
+        assert result[result['label'] == 'B']['lied_this_period_20'].iloc[0] == True   # contrib < 20
+        assert result[result['label'] == 'C']['lied_this_period_20'].iloc[0] == False  # no promise
+        assert result[result['label'] == 'D']['lied_this_period_20'].iloc[0] == True   # contrib < 20
 
-    def test_lied_this_period_lenient_logic(self):
-        """Test lied_this_period_lenient = (made_promise & contribution < 5)."""
+    def test_lied_this_period_5_logic(self):
+        """Test lied_this_period_5 = (made_promise & contribution < 5)."""
         df = pd.DataFrame({
             'session_code': ['abc'] * 4,
             'segment': ['sg1'] * 4,
@@ -578,10 +578,10 @@ class TestComputeDerivedVariables:
 
         result = compute_derived_variables(df)
 
-        assert result[result['label'] == 'A']['lied_this_period_lenient'].iloc[0] == False  # contrib >= 5
-        assert result[result['label'] == 'B']['lied_this_period_lenient'].iloc[0] == True   # contrib < 5
-        assert result[result['label'] == 'C']['lied_this_period_lenient'].iloc[0] == False  # contrib == 5
-        assert result[result['label'] == 'D']['lied_this_period_lenient'].iloc[0] == True   # contrib < 5
+        assert result[result['label'] == 'A']['lied_this_period_5'].iloc[0] == False  # contrib >= 5
+        assert result[result['label'] == 'B']['lied_this_period_5'].iloc[0] == True   # contrib < 5
+        assert result[result['label'] == 'C']['lied_this_period_5'].iloc[0] == False  # contrib == 5
+        assert result[result['label'] == 'D']['lied_this_period_5'].iloc[0] == True   # contrib < 5
 
     def test_lagged_sentiment_correctly_shifted(self, mock_lagged_df):
         """Verify lagged sentiment matches previous round's values.

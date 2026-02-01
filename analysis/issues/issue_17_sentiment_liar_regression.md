@@ -80,8 +80,8 @@ The `sentiment_scores.csv` file already encodes this pairing correctly from the 
 | Column | Description |
 |--------|-------------|
 | `session_code`, `segment`, `round`, `label` | Join keys |
-| `is_liar_strict` | True if player broke promise (contributed < 20) in any prior round |
-| `is_liar_lenient` | True if player broke promise (contributed < 5) in any prior round |
+| `is_liar_20` | True if player broke promise (contributed < 20) in any prior round |
+| `is_liar_5` | True if player broke promise (contributed < 5) in any prior round |
 
 ## Merge Instructions
 

@@ -20,10 +20,10 @@ OUTPUT_FILE = DATA_DIR / 'derived' / 'behavior_classifications.csv'
 EXPECTED_COLUMNS = [
     'session_code', 'treatment', 'segment', 'round', 'group', 'label',
     'participant_id', 'contribution', 'payoff', 'made_promise',
-    'is_liar_strict', 'is_liar_lenient', 'is_sucker_strict', 'is_sucker_lenient'
+    'is_liar_20', 'is_liar_5', 'is_sucker_20', 'is_sucker_5'
 ]
 EXPECTED_ROW_COUNT = 3520  # 10 sessions * 16 players * 22 rounds
-FLAG_COLUMNS = ['is_liar_strict', 'is_liar_lenient', 'is_sucker_strict', 'is_sucker_lenient']
+FLAG_COLUMNS = ['is_liar_20', 'is_liar_5', 'is_sucker_20', 'is_sucker_5']
 
 
 # =====
@@ -148,7 +148,7 @@ class TestLiarRequiresPromise:
 
     def test_liar_requires_promise(self, behavior_df):
         """Verify no player has is_liar_* = True without having made_promise = True in prior round of same segment."""
-        for threshold in ['strict', 'lenient']:
+        for threshold in ['20', '5']:
             flag_col = f'is_liar_{threshold}'
             violations = find_liar_without_promise(behavior_df, flag_col)
             assert len(violations) == 0, (
@@ -189,7 +189,7 @@ class TestSuckerRequires25:
 
     def test_sucker_requires_25_contribution(self, behavior_df):
         """Verify no player has is_sucker_* = True without having contributed 25 in prior round of same segment."""
-        for threshold in ['strict', 'lenient']:
+        for threshold in ['20', '5']:
             flag_col = f'is_sucker_{threshold}'
             violations = find_sucker_without_25(behavior_df, flag_col)
             assert len(violations) == 0, (

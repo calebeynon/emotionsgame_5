@@ -15,13 +15,13 @@ from experiment_data import Experiment
 
 # Re-export DataFrame API functions for backwards compatibility
 from behavior_helpers_df import (
-    is_promise_broken_strict,
-    is_promise_broken_lenient,
+    is_promise_broken_20,
+    is_promise_broken_5,
     compute_liar_flags,
     compute_sucker_flags,
     classify_player_behavior,
-    STRICT_THRESHOLD,
-    LENIENT_THRESHOLD,
+    THRESHOLD_20,
+    THRESHOLD_5,
     MAX_CONTRIBUTION,
 )
 

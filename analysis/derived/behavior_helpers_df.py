@@ -13,8 +13,8 @@ from typing import Literal
 import pandas as pd
 
 # THRESHOLDS
-STRICT_THRESHOLD = 20  # Contribution >= 20 honors promise (strict)
-LENIENT_THRESHOLD = 5  # Contribution >= 5 honors promise (lenient)
+THRESHOLD_20 = 20  # Contribution >= 20 honors promise
+THRESHOLD_5 = 5    # Contribution >= 5 honors promise
 MAX_CONTRIBUTION = 25  # Full contribution required to be a sucker
 
 
@@ -30,14 +30,14 @@ def main():
 # =====
 # Simple threshold functions
 # =====
-def is_promise_broken_strict(contribution: float) -> bool:
-    """Check if contribution breaks promise under strict threshold (< 20)."""
-    return contribution < STRICT_THRESHOLD
+def is_promise_broken_20(contribution: float) -> bool:
+    """Check if contribution breaks promise under threshold 20 (< 20)."""
+    return contribution < THRESHOLD_20
 
 
-def is_promise_broken_lenient(contribution: float) -> bool:
-    """Check if contribution breaks promise under lenient threshold (< 5)."""
-    return contribution < LENIENT_THRESHOLD
+def is_promise_broken_5(contribution: float) -> bool:
+    """Check if contribution breaks promise under threshold 5 (< 5)."""
+    return contribution < THRESHOLD_5
 
 
 # =====
@@ -45,7 +45,7 @@ def is_promise_broken_lenient(contribution: float) -> bool:
 # =====
 def compute_liar_flags(
     df: pd.DataFrame,
-    threshold: Literal['strict', 'lenient'] = 'strict'
+    threshold: Literal['20', '5'] = '20'
 ) -> pd.DataFrame:
     """Compute liar flags for each player-round from a DataFrame.
 
@@ -62,9 +62,9 @@ def compute_liar_flags(
     return result
 
 
-def _get_threshold_func(threshold: Literal['strict', 'lenient']):
+def _get_threshold_func(threshold: Literal['20', '5']):
     """Return appropriate threshold function based on type."""
-    return is_promise_broken_strict if threshold == 'strict' else is_promise_broken_lenient
+    return is_promise_broken_20 if threshold == '20' else is_promise_broken_5
 
 
 def _compute_liar_for_segment_df(
@@ -99,7 +99,7 @@ def _check_and_flag_liar_df(row, label, player_is_liar, threshold_func) -> None:
 # =====
 def compute_sucker_flags(
     df: pd.DataFrame,
-    threshold: Literal['strict', 'lenient'] = 'strict'
+    threshold: Literal['20', '5'] = '20'
 ) -> pd.DataFrame:
     """Compute sucker flags for each player-round from a DataFrame.
 
@@ -171,12 +171,12 @@ def _find_groups_with_liar(round_df, threshold_func) -> set:
 def classify_player_behavior(df: pd.DataFrame) -> pd.DataFrame:
     """Classify player behavior with all liar and sucker flags.
 
-    Adds: is_liar_strict, is_liar_lenient, is_sucker_strict, is_sucker_lenient.
+    Adds: is_liar_20, is_liar_5, is_sucker_20, is_sucker_5.
     """
-    result = compute_liar_flags(df, threshold='strict')
-    result = compute_liar_flags(result, threshold='lenient')
-    result = compute_sucker_flags(result, threshold='strict')
-    result = compute_sucker_flags(result, threshold='lenient')
+    result = compute_liar_flags(df, threshold='20')
+    result = compute_liar_flags(result, threshold='5')
+    result = compute_sucker_flags(result, threshold='20')
+    result = compute_sucker_flags(result, threshold='5')
     return result
 
 

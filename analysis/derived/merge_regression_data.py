@@ -34,8 +34,8 @@ PROMISE_COLS = ['message_count', 'promise_count', 'promise_percentage']
 LAGGED_SENTIMENT_COLS = ['sentiment_compound_mean']
 
 # Liar thresholds (contribution below threshold after promise = lie)
-STRICT_THRESHOLD = 20
-LENIENT_THRESHOLD = 5
+THRESHOLD_20 = 20
+THRESHOLD_5 = 5
 
 
 # =====
@@ -99,11 +99,11 @@ def compute_derived_variables(df: pd.DataFrame) -> pd.DataFrame:
     group_cols = ['session_code', 'segment', 'label']
 
     # Contemporaneous liar flags (chat already paired with contribution it influenced)
-    df['lied_this_period_strict'] = (
-        (df['made_promise'] == True) & (df['contribution'] < STRICT_THRESHOLD)
+    df['lied_this_period_20'] = (
+        (df['made_promise'] == True) & (df['contribution'] < THRESHOLD_20)
     )
-    df['lied_this_period_lenient'] = (
-        (df['made_promise'] == True) & (df['contribution'] < LENIENT_THRESHOLD)
+    df['lied_this_period_5'] = (
+        (df['made_promise'] == True) & (df['contribution'] < THRESHOLD_5)
     )
 
     # Lag sentiment (previous round's sentiment)
@@ -203,8 +203,8 @@ def _print_merge_coverage(df: pd.DataFrame):
     """Print how many rows have sentiment/promise data and derived columns."""
     sentiment_count = df['sentiment_compound_mean'].notna().sum()
     promise_count = df['promise_count'].notna().sum()
-    lied_strict = (df['lied_this_period_strict'] == True).sum()
-    lied_lenient = (df['lied_this_period_lenient'] == True).sum()
+    lied_20 = (df['lied_this_period_20'] == True).sum()
+    lied_5 = (df['lied_this_period_5'] == True).sum()
     sentiment_prev_count = df['sentiment_compound_mean_prev'].notna().sum()
     total = len(df)
 
@@ -213,8 +213,8 @@ def _print_merge_coverage(df: pd.DataFrame):
     print(f"  Rows with promises:       {promise_count:,} / {total:,} ({100*promise_count/total:.1f}%)")
     print(f"  Rows with sentiment_prev: {sentiment_prev_count:,} / {total:,} ({100*sentiment_prev_count/total:.1f}%)")
     print(f"\nLiar counts (lied_this_period):")
-    print(f"  Strict (contrib < 20):    {lied_strict:,} / {total:,} ({100*lied_strict/total:.1f}%)")
-    print(f"  Lenient (contrib < 5):    {lied_lenient:,} / {total:,} ({100*lied_lenient/total:.1f}%)")
+    print(f"  _20 (contrib < 20):       {lied_20:,} / {total:,} ({100*lied_20/total:.1f}%)")
+    print(f"  _5 (contrib < 5):         {lied_5:,} / {total:,} ({100*lied_5/total:.1f}%)")
 
 
 def _print_column_list(df: pd.DataFrame):
