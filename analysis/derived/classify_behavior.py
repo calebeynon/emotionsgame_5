@@ -19,8 +19,8 @@ PROMISE_FILE = DATA_DIR / 'derived' / 'promise_classifications.csv'
 OUTPUT_FILE = DATA_DIR / 'derived' / 'behavior_classifications.csv'
 
 # THRESHOLDS
-STRICT_THRESHOLD = 20
-LENIENT_THRESHOLD = 5
+THRESHOLD_20 = 20
+THRESHOLD_5 = 5
 
 
 # =====
@@ -149,16 +149,16 @@ def _build_flag_record(session_code, segment_name, round_num, label,
                        segment, promise_lookup) -> dict:
     """Build behavioral flag record (made_promise, liar, sucker flags)."""
     made_promise = player_made_promise(promise_lookup, session_code, segment_name, round_num, label)
-    liar_strict, liar_lenient = compute_liar_flags(
+    liar_20, liar_5 = compute_liar_flags(
         session_code, segment_name, round_num, label, segment, promise_lookup
     )
-    sucker_strict, sucker_lenient = compute_sucker_flags(
+    sucker_20, sucker_5 = compute_sucker_flags(
         session_code, segment_name, round_num, label, segment, promise_lookup
     )
     return {
         'made_promise': made_promise,
-        'is_liar_strict': liar_strict, 'is_liar_lenient': liar_lenient,
-        'is_sucker_strict': sucker_strict, 'is_sucker_lenient': sucker_lenient,
+        'is_liar_20': liar_20, 'is_liar_5': liar_5,
+        'is_sucker_20': sucker_20, 'is_sucker_5': sucker_5,
     }
 
 
@@ -170,16 +170,16 @@ def compute_liar_flags(session_code, segment_name, round_num, label, segment, pr
     if round_num == 1:
         return False, False
 
-    is_liar_strict, is_liar_lenient = False, False
+    is_liar_20, is_liar_5 = False, False
     for prior_round in range(1, round_num):
-        strict, lenient = _check_liar_in_prior_round(
+        liar_20, liar_5 = _check_liar_in_prior_round(
             session_code, segment_name, prior_round, label, segment, promise_lookup
         )
-        is_liar_strict = is_liar_strict or strict
-        is_liar_lenient = is_liar_lenient or lenient
-        if is_liar_strict and is_liar_lenient:
+        is_liar_20 = is_liar_20 or liar_20
+        is_liar_5 = is_liar_5 or liar_5
+        if is_liar_20 and is_liar_5:
             break
-    return is_liar_strict, is_liar_lenient
+    return is_liar_20, is_liar_5
 
 
 def _check_liar_in_prior_round(session_code, segment_name, prior_round, label, segment, promise_lookup):
@@ -194,9 +194,9 @@ def _check_liar_in_prior_round(session_code, segment_name, prior_round, label, s
 
     made_promise = player_made_promise(promise_lookup, session_code, segment_name, prior_round, label)
     contribution = prior_player.contribution or 0
-    strict = made_promise and contribution < STRICT_THRESHOLD
-    lenient = made_promise and contribution < LENIENT_THRESHOLD
-    return strict, lenient
+    liar_20 = made_promise and contribution < THRESHOLD_20
+    liar_5 = made_promise and contribution < THRESHOLD_5
+    return liar_20, liar_5
 
 
 # =====
@@ -207,16 +207,16 @@ def compute_sucker_flags(session_code, segment_name, round_num, label, segment, 
     if round_num == 1:
         return False, False
 
-    is_sucker_strict, is_sucker_lenient = False, False
+    is_sucker_20, is_sucker_5 = False, False
     for prior_round in range(1, round_num):
-        strict, lenient = check_sucker_in_round(
+        sucker_20, sucker_5 = check_sucker_in_round(
             session_code, segment_name, prior_round, label, segment, promise_lookup
         )
-        is_sucker_strict = is_sucker_strict or strict
-        is_sucker_lenient = is_sucker_lenient or lenient
-        if is_sucker_strict and is_sucker_lenient:
+        is_sucker_20 = is_sucker_20 or sucker_20
+        is_sucker_5 = is_sucker_5 or sucker_5
+        if is_sucker_20 and is_sucker_5:
             break
-    return is_sucker_strict, is_sucker_lenient
+    return is_sucker_20, is_sucker_5
 
 
 def check_sucker_in_round(session_code, segment_name, round_num, label, segment, promise_lookup):
@@ -240,8 +240,8 @@ def check_sucker_in_round(session_code, segment_name, round_num, label, segment,
 
 def check_group_for_broken_promises(session_code, segment_name, round_num, label, group, promise_lookup):
     """Check if any group member broke a promise in this round."""
-    is_sucker_strict = False
-    is_sucker_lenient = False
+    is_sucker_20 = False
+    is_sucker_5 = False
 
     for member_label, member in group.players.items():
         if member_label == label:
@@ -250,12 +250,12 @@ def check_group_for_broken_promises(session_code, segment_name, round_num, label
         made_promise = player_made_promise(promise_lookup, session_code, segment_name, round_num, member_label)
         contribution = member.contribution or 0
 
-        if made_promise and contribution < STRICT_THRESHOLD:
-            is_sucker_strict = True
-        if made_promise and contribution < LENIENT_THRESHOLD:
-            is_sucker_lenient = True
+        if made_promise and contribution < THRESHOLD_20:
+            is_sucker_20 = True
+        if made_promise and contribution < THRESHOLD_5:
+            is_sucker_5 = True
 
-    return is_sucker_strict, is_sucker_lenient
+    return is_sucker_20, is_sucker_5
 
 
 # =====
@@ -282,8 +282,8 @@ def _print_details(df: pd.DataFrame):
     """Print promise and flag summary details."""
     count, total, pct = df['made_promise'].sum(), len(df), df['made_promise'].mean() * 100
     print(f"\nPromise makers: {count} / {total} ({pct:.1f}%)")
-    for flag, thresh in [('is_liar_strict', STRICT_THRESHOLD), ('is_liar_lenient', LENIENT_THRESHOLD),
-                         ('is_sucker_strict', STRICT_THRESHOLD), ('is_sucker_lenient', LENIENT_THRESHOLD)]:
+    for flag, thresh in [('is_liar_20', THRESHOLD_20), ('is_liar_5', THRESHOLD_5),
+                         ('is_sucker_20', THRESHOLD_20), ('is_sucker_5', THRESHOLD_5)]:
         series = df[flag]
         print(f"\n{flag}: {series.sum()} ({series.mean()*100:.1f}%)")
 

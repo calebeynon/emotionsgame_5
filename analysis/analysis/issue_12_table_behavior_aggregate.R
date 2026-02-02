@@ -42,10 +42,10 @@ aggregate_behavior_counts <- function(dt) {
     summary_dt <- dt[, .(
         N = .N,
         Promises = sum(made_promise),
-        Liars_Strict = sum(is_liar_strict),
-        Liars_Lenient = sum(is_liar_lenient),
-        Suckers_Strict = sum(is_sucker_strict),
-        Suckers_Lenient = sum(is_sucker_lenient)
+        Liars_20 = sum(is_liar_20),
+        Liars_5 = sum(is_liar_5),
+        Suckers_20 = sum(is_sucker_20),
+        Suckers_5 = sum(is_sucker_5)
     ), by = .(Treatment = treatment, Segment = segment)]
 
     summary_dt <- summary_dt[order(Treatment, Segment)]

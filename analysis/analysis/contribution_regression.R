@@ -13,13 +13,13 @@
 #   A player is classified as a "sucker" if they contributed the maximum (25 points)
 #   in a round where a groupmate broke their promise.
 #
-#   - is_sucker_strict: Groupmate broke promise by contributing < 20 after promising.
-#                       This is a STRICTER definition of promise-breaking, meaning
-#                       MORE players are classified as suckers.
+#   - is_sucker_20: Groupmate broke promise by contributing < 20 after promising.
+#                   This threshold catches more promise-breakers, meaning
+#                   MORE players are classified as suckers.
 #
-#   - is_sucker_lenient: Groupmate broke promise by contributing < 5 after promising.
-#                        This is a more LENIENT definition of promise-breaking, meaning
-#                        FEWER players are classified as suckers.
+#   - is_sucker_5: Groupmate broke promise by contributing < 5 after promising.
+#                  This threshold catches only extreme promise-breakers, meaning
+#                  FEWER players are classified as suckers.
 
 # nolint start
 library(data.table)
@@ -37,11 +37,11 @@ main <- function() {
     dt <- load_and_prepare_data(INPUT_CSV)
     validate_data(dt)
 
-    model_strict <- run_regression(dt, "is_sucker_strict")
-    model_lenient <- run_regression(dt, "is_sucker_lenient")
+    model_20 <- run_regression(dt, "is_sucker_20")
+    model_5 <- run_regression(dt, "is_sucker_5")
 
     dir.create(OUTPUT_DIR, recursive = TRUE, showWarnings = FALSE)
-    export_latex_table(model_strict, model_lenient, OUTPUT_TEX)
+    export_latex_table(model_20, model_5, OUTPUT_TEX)
 
     cat("Regression table exported to:", OUTPUT_TEX, "\n")
 }
@@ -53,7 +53,7 @@ load_and_prepare_data <- function(filepath) {
     dt <- as.data.table(read.csv(filepath))
 
     # Convert Python boolean strings to numeric 0/1
-    bool_cols <- c("made_promise", "is_sucker_strict", "is_sucker_lenient")
+    bool_cols <- c("made_promise", "is_sucker_20", "is_sucker_5")
     for (col in bool_cols) {
         dt[, (col) := as.integer(get(col) == "True")]
     }
@@ -69,8 +69,8 @@ load_and_prepare_data <- function(filepath) {
 # =====
 validate_data <- function(dt) {
     required_cols <- c(
-        "contribution", "made_promise", "is_sucker_strict",
-        "is_sucker_lenient", "treatment", "round", "segment", "cluster_id"
+        "contribution", "made_promise", "is_sucker_20",
+        "is_sucker_5", "treatment", "round", "segment", "cluster_id"
     )
     missing <- setdiff(required_cols, names(dt))
     if (length(missing) > 0) {
@@ -108,20 +108,20 @@ run_regression <- function(dt, sucker_var) {
 # =====
 # LaTeX output
 # =====
-export_latex_table <- function(model_strict, model_lenient, filepath) {
+export_latex_table <- function(model_20, model_5, filepath) {
     etable(
-        model_strict, model_lenient,
+        model_20, model_5,
         file = filepath,
         tex = TRUE,
         fitstat = c("n", "r2"),
         dict = c(
             made_promise = "Made Promise",
-            is_sucker_strict = "Is Sucker (Strict)",
-            is_sucker_lenient = "Is Sucker (Lenient)",
+            is_sucker_20 = "Is Sucker (<20)",
+            is_sucker_5 = "Is Sucker (<5)",
             treatment = "Treatment",
             cluster_id = "session-segment-group"
         ),
-        headers = c("Strict Sucker", "Lenient Sucker"),
+        headers = c("Sucker (<20)", "Sucker (<5)"),
         title = "Contribution Regression: Promise and Sucker Effects"
     )
 }

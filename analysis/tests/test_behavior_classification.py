@@ -17,8 +17,8 @@ import sys
 sys.path.insert(0, str(Path(__file__).parent.parent / 'derived'))
 
 from behavior_helpers import (
-    is_promise_broken_strict,
-    is_promise_broken_lenient,
+    is_promise_broken_20,
+    is_promise_broken_5,
     compute_liar_flags,
     compute_sucker_flags,
     classify_player_behavior,
@@ -27,8 +27,8 @@ from behavior_helpers import (
 # =====
 # Constants
 # =====
-STRICT_THRESHOLD = 20  # Contribution >= 20 honors promise (strict)
-LENIENT_THRESHOLD = 5  # Contribution >= 5 honors promise (lenient)
+THRESHOLD_20 = 20  # Contribution >= 20 honors promise (threshold_20)
+THRESHOLD_5 = 5  # Contribution >= 5 honors promise (threshold_5)
 
 
 # =====
@@ -82,28 +82,28 @@ def multi_segment_df():
 class TestIsPromiseBroken:
     """Tests for promise broken threshold functions."""
 
-    def test_strict_threshold_broken(self):
-        """Contribution < 20 is broken promise (strict)."""
-        assert is_promise_broken_strict(19) is True
-        assert is_promise_broken_strict(10) is True
-        assert is_promise_broken_strict(0) is True
+    def test_threshold_20_broken(self):
+        """Contribution < 20 is broken promise (threshold_20)."""
+        assert is_promise_broken_20(19) is True
+        assert is_promise_broken_20(10) is True
+        assert is_promise_broken_20(0) is True
 
-    def test_strict_threshold_honored(self):
-        """Contribution >= 20 honors promise (strict)."""
-        assert is_promise_broken_strict(20) is False
-        assert is_promise_broken_strict(21) is False
-        assert is_promise_broken_strict(25) is False
+    def test_threshold_20_honored(self):
+        """Contribution >= 20 honors promise (threshold_20)."""
+        assert is_promise_broken_20(20) is False
+        assert is_promise_broken_20(21) is False
+        assert is_promise_broken_20(25) is False
 
-    def test_lenient_threshold_broken(self):
-        """Contribution < 5 is broken promise (lenient)."""
-        assert is_promise_broken_lenient(4) is True
-        assert is_promise_broken_lenient(0) is True
+    def test_threshold_5_broken(self):
+        """Contribution < 5 is broken promise (threshold_5)."""
+        assert is_promise_broken_5(4) is True
+        assert is_promise_broken_5(0) is True
 
-    def test_lenient_threshold_honored(self):
-        """Contribution >= 5 honors promise (lenient)."""
-        assert is_promise_broken_lenient(5) is False
-        assert is_promise_broken_lenient(10) is False
-        assert is_promise_broken_lenient(25) is False
+    def test_threshold_5_honored(self):
+        """Contribution >= 5 honors promise (threshold_5)."""
+        assert is_promise_broken_5(5) is False
+        assert is_promise_broken_5(10) is False
+        assert is_promise_broken_5(25) is False
 
 
 # =====
@@ -112,40 +112,40 @@ class TestIsPromiseBroken:
 class TestRound1AlwaysFalse:
     """Tests that round 1 always has False for all behavior flags."""
 
-    def test_liar_strict_false_round_1(self, base_promise_df):
-        """Round 1 has is_liar_strict=False for all players."""
-        result = compute_liar_flags(base_promise_df, threshold='strict')
+    def test_liar_20_false_round_1(self, base_promise_df):
+        """Round 1 has is_liar_20=False for all players."""
+        result = compute_liar_flags(base_promise_df, threshold='20')
         round_1 = result[result['round'] == 1]
 
-        assert (round_1['is_liar_strict'] == False).all()
+        assert (round_1['is_liar_20'] == False).all()
 
-    def test_liar_lenient_false_round_1(self, base_promise_df):
-        """Round 1 has is_liar_lenient=False for all players."""
-        result = compute_liar_flags(base_promise_df, threshold='lenient')
+    def test_liar_5_false_round_1(self, base_promise_df):
+        """Round 1 has is_liar_5=False for all players."""
+        result = compute_liar_flags(base_promise_df, threshold='5')
         round_1 = result[result['round'] == 1]
 
-        assert (round_1['is_liar_lenient'] == False).all()
+        assert (round_1['is_liar_5'] == False).all()
 
-    def test_sucker_strict_false_round_1(self, base_promise_df):
-        """Round 1 has is_sucker_strict=False for all players."""
-        result = compute_sucker_flags(base_promise_df, threshold='strict')
+    def test_sucker_20_false_round_1(self, base_promise_df):
+        """Round 1 has is_sucker_20=False for all players."""
+        result = compute_sucker_flags(base_promise_df, threshold='20')
         round_1 = result[result['round'] == 1]
 
-        assert (round_1['is_sucker_strict'] == False).all()
+        assert (round_1['is_sucker_20'] == False).all()
 
-    def test_sucker_lenient_false_round_1(self, base_promise_df):
-        """Round 1 has is_sucker_lenient=False for all players."""
-        result = compute_sucker_flags(base_promise_df, threshold='lenient')
+    def test_sucker_5_false_round_1(self, base_promise_df):
+        """Round 1 has is_sucker_5=False for all players."""
+        result = compute_sucker_flags(base_promise_df, threshold='5')
         round_1 = result[result['round'] == 1]
 
-        assert (round_1['is_sucker_lenient'] == False).all()
+        assert (round_1['is_sucker_5'] == False).all()
 
 
 # =====
 # Test liar classification
 # =====
-class TestLiarStrictThreshold:
-    """Tests for liar classification with strict threshold."""
+class TestLiarThreshold20:
+    """Tests for liar classification with threshold 20."""
 
     def test_promise_contrib_below_20_becomes_liar(self):
         """Player who promises and contributes < 20 becomes liar next round."""
@@ -161,10 +161,10 @@ class TestLiarStrictThreshold:
             'made_promise': [True, True, True, True],
         })
 
-        result = compute_liar_flags(df, threshold='strict')
+        result = compute_liar_flags(df, threshold='20')
         a_round_2 = result[(result['label'] == 'A') & (result['round'] == 2)]
 
-        assert a_round_2['is_liar_strict'].iloc[0] == True
+        assert a_round_2['is_liar_20'].iloc[0] == True
 
     def test_no_promise_contrib_below_20_not_liar(self):
         """Player who contributes < 20 but made no promise is not liar."""
@@ -180,14 +180,14 @@ class TestLiarStrictThreshold:
             'made_promise': [False, True, False, True],  # A never promises
         })
 
-        result = compute_liar_flags(df, threshold='strict')
+        result = compute_liar_flags(df, threshold='20')
         a_round_2 = result[(result['label'] == 'A') & (result['round'] == 2)]
 
-        assert a_round_2['is_liar_strict'].iloc[0] == False
+        assert a_round_2['is_liar_20'].iloc[0] == False
 
 
-class TestLiarLenientThreshold:
-    """Tests for liar classification with lenient threshold."""
+class TestLiarThreshold5:
+    """Tests for liar classification with threshold 5."""
 
     def test_promise_contrib_below_5_becomes_liar(self):
         """Player who promises and contributes < 5 becomes liar next round."""
@@ -203,17 +203,17 @@ class TestLiarLenientThreshold:
             'made_promise': [True, True, True, True],
         })
 
-        result = compute_liar_flags(df, threshold='lenient')
+        result = compute_liar_flags(df, threshold='5')
         a_round_2 = result[(result['label'] == 'A') & (result['round'] == 2)]
 
-        assert a_round_2['is_liar_lenient'].iloc[0] == True
+        assert a_round_2['is_liar_5'].iloc[0] == True
 
 
 class TestLiarContributionAtThreshold:
     """Tests for boundary conditions at threshold values."""
 
-    def test_contrib_exactly_20_not_liar_strict(self):
-        """Contribution of exactly 20 is NOT a broken promise (strict)."""
+    def test_contrib_exactly_20_not_liar_20(self):
+        """Contribution of exactly 20 is NOT a broken promise (threshold 20)."""
         df = pd.DataFrame({
             'session_code': ['abc123'] * 4,
             'treatment': [1] * 4,
@@ -226,13 +226,13 @@ class TestLiarContributionAtThreshold:
             'made_promise': [True, True, True, True],
         })
 
-        result = compute_liar_flags(df, threshold='strict')
+        result = compute_liar_flags(df, threshold='20')
         a_round_2 = result[(result['label'] == 'A') & (result['round'] == 2)]
 
-        assert a_round_2['is_liar_strict'].iloc[0] == False
+        assert a_round_2['is_liar_20'].iloc[0] == False
 
-    def test_contrib_exactly_5_not_liar_lenient(self):
-        """Contribution of exactly 5 is NOT a broken promise (lenient)."""
+    def test_contrib_exactly_5_not_liar_5(self):
+        """Contribution of exactly 5 is NOT a broken promise (threshold 5)."""
         df = pd.DataFrame({
             'session_code': ['abc123'] * 4,
             'treatment': [1] * 4,
@@ -245,10 +245,10 @@ class TestLiarContributionAtThreshold:
             'made_promise': [True, True, True, True],
         })
 
-        result = compute_liar_flags(df, threshold='lenient')
+        result = compute_liar_flags(df, threshold='5')
         a_round_2 = result[(result['label'] == 'A') & (result['round'] == 2)]
 
-        assert a_round_2['is_liar_lenient'].iloc[0] == False
+        assert a_round_2['is_liar_5'].iloc[0] == False
 
 
 class TestLiarPersistence:
@@ -269,14 +269,14 @@ class TestLiarPersistence:
             'made_promise': [True, True, True, True, True, True, True, True, True],
         })
 
-        result = compute_liar_flags(df, threshold='strict')
+        result = compute_liar_flags(df, threshold='20')
 
         # A should be liar in round 2 and round 3
         a_round_2 = result[(result['label'] == 'A') & (result['round'] == 2)]
         a_round_3 = result[(result['label'] == 'A') & (result['round'] == 3)]
 
-        assert a_round_2['is_liar_strict'].iloc[0] == True
-        assert a_round_3['is_liar_strict'].iloc[0] == True
+        assert a_round_2['is_liar_20'].iloc[0] == True
+        assert a_round_3['is_liar_20'].iloc[0] == True
 
 
 class TestLiarResetsNewSegment:
@@ -295,7 +295,7 @@ class TestLiarResetsNewSegment:
             'made_promise'
         ] = True
 
-        result = compute_liar_flags(df, threshold='strict')
+        result = compute_liar_flags(df, threshold='20')
 
         # C should be liar in supergame1 round 2
         c_sg1_r2 = result[
@@ -303,7 +303,7 @@ class TestLiarResetsNewSegment:
             (result['segment'] == 'supergame1') &
             (result['round'] == 2)
         ]
-        assert c_sg1_r2['is_liar_strict'].iloc[0] == True
+        assert c_sg1_r2['is_liar_20'].iloc[0] == True
 
         # C should NOT be liar in supergame2 round 1 (reset)
         c_sg2_r1 = result[
@@ -311,7 +311,7 @@ class TestLiarResetsNewSegment:
             (result['segment'] == 'supergame2') &
             (result['round'] == 1)
         ]
-        assert c_sg2_r1['is_liar_strict'].iloc[0] == False
+        assert c_sg2_r1['is_liar_20'].iloc[0] == False
 
 
 # =====
@@ -336,10 +336,10 @@ class TestSuckerDefinition:
             'made_promise': [True, True, True, True, True, True, True, True],
         })
 
-        result = compute_sucker_flags(df, threshold='strict')
+        result = compute_sucker_flags(df, threshold='20')
         b_round_2 = result[(result['label'] == 'B') & (result['round'] == 2)]
 
-        assert b_round_2['is_sucker_strict'].iloc[0] == True
+        assert b_round_2['is_sucker_20'].iloc[0] == True
 
 
 class TestSuckerSamePersonRequirement:
@@ -361,11 +361,11 @@ class TestSuckerSamePersonRequirement:
             'made_promise': [False, True, True, True, False, True, True, True],
         })
 
-        result = compute_sucker_flags(df, threshold='strict')
+        result = compute_sucker_flags(df, threshold='20')
         round_2 = result[result['round'] == 2]
 
         # No one should be a sucker since A didn't make a promise
-        assert (round_2['is_sucker_strict'] == False).all()
+        assert (round_2['is_sucker_20'] == False).all()
 
 
 class TestSuckerPersistence:
@@ -387,14 +387,14 @@ class TestSuckerPersistence:
             'made_promise': [True, True, True, True, True, True, True, True, True],
         })
 
-        result = compute_sucker_flags(df, threshold='strict')
+        result = compute_sucker_flags(df, threshold='20')
 
         # B should be sucker in round 2 and round 3
         b_round_2 = result[(result['label'] == 'B') & (result['round'] == 2)]
         b_round_3 = result[(result['label'] == 'B') & (result['round'] == 3)]
 
-        assert b_round_2['is_sucker_strict'].iloc[0] == True
-        assert b_round_3['is_sucker_strict'].iloc[0] == True
+        assert b_round_2['is_sucker_20'].iloc[0] == True
+        assert b_round_3['is_sucker_20'].iloc[0] == True
 
 
 class TestSuckerResetsNewSegment:
@@ -440,7 +440,7 @@ class TestSuckerResetsNewSegment:
                 })
 
         df = pd.DataFrame(rows)
-        result = compute_sucker_flags(df, threshold='strict')
+        result = compute_sucker_flags(df, threshold='20')
 
         # B should be sucker in supergame1 round 2
         b_sg1_r2 = result[
@@ -448,7 +448,7 @@ class TestSuckerResetsNewSegment:
             (result['segment'] == 'supergame1') &
             (result['round'] == 2)
         ]
-        assert b_sg1_r2['is_sucker_strict'].iloc[0] == True
+        assert b_sg1_r2['is_sucker_20'].iloc[0] == True
 
         # B should NOT be sucker in supergame2 round 1 (reset)
         b_sg2_r1 = result[
@@ -456,7 +456,7 @@ class TestSuckerResetsNewSegment:
             (result['segment'] == 'supergame2') &
             (result['round'] == 1)
         ]
-        assert b_sg2_r1['is_sucker_strict'].iloc[0] == False
+        assert b_sg2_r1['is_sucker_20'].iloc[0] == False
 
 
 class TestNonChatterCanBeSucker:
@@ -478,11 +478,11 @@ class TestNonChatterCanBeSucker:
             'made_promise': [True, True, True, False, True, True, True, False],
         })
 
-        result = compute_sucker_flags(df, threshold='strict')
+        result = compute_sucker_flags(df, threshold='20')
         d_round_2 = result[(result['label'] == 'D') & (result['round'] == 2)]
 
         # D contributed 25 when A (a promise-breaker) was in the group
-        assert d_round_2['is_sucker_strict'].iloc[0] == True
+        assert d_round_2['is_sucker_20'].iloc[0] == True
 
 
 class TestSuckerRequiresSameRound:
@@ -509,15 +509,15 @@ class TestSuckerRequiresSameRound:
             'made_promise': [True, True, True, True],
         })
 
-        result = compute_sucker_flags(df, threshold='strict')
+        result = compute_sucker_flags(df, threshold='20')
 
         # B round 2: Should NOT be sucker (no promise broken in round 2)
         b_round_2 = result[(result['label'] == 'B') & (result['round'] == 2)]
-        assert b_round_2['is_sucker_strict'].iloc[0] == False
+        assert b_round_2['is_sucker_20'].iloc[0] == False
 
         # B round 1: Should NOT be sucker (contributed 20, not 25)
         b_round_1 = result[(result['label'] == 'B') & (result['round'] == 1)]
-        assert b_round_1['is_sucker_strict'].iloc[0] == False
+        assert b_round_1['is_sucker_20'].iloc[0] == False
 
 
 class TestNoPromiseNoLiar:
@@ -538,11 +538,11 @@ class TestNoPromiseNoLiar:
             'made_promise': [False, True, False, True, False, True],
         })
 
-        result = compute_liar_flags(df, threshold='strict')
+        result = compute_liar_flags(df, threshold='20')
         a_rows = result[result['label'] == 'A']
 
         # A should never be flagged as liar
-        assert (a_rows['is_liar_strict'] == False).all()
+        assert (a_rows['is_liar_20'] == False).all()
 
 
 # =====
@@ -555,10 +555,10 @@ class TestClassifyPlayerBehavior:
         """classify_player_behavior adds all four flag columns."""
         result = classify_player_behavior(base_promise_df)
 
-        assert 'is_liar_strict' in result.columns
-        assert 'is_liar_lenient' in result.columns
-        assert 'is_sucker_strict' in result.columns
-        assert 'is_sucker_lenient' in result.columns
+        assert 'is_liar_20' in result.columns
+        assert 'is_liar_5' in result.columns
+        assert 'is_sucker_20' in result.columns
+        assert 'is_sucker_5' in result.columns
 
     def test_classify_preserves_original_columns(self, base_promise_df):
         """Original columns are preserved after classification."""
@@ -587,9 +587,9 @@ class TestThresholdVariations:
         (20, False),
         (25, False),
     ])
-    def test_strict_threshold_parametrized(self, contribution, expected_broken):
-        """Strict threshold: < 20 is broken."""
-        assert is_promise_broken_strict(contribution) == expected_broken
+    def test_threshold_20_parametrized(self, contribution, expected_broken):
+        """Threshold 20: < 20 is broken."""
+        assert is_promise_broken_20(contribution) == expected_broken
 
     @pytest.mark.parametrize("contribution,expected_broken", [
         (0, True),
@@ -598,6 +598,6 @@ class TestThresholdVariations:
         (10, False),
         (25, False),
     ])
-    def test_lenient_threshold_parametrized(self, contribution, expected_broken):
-        """Lenient threshold: < 5 is broken."""
-        assert is_promise_broken_lenient(contribution) == expected_broken
+    def test_threshold_5_parametrized(self, contribution, expected_broken):
+        """Threshold 5: < 5 is broken."""
+        assert is_promise_broken_5(contribution) == expected_broken

@@ -8,8 +8,8 @@ Add sucker and liar classification to the promise dataset. These behavioral flag
 
 ### Liar
 A player who makes a promise but contributes below the threshold.
-- **Strict threshold**: Contribution < 20 is a broken promise
-- **Lenient threshold**: Contribution < 5 is a broken promise
+- **High threshold (< 20)**: Contribution < 20 is a broken promise
+- **Low threshold (< 5)**: Contribution < 5 is a broken promise
 
 ### Sucker
 A player who contributes the maximum (25) when a group member broke their own promise.
@@ -17,8 +17,8 @@ A player who contributes the maximum (25) when a group member broke their own pr
 - Non-chatters can be suckers if they contributed 25 while a group member lied
 
 ### Thresholds
-- **Strict (< 20)**: Conservative definition - any contribution below 20 breaks the promise
-- **Lenient (< 5)**: Liberal definition - only very low contributions (< 5) break the promise
+- **High threshold (< 20)**: More players qualify as liars/suckers (any contribution below 20 breaks the promise)
+- **Low threshold (< 5)**: Fewer players qualify as liars/suckers (only very low contributions break the promise)
 
 ### Persistence Rules
 - Flags are set in the round AFTER the triggering event occurs
@@ -72,10 +72,10 @@ New script `classify_behavior.py` that builds on the existing `promise_classific
 | contribution | float | Player's contribution (0-25) |
 | payoff | float | Player's payoff for the round |
 | made_promise | bool | Whether player made a promise this round |
-| is_liar_strict | bool | Liar flag under strict threshold (< 20) |
-| is_liar_lenient | bool | Liar flag under lenient threshold (< 5) |
-| is_sucker_strict | bool | Sucker flag when group member broke strict threshold |
-| is_sucker_lenient | bool | Sucker flag when group member broke lenient threshold |
+| is_liar_20 | bool | Liar flag under high threshold (< 20) |
+| is_liar_5 | bool | Liar flag under low threshold (< 5) |
+| is_sucker_20 | bool | Sucker flag when group member broke high threshold (< 20) |
+| is_sucker_5 | bool | Sucker flag when group member broke low threshold (< 5) |
 
 ## Testing
 
@@ -83,7 +83,7 @@ New script `classify_behavior.py` that builds on the existing `promise_classific
 Located in `analysis/tests/test_behavior_classification.py`
 
 Test categories:
-- **Threshold functions**: `is_promise_broken_strict`, `is_promise_broken_lenient`
+- **Threshold functions**: `is_promise_broken_20`, `is_promise_broken_5`
 - **Round 1 behavior**: All flags are False in round 1
 - **Liar classification**: Promise + low contribution = liar
 - **Liar persistence**: Flag persists across rounds within segment

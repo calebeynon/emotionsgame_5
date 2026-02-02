@@ -12,8 +12,8 @@
 #   treatment: Treatment 2 effect relative to Treatment 1 (reference)
 #
 # LIAR DEFINITIONS:
-#   Strict: Made promise AND contributed < 20 (94 instances)
-#   Lenient: Made promise AND contributed < 5 (49 instances, extreme liars only)
+#   _20 threshold: Made promise AND contributed < 20 (94 instances)
+#   _5 threshold: Made promise AND contributed < 5 (49 instances, extreme liars only)
 
 # nolint start
 library(data.table)
@@ -31,13 +31,13 @@ main <- function() {
     dt <- load_and_prepare_data(INPUT_CSV)
     validate_data(dt)
 
-    model_strict <- run_regression(dt, "lied_this_period_strict")
-    model_lenient <- run_regression(dt, "lied_this_period_lenient")
+    model_20 <- run_regression(dt, "lied_this_period_20")
+    model_5 <- run_regression(dt, "lied_this_period_5")
 
-    report_sample_sizes(model_strict, model_lenient)
+    report_sample_sizes(model_20, model_5)
 
     dir.create(OUTPUT_DIR, recursive = TRUE, showWarnings = FALSE)
-    export_latex_table(model_strict, model_lenient, OUTPUT_TEX)
+    export_latex_table(model_20, model_5, OUTPUT_TEX)
 
     cat("Regression table exported to:", OUTPUT_TEX, "\n")
 }
@@ -49,7 +49,7 @@ load_and_prepare_data <- function(filepath) {
     dt <- as.data.table(read.csv(filepath))
 
     # Convert Python boolean strings to numeric 0/1
-    bool_cols <- c("lied_this_period_strict", "lied_this_period_lenient")
+    bool_cols <- c("lied_this_period_20", "lied_this_period_5")
     for (col in bool_cols) {
         dt[, (col) := as.integer(get(col) == "True")]
     }
@@ -65,8 +65,8 @@ load_and_prepare_data <- function(filepath) {
 # =====
 validate_data <- function(dt) {
     required_cols <- c(
-        "contribution", "sentiment_compound_mean", "lied_this_period_strict",
-        "lied_this_period_lenient", "treatment", "round", "segment", "cluster_id"
+        "contribution", "sentiment_compound_mean", "lied_this_period_20",
+        "lied_this_period_5", "treatment", "round", "segment", "cluster_id"
     )
     missing <- setdiff(required_cols, names(dt))
     if (length(missing) > 0) {
@@ -96,31 +96,31 @@ run_regression <- function(dt, liar_var) {
 # =====
 # Sample accountability
 # =====
-report_sample_sizes <- function(model_strict, model_lenient) {
+report_sample_sizes <- function(model_20, model_5) {
     cat("=== Sample Sizes ===\n")
-    cat(sprintf("  Strict liar model: N = %d\n", model_strict$nobs))
-    cat(sprintf("  Lenient liar model: N = %d\n", model_lenient$nobs))
+    cat(sprintf("  Liar (<20) model: N = %d\n", model_20$nobs))
+    cat(sprintf("  Liar (<5) model: N = %d\n", model_5$nobs))
     cat("\n")
 }
 
 # =====
 # LaTeX output
 # =====
-export_latex_table <- function(model_strict, model_lenient, filepath) {
+export_latex_table <- function(model_20, model_5, filepath) {
     etable(
-        model_strict, model_lenient,
+        model_20, model_5,
         file = filepath,
         tex = TRUE,
         fitstat = c("n", "r2"),
         dict = c(
             sentiment_compound_mean = "Sentiment",
-            lied_this_period_strict = "Lied (Strict)",
-            lied_this_period_lenient = "Lied (Lenient)",
+            lied_this_period_20 = "Lied (<20)",
+            lied_this_period_5 = "Lied (<5)",
             treatment = "Treatment",
-            "sentiment_compound_mean:lied_this_period_strict" = "Sentiment x Lied",
-            "sentiment_compound_mean:lied_this_period_lenient" = "Sentiment x Lied"
+            "sentiment_compound_mean:lied_this_period_20" = "Sentiment x Lied",
+            "sentiment_compound_mean:lied_this_period_5" = "Sentiment x Lied"
         ),
-        headers = c("Strict Liar", "Lenient Liar"),
+        headers = c("Liar (<20)", "Liar (<5)"),
         title = "Sentiment-Contribution Regression with Liar Interaction"
     )
 }
