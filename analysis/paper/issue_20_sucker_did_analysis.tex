@@ -1,0 +1,84 @@
+\documentclass[11pt,oneside]{article}
+\usepackage[margin=1in]{geometry}
+
+% Standard Packages
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage[font=footnotesize,labelfont=bf]{caption}
+\usepackage{booktabs}
+\usepackage{setspace}
+\usepackage{placeins}
+\usepackage[bookmarks]{hyperref}
+\hypersetup{colorlinks = true, allcolors = {black}}
+
+%%%%%%%%% Path resolution (Overleaf: tables/, plots/; Local: ../output/) %%%%%%%%%
+\graphicspath{{plots/}{../output/plots/}}
+\makeatletter
+\def\input@path{{tables/}{../output/tables/}}
+\makeatother
+
+\linespread{1.3}
+
+\begin{document}
+
+\section{Dynamic Response to Being Suckered: Event Study Analysis}\footnote{This analysis was generated in part by Claude Opus 4.6 (Anthropic).}
+
+The static sucker regression reveals that being suckered is associated with 6--8 fewer contribution points on average, but this estimate collapses the entire post-event trajectory into a single coefficient. To uncover \textit{when} and \textit{how} the contribution response unfolds, we estimate an event study specification that traces the round-by-round dynamics after a player is suckered.
+
+\subsection{Sample Restriction}
+
+We restrict the analysis to player-segments where the player was suckered in exactly one round, plus never-suckered player-segments as the control group. Under the $< 20$ threshold, this yields 83 single-event treated player-segments and 700 controls (783 total, 3{,}427 player-round observations). Under the $< 5$ threshold, this yields 55 treated and 728 controls. We exclude 17 multi-event player-segments to avoid confounding overlapping treatment effects in the post-period.
+
+Per-round suckering events are re-derived from promise and contribution data, capturing 100 total suckered player-segments (vs.\ 93 from the persistent flag, which misses 7 last-round-only events).
+
+\subsection{Methodology}
+
+Let $\tau_{it}$ denote the number of rounds since player $i$ was suckered. We estimate:
+\[
+	\text{Contribution}_{it} = \sum_{k \neq 0} \beta_k \cdot \mathbf{1}[\tau_{it} = k] \cdot \text{Suckered}_i + \gamma \cdot \text{Treatment}_i + \alpha_r + \delta_s + \varepsilon_{it}
+\]
+where $\text{Suckered}_i$ is a time-invariant indicator equal to one for players suckered exactly once in the segment, $\alpha_r$ and $\delta_s$ are round and segment fixed effects, and $\tau = 0$ (the suckering round itself) is the omitted reference period. By definition, suckered players contributed the maximum (25) at $\tau = 0$, making it a natural baseline. Standard errors are clustered at the session--segment--group level. The coefficients $\hat{\beta}_k$ trace the differential contribution path of suckered players relative to controls, with the pre-event coefficients ($k < 0$) serving as a parallel trends check and the post-event coefficients ($k \geq 1$) capturing the response once players learn they were suckered.
+
+\subsection{Contribution Results}
+
+Figure~\ref{fig:did_coefplot} displays the estimated $\hat{\beta}_k$ coefficients. Under the $< 5$ threshold (top panel), pre-event coefficients ($\tau \leq -1$) are close to zero and statistically insignificant, supporting the parallel trends assumption. After the suckering event ($\tau \geq 1$), contributions drop sharply once players learn they were suckered. Under the $< 20$ threshold (bottom panel), the post-event pattern is similar though somewhat attenuated. The full regression estimates are reported in Table~\ref{tab:did_contribution}.
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.9\textwidth]{issue_20_did_coefplot}
+	\caption{Event study coefficients for the effect of being suckered on contributions. Each point represents $\hat{\beta}_k$ with 95\% confidence intervals. The dashed vertical line separates pre- and post-event periods; $\tau = 0$ (the suckering round) is the omitted reference period.}
+	\label{fig:did_coefplot}
+\end{figure}
+
+\begin{table}[H]
+	\centering
+	\caption{Diff-in-Diff: Effect of Being Suckered on Contributions}
+	\label{tab:did_contribution}
+	{\scriptsize\input{issue_20_did_contribution}}
+\end{table}
+
+\FloatBarrier
+
+\subsection{Sentiment Results}
+
+We estimate the same event study specification with VADER compound sentiment as the outcome (Table~\ref{tab:did_sentiment} and Figure~\ref{fig:sentiment_trajectory}). The sentiment sample drops round 1 of each supergame (no chat exists), yielding 2{,}230 observations. At $\tau = 1$, sentiment drops by approximately 0.13 ($p < 0.01$) in both threshold specifications---an immediate emotional response to being suckered. The effect partially dissipates in subsequent rounds but remains negative at $\tau = 4$ ($-0.09$, $p < 0.10$). Pre-event sentiment coefficients ($\tau = -2$) are near zero, consistent with parallel trends in the near-event window.
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.9\textwidth]{issue_20_sentiment_trajectory}
+	\caption{Event study coefficients for the effect of being suckered on chat sentiment (VADER compound score). Each point represents $\hat{\beta}_k$ with 95\% confidence intervals.}
+	\label{fig:sentiment_trajectory}
+\end{figure}
+
+\begin{table}[H]
+	\centering
+	\caption{Diff-in-Diff: Effect of Being Suckered on Chat Sentiment}
+	\label{tab:did_sentiment}
+	{\scriptsize\input{issue_20_did_sentiment}}
+\end{table}
+
+\FloatBarrier
+
+\end{document}
