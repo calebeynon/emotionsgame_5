@@ -1,5 +1,5 @@
 """
-Tests for issue_20_build_did_panel.py DiD panel data preparation.
+Tests for issue_20_build_did_panel.py: suckering detection and DiD variables.
 
 Verifies suckering detection and DiD variable computation for the
 event-study analysis of being suckered in a public goods game.
@@ -44,20 +44,8 @@ def _promise_df(rows):
     return pd.DataFrame([{**_DEFAULTS, **r} for r in rows])
 
 
-def _group_rounds(labels, contribs, group, rounds):
-    """Build rows for several players across multiple rounds."""
-    rows = []
-    for rnd in rounds:
-        for label, contrib in zip(labels, contribs(rnd)):
-            rows.append({
-                'label': label, 'round': rnd,
-                'contribution': contrib, 'group': group,
-            })
-    return rows
-
-
 def _suckered_df(label, suckered_rounds, n_rounds=5):
-    """Build DataFrame with suckered_this_round columns pre-set."""
+    """Build rows with suckered_this_round columns pre-set."""
     rows = []
     for rnd in range(1, n_rounds + 1):
         s = rnd in suckered_rounds
@@ -145,7 +133,6 @@ class TestSuckeredThisRound:
         prows = [{'label': l, 'round': 2,
                   'promise_count': 1 if l == 'B' else 0}
                  for l in ['A', 'B', 'C', 'D']]
-
         result = derive_per_round_suckering(_behavior_df(brows), _promise_df(prows))
         a_r2 = result[(result['label'] == 'A') & (result['round'] == 2)]
         assert a_r2['suckered_this_round_20'].iloc[0] == True
@@ -166,7 +153,6 @@ class TestComputeDidVariables:
     def _base_df(self):
         """A suckered round 3, B never suckered, 5 rounds each."""
         rows = _suckered_df('A', {3}) + _suckered_df('B', set())
-        # Override B's contribution so it differs from A
         for r in rows:
             if r['label'] == 'B':
                 r['contribution'] = 15

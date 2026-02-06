@@ -1,10 +1,9 @@
 """
-Build round-level DiD panel dataset for sucker analysis (Issue #20).
+Build round-level DiD panel for sucker and liar analysis (Issue #20).
 
-Derives per-round suckering events from behavior and promise data, computes
-event-study variables (tau, post, did_sample), and merges sentiment. A player
-is "suckered" in a round if they contributed 25 and a groupmate who made a
-promise contributed below the threshold.
+Derives per-round suckering/lying events from behavior and promise data,
+computes event-study variables (tau, post, did_sample), cross-segment
+spillover flags, and merges sentiment.
 
 Author: Claude Code
 Date: 2026-02-05
@@ -26,14 +25,34 @@ OUTPUT_FILE = DERIVED_DIR / 'issue_20_did_panel.csv'
 PLAYER_ROUND_KEYS = ['session_code', 'segment', 'round', 'label']
 GROUP_ROUND_KEYS = ['session_code', 'segment', 'round', 'group']
 PLAYER_SEGMENT_KEYS = ['session_code', 'segment', 'label']
+PLAYER_KEYS = ['session_code', 'label']
 
-# THRESHOLDS: groupmate must contribute below this to count as breaking promise
 THRESHOLDS = {'20': 20, '5': 5}
-
-# SENTIMENT COLUMN to merge from regression data
 SENTIMENT_COL = 'sentiment_compound_mean'
-
 EXPECTED_ROWS = 3520
+SEGMENT_ORDER = {f'supergame{i}': i for i in range(1, 6)}
+
+# Column naming: sucker keeps backward-compatible names; liar uses prefixed
+COL_TEMPLATES = {
+    ('suckered', 'event_count'): 'suckered_event_count_{s}',
+    ('suckered', 'first_round'): 'first_suckered_round_{s}',
+    ('suckered', 'tau'): 'tau_{s}',
+    ('suckered', 'treated'): 'got_suckered_{s}',
+    ('suckered', 'post'): 'post_{s}',
+    ('suckered', 'did_sample'): 'did_sample_{s}',
+    ('liar', 'event_count'): 'liar_event_count_{s}',
+    ('liar', 'first_round'): 'first_lied_round_{s}',
+    ('liar', 'tau'): 'liar_tau_{s}',
+    ('liar', 'treated'): 'is_liar_did_{s}',
+    ('liar', 'post'): 'liar_post_{s}',
+    ('liar', 'did_sample'): 'liar_did_sample_{s}',
+}
+
+# Event column specs: (event_col_template, prefix)
+EVENT_SPECS = [
+    ('suckered_this_round_{s}', 'suckered'),
+    ('lied_this_round_{s}', 'liar'),
+]
 
 
 # =====
@@ -44,16 +63,17 @@ def main():
     behavior_df = pd.read_csv(BEHAVIOR_FILE)
     promise_df = pd.read_csv(PROMISE_FILE)
     regression_df = pd.read_csv(REGRESSION_FILE)
-
-    print(f"Loaded behavior: {len(behavior_df):,} rows")
-    print(f"Loaded promises: {len(promise_df):,} rows")
-    print(f"Loaded regression: {len(regression_df):,} rows")
+    print(f"Loaded: {len(behavior_df):,} behavior, {len(promise_df):,} promise, {len(regression_df):,} regression")
 
     panel = build_suckered_flags(behavior_df, promise_df)
+    panel = build_liar_flags(panel, promise_df)
     panel = add_did_variables(panel)
-    panel = merge_sentiment(panel, regression_df)
-    panel = add_cluster_id(panel)
-
+    panel = add_cross_segment_spillover(panel)
+    sentiment = regression_df[PLAYER_ROUND_KEYS + [SENTIMENT_COL]].copy()
+    panel = panel.merge(sentiment, on=PLAYER_ROUND_KEYS, how='left')
+    panel['cluster_id'] = (
+        panel['session_code'] + '_' + panel['segment'] + '_' + panel['group'].astype(str)
+    )
     validate_output(panel)
     save_and_summarize(panel)
 
@@ -63,159 +83,148 @@ def main():
 # =====
 def build_suckered_flags(behavior_df, promise_df):
     """Add per-round suckered_this_round flags for each threshold."""
-    # Get promise_count per player-round (only rounds 2+)
-    promise_counts = promise_df[PLAYER_ROUND_KEYS + ['promise_count']].copy()
-    promise_counts = promise_counts.rename(columns={'promise_count': 'gm_promise_count'})
-
-    # Merge promise info onto behavior for groupmate lookups
-    enriched = behavior_df.merge(
-        promise_counts, on=PLAYER_ROUND_KEYS, how='left'
-    )
+    pcounts = promise_df[PLAYER_ROUND_KEYS + ['promise_count']].copy()
+    pcounts = pcounts.rename(columns={'promise_count': 'gm_promise_count'})
+    enriched = behavior_df.merge(pcounts, on=PLAYER_ROUND_KEYS, how='left')
     enriched['gm_promise_count'] = enriched['gm_promise_count'].fillna(0)
 
     for suffix, threshold in THRESHOLDS.items():
-        col = f'suckered_this_round_{suffix}'
-        behavior_df[col] = _compute_suckered_column(
+        behavior_df[f'suckered_this_round_{suffix}'] = _compute_suckered(
             behavior_df, enriched, threshold
         )
-
     return behavior_df
 
 
-def _compute_suckered_column(behavior_df, enriched, threshold):
+def _compute_suckered(behavior_df, enriched, threshold):
     """Compute boolean suckered flag for a given threshold."""
-    enriched = _flag_promise_breakers(enriched, threshold)
-    return _match_suckered_to_candidates(behavior_df, enriched)
-
-
-def _flag_promise_breakers(enriched, threshold):
-    """Flag players who made a promise and contributed below threshold."""
     enriched = enriched.copy()
     enriched['is_breaker'] = (
-        (enriched['gm_promise_count'] > 0) &
-        (enriched['contribution'] < threshold)
+        (enriched['gm_promise_count'] > 0) & (enriched['contribution'] < threshold)
     )
-    return enriched
+    return _match_suckered_to_candidates(behavior_df, enriched)
 
 
 def _match_suckered_to_candidates(behavior_df, enriched):
     """Match breaker flags to candidate players (contributed 25, round > 1)."""
     results = pd.Series(False, index=behavior_df.index)
-    candidate_mask = (
-        (behavior_df['round'] > 1) & (behavior_df['contribution'] == 25)
-    )
-    candidates = behavior_df[candidate_mask]
+    mask = (behavior_df['round'] > 1) & (behavior_df['contribution'] == 25)
+    candidates = behavior_df[mask]
     if candidates.empty:
         return results
-
     any_breaker = _find_groupmate_breakers(candidates, enriched)
-    return _map_breakers_to_index(results, candidates, any_breaker)
-
-
-def _find_groupmate_breakers(candidates, enriched):
-    """For each candidate, check if any OTHER group member is a breaker."""
-    gm_cols = GROUP_ROUND_KEYS + ['label', 'is_breaker']
-    merged = candidates[GROUP_ROUND_KEYS + ['label']].merge(
-        enriched[gm_cols], on=GROUP_ROUND_KEYS, suffixes=('', '_gm')
-    )
-    merged = merged[merged['label'] != merged['label_gm']]
-    return (
-        merged.groupby(GROUP_ROUND_KEYS + ['label'])['is_breaker']
-        .any()
-        .reset_index()
-        .rename(columns={'is_breaker': 'suckered'})
-    )
-
-
-def _map_breakers_to_index(results, candidates, any_breaker):
-    """Map groupmate-breaker results back to the original DataFrame index."""
     keyed = candidates[GROUP_ROUND_KEYS + ['label']].reset_index()
-    keyed = keyed.merge(
-        any_breaker, on=GROUP_ROUND_KEYS + ['label'], how='left'
-    )
+    keyed = keyed.merge(any_breaker, on=GROUP_ROUND_KEYS + ['label'], how='left')
     keyed['suckered'] = keyed['suckered'].fillna(False)
     results.loc[keyed['index']] = keyed['suckered'].values
     return results
 
 
+def _find_groupmate_breakers(candidates, enriched):
+    """For each candidate, check if any OTHER group member is a breaker."""
+    merged = candidates[GROUP_ROUND_KEYS + ['label']].merge(
+        enriched[GROUP_ROUND_KEYS + ['label', 'is_breaker']],
+        on=GROUP_ROUND_KEYS, suffixes=('', '_gm'),
+    )
+    merged = merged[merged['label'] != merged['label_gm']]
+    return (
+        merged.groupby(GROUP_ROUND_KEYS + ['label'])['is_breaker']
+        .any().reset_index().rename(columns={'is_breaker': 'suckered'})
+    )
+
+
 # =====
-# DiD event-study variables
+# Liar detection
+# =====
+def build_liar_flags(df, promise_df):
+    """Add per-round lied_this_round flags for each threshold."""
+    pcounts = promise_df[PLAYER_ROUND_KEYS + ['promise_count']].copy()
+    merged = df.merge(pcounts, on=PLAYER_ROUND_KEYS, how='left')
+    merged['promise_count'] = merged['promise_count'].fillna(0)
+    for suffix, threshold in THRESHOLDS.items():
+        df[f'lied_this_round_{suffix}'] = (
+            (merged['round'] > 1)
+            & (merged['promise_count'] > 0)
+            & (merged['contribution'] < threshold)
+        )
+    return df
+
+
+# =====
+# Generic DiD event-study variables
 # =====
 def add_did_variables(df):
-    """Add event count, first_suckered_round, tau, post, did_sample."""
+    """Add event-study DiD variables for sucker and (if present) liar events."""
     for suffix in THRESHOLDS:
-        df = _add_did_vars_for_threshold(df, suffix)
+        for event_tpl, prefix in EVENT_SPECS:
+            event_col = event_tpl.format(s=suffix)
+            if event_col in df.columns:
+                df = _add_event_study_vars(df, event_col, prefix, suffix)
     return df
 
 
-def _add_did_vars_for_threshold(df, suffix):
-    """Compute DiD variables for one threshold."""
-    suckered_col = f'suckered_this_round_{suffix}'
-    df = _merge_event_counts(df, suckered_col, suffix)
-    df = _merge_first_suckered_round(df, suckered_col, suffix)
-    df = _compute_tau_post_sample(df, suffix)
+def _col(prefix, var, suffix):
+    """Resolve column name for a prefix/var/suffix combination."""
+    return COL_TEMPLATES[(prefix, var)].format(s=suffix)
+
+
+def _add_event_study_vars(df, event_col, prefix, suffix):
+    """Compute event count, first round, tau, treated flag, did_sample."""
+    events = df[df[event_col]]
+    cnt, fst = _col(prefix, 'event_count', suffix), _col(prefix, 'first_round', suffix)
+    df = _merge_count_and_first(df, events, cnt, fst)
+    has_event = df[fst].notna()
+    df[_col(prefix, 'treated', suffix)] = has_event
+    df[_col(prefix, 'tau', suffix)] = np.where(has_event, df['round'] - df[fst], np.nan)
+    df[_col(prefix, 'post', suffix)] = np.where(
+        has_event, (df['round'] >= df[fst]).astype(float), np.nan
+    )
+    df[_col(prefix, 'did_sample', suffix)] = (df[cnt] == 1) | (~has_event)
     return df
 
 
-def _merge_event_counts(df, suckered_col, suffix):
-    """Count suckering events per player-segment and merge back."""
-    event_counts = (
-        df[df[suckered_col]]
-        .groupby(PLAYER_SEGMENT_KEYS)
-        .size()
-        .reset_index(name=f'suckered_event_count_{suffix}')
-    )
-    df = df.merge(event_counts, on=PLAYER_SEGMENT_KEYS, how='left')
-    df[f'suckered_event_count_{suffix}'] = (
-        df[f'suckered_event_count_{suffix}'].fillna(0).astype(int)
-    )
-    return df
-
-
-def _merge_first_suckered_round(df, suckered_col, suffix):
-    """Find earliest suckered round per player-segment and merge back."""
-    first_round = (
-        df[df[suckered_col]]
-        .groupby(PLAYER_SEGMENT_KEYS)['round']
-        .min()
-        .reset_index(name=f'first_suckered_round_{suffix}')
-    )
-    return df.merge(first_round, on=PLAYER_SEGMENT_KEYS, how='left')
-
-
-def _compute_tau_post_sample(df, suffix):
-    """Compute tau, post, got_suckered, and did_sample columns."""
-    fsr = f'first_suckered_round_{suffix}'
-    has_event = df[fsr].notna()
-
-    df[f'got_suckered_{suffix}'] = has_event
-    df[f'tau_{suffix}'] = np.where(
-        has_event, df['round'] - df[fsr], np.nan
-    )
-    df[f'post_{suffix}'] = np.where(
-        has_event, (df[f'tau_{suffix}'] >= 0).astype(float), np.nan
-    )
-    df[f'did_sample_{suffix}'] = (
-        (df[f'suckered_event_count_{suffix}'] == 1) | (~has_event)
-    )
-    return df
+def _merge_count_and_first(df, events, cnt_col, fst_col):
+    """Merge event count and first event round onto df."""
+    counts = events.groupby(PLAYER_SEGMENT_KEYS).size().reset_index(name=cnt_col)
+    df = df.merge(counts, on=PLAYER_SEGMENT_KEYS, how='left')
+    df[cnt_col] = df[cnt_col].fillna(0).astype(int)
+    first = events.groupby(PLAYER_SEGMENT_KEYS)['round'].min().reset_index(name=fst_col)
+    return df.merge(first, on=PLAYER_SEGMENT_KEYS, how='left')
 
 
 # =====
-# Sentiment merge and cluster ID
+# Cross-segment spillover
 # =====
-def merge_sentiment(panel, regression_df):
-    """Merge sentiment_compound_mean from regression data."""
-    sentiment = regression_df[PLAYER_ROUND_KEYS + [SENTIMENT_COL]].copy()
-    panel = panel.merge(sentiment, on=PLAYER_ROUND_KEYS, how='left')
-    return panel
+def add_cross_segment_spillover(df):
+    """Add flags for whether player was suckered in a prior segment."""
+    df['segment_number'] = df['segment'].map(SEGMENT_ORDER)
+    for suffix in THRESHOLDS:
+        df = _add_spillover_for_threshold(df, suffix)
+    df.drop(columns=['segment_number'], inplace=True)
+    return df
 
 
-def add_cluster_id(df):
-    """Add cluster_id = '{session_code}_{segment}_{group}'."""
-    df['cluster_id'] = (
-        df['session_code'] + '_' + df['segment'] + '_' + df['group'].astype(str)
+def _add_spillover_for_threshold(df, suffix):
+    """Compute cross-segment spillover columns for one threshold."""
+    fss = f'first_suckered_segment_{suffix}'
+    suckered_ps = df[df[f'got_suckered_{suffix}']].copy()
+    if suckered_ps.empty:
+        df[fss] = np.nan
+        df[f'suckered_prior_segment_{suffix}'] = False
+        df[f'segments_since_suckered_{suffix}'] = np.nan
+        return df
+    return _compute_spillover_cols(df, suckered_ps, fss, suffix)
+
+
+def _compute_spillover_cols(df, suckered_ps, fss, suffix):
+    """Compute spillover from first-suckered segment data."""
+    first_seg = (
+        suckered_ps.groupby(PLAYER_KEYS)['segment_number'].min()
+        .reset_index(name=fss)
     )
+    df = df.merge(first_seg, on=PLAYER_KEYS, how='left')
+    df[f'suckered_prior_segment_{suffix}'] = (df['segment_number'] > df[fss]).fillna(False)
+    diff = df['segment_number'] - df[fss]
+    df[f'segments_since_suckered_{suffix}'] = np.where(diff >= 0, diff, np.nan)
     return df
 
 
@@ -223,42 +232,44 @@ def add_cluster_id(df):
 # Validation and output
 # =====
 def validate_output(df):
-    """Validate output has expected row count and structure."""
-    assert len(df) == EXPECTED_ROWS, (
-        f"Expected {EXPECTED_ROWS} rows, got {len(df)}"
-    )
-
-    # Check no duplicate rows
+    """Validate output has expected row count and required columns."""
+    assert len(df) == EXPECTED_ROWS, f"Expected {EXPECTED_ROWS} rows, got {len(df)}"
     dupes = df.duplicated(subset=PLAYER_ROUND_KEYS).sum()
     assert dupes == 0, f"Found {dupes} duplicate player-round rows"
-
-    # Validate known example: player N, sa7mprty, supergame4, round 4
+    _check_required_columns(df)
     _validate_known_example(df)
     print("\nValidation passed!")
 
 
+def _check_required_columns(df):
+    """Check that all expected columns exist."""
+    required = ['cluster_id', SENTIMENT_COL]
+    for suffix in THRESHOLDS:
+        for prefix in ('suckered', 'liar'):
+            for var in ('event_count', 'first_round', 'tau', 'treated', 'post', 'did_sample'):
+                required.append(_col(prefix, var, suffix))
+        required += [
+            f'suckered_this_round_{suffix}', f'lied_this_round_{suffix}',
+            f'first_suckered_segment_{suffix}', f'suckered_prior_segment_{suffix}',
+            f'segments_since_suckered_{suffix}',
+        ]
+    missing = [c for c in required if c not in df.columns]
+    assert not missing, f"Missing columns: {missing}"
+    print(f"  All {len(required)} required columns present")
+
+
 def _validate_known_example(df):
     """Verify player N, sa7mprty, supergame4 suckering in round 4."""
-    player_n = _get_known_example_rows(df)
-    assert player_n[player_n['round'] == 4]['suckered_this_round_20'].iloc[0], (
-        "Player N should be suckered_this_round_20 in round 4"
+    mask = (
+        (df['session_code'] == 'sa7mprty')
+        & (df['segment'] == 'supergame4') & (df['label'] == 'N')
     )
-    assert not player_n[player_n['round'] == 3]['suckered_this_round_20'].iloc[0], (
-        "Player N should NOT be suckered in round 3"
-    )
-    fsr = player_n[player_n['round'] == 4]['first_suckered_round_20'].iloc[0]
+    pn = df[mask].sort_values('round')
+    assert pn[pn['round'] == 4]['suckered_this_round_20'].iloc[0]
+    assert not pn[pn['round'] == 3]['suckered_this_round_20'].iloc[0]
+    fsr = pn[pn['round'] == 4]['first_suckered_round_20'].iloc[0]
     assert fsr == 4, f"first_suckered_round_20 should be 4, got {fsr}"
     print("  Known example (player N, sa7mprty, supergame4) validated")
-
-
-def _get_known_example_rows(df):
-    """Extract player N, sa7mprty, supergame4 rows sorted by round."""
-    mask = (
-        (df['session_code'] == 'sa7mprty') &
-        (df['segment'] == 'supergame4') &
-        (df['label'] == 'N')
-    )
-    return df[mask].sort_values('round')
 
 
 def save_and_summarize(df):
@@ -267,38 +278,15 @@ def save_and_summarize(df):
     df.to_csv(OUTPUT_FILE, index=False)
     print(f"\nSaved: {OUTPUT_FILE}")
     print(f"Shape: {df.shape}")
-
-    _print_suckering_summary(df)
-    _print_did_sample_summary(df)
-    _print_tau_distribution(df)
-
-
-def _print_suckering_summary(df):
-    """Print suckering event distribution."""
-    print("\n--- Suckered event count distribution (threshold 20) ---")
-    counts = df.groupby(PLAYER_SEGMENT_KEYS).first()
-    dist = counts['suckered_event_count_20'].value_counts().sort_index()
-    for val, n in dist.items():
-        print(f"  {val} events: {n} player-segments")
-
-
-def _print_did_sample_summary(df):
-    """Print DiD sample inclusion counts."""
+    unique_ps = df.groupby(PLAYER_SEGMENT_KEYS).first()
+    for prefix, label in [('suckered', 'Suckered'), ('liar', 'Liar')]:
+        for suffix in THRESHOLDS:
+            n_s = unique_ps[_col(prefix, 'did_sample', suffix)].sum()
+            n_t = unique_ps[_col(prefix, 'treated', suffix)].sum()
+            print(f"  {label} DiD ({suffix}): {n_s}/{len(unique_ps)} sample, {n_t} treated")
     for suffix in THRESHOLDS:
-        unique_ps = df.groupby(PLAYER_SEGMENT_KEYS).first()
-        n_sample = unique_ps[f'did_sample_{suffix}'].sum()
-        n_total = len(unique_ps)
-        print(f"\nDiD sample ({suffix}): {n_sample} / {n_total} player-segments")
-        print(f"  got_suckered: {unique_ps[f'got_suckered_{suffix}'].sum()}")
-
-
-def _print_tau_distribution(df):
-    """Print tau distribution for treated players in DiD sample."""
-    print("\n--- Tau distribution (threshold 20, DiD sample, treated) ---")
-    mask = df['did_sample_20'] & df['got_suckered_20']
-    tau_dist = df[mask]['tau_20'].value_counts().sort_index()
-    for tau, n in tau_dist.items():
-        print(f"  tau={tau:+.0f}: {n} obs")
+        n = unique_ps[f'suckered_prior_segment_{suffix}'].sum()
+        print(f"  Suckered prior segment ({suffix}): {n} player-segments")
 
 
 # %%

@@ -81,4 +81,47 @@ We estimate the same event study specification with VADER compound sentiment as 
 
 \FloatBarrier
 
+\subsection{Raw Contribution Trajectories}
+
+Figure~\ref{fig:raw_means} complements the regression event study by displaying mean contribution \textit{levels} at each event time $\tau$ for suckered players. The dashed horizontal line marks the control group's grand mean contribution. By construction, suckered players contributed 25 at $\tau = 0$; contributions decline sharply in subsequent rounds. The pre-event trajectory shows suckered players contributing above the control mean before the event, consistent with their high-cooperator profile.
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.9\textwidth]{issue_20_raw_means}
+	\caption{Mean contributions at each event time $\tau$ for suckered players (line with SE bars). The dashed horizontal line indicates the control group grand mean. At $\tau = 0$, suckered players contributed 25 by definition.}
+	\label{fig:raw_means}
+\end{figure}
+
+\FloatBarrier
+
+\subsection{Cross-Segment Spillover}
+
+After each supergame, players are reshuffled into new groups, so any contribution change in subsequent supergames reflects a pure behavioral carryover rather than a strategic response to the same groupmates. We estimate two specifications on segments 2--5 (segment 1 has no prior):
+\[
+	\text{Contribution}_{it} = \beta \cdot \text{SuckeredPrior}_i + \gamma \cdot \text{Treatment}_i + \alpha_r + \delta_s + \varepsilon_{it}
+\]
+and a decay model replacing the binary indicator with supergame-distance dummies $\mathbf{1}[\text{SegmentsSinceSuckered} = k]$. Table~\ref{tab:spillover} reports the results. The binary spillover coefficient is small and insignificant ($-0.36$, $p > 0.10$ under $< 20$; $-0.87$, $p > 0.10$ under $< 5$), suggesting the within-segment contribution decline does not carry over to new groups after reshuffling.
+
+\begin{table}[H]
+	\centering
+	\caption{Cross-Segment Spillover: Effect of Prior Suckering on Contributions}
+	\label{tab:spillover}
+	{\scriptsize\input{issue_20_spillover_regression}}
+\end{table}
+
+\FloatBarrier
+
+\subsection{Sucker vs.\ Liar Trajectories}
+
+Figure~\ref{fig:sucker_liar} compares the behavioral trajectories of ``victims'' (suckers) and ``perpetrators'' (liars) around their respective first events. The top row displays mean contributions for suckered players at each event time; the bottom row shows mean contributions for liars---players who promised to cooperate but contributed below the threshold. By construction, suckers contributed 25 at $\tau = 0$ (they cooperated fully while being cheated), while liars contributed below the threshold at $\tau = 0$ (they promised but did not deliver). The two rows reveal opposite sides of the same broken-promise event: suckers reduce contributions afterward (retaliation or distrust), while liars show partial recovery toward the control mean in subsequent rounds.
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.95\textwidth]{issue_20_sucker_liar_trajectories}
+	\caption{Mean contributions at each event time $\tau$ for suckered players (top) and liars (bottom), faceted by threshold. Dashed horizontal lines indicate the respective control group grand means.}
+	\label{fig:sucker_liar}
+\end{figure}
+
+\FloatBarrier
+
 \end{document}
