@@ -168,7 +168,7 @@ export_threshold_table <- function(models, threshold, filepath) {
             "Binary (robust)", "Decay (robust)"
         ),
         title = sprintf(
-            "Cross-Segment Spillover (threshold < %s): Effect of Prior Suckering",
+            "Cross-Segment Spillover (threshold $<$ %s): Effect of Prior Suckering",
             threshold
         )
     )

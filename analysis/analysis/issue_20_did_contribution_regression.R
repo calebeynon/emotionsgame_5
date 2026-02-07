@@ -147,7 +147,7 @@ export_latex_table <- function(models, filepath) {
         file = filepath,
         tex = TRUE,
         fitstat = c("n", "r2"),
-        headers = c("< 20 (Main)", "< 20 (Robust)", "< 5 (Main)", "< 5 (Robust)"),
+        headers = c("$<$ 20 (Main)", "$<$ 20 (Robust)", "$<$ 5 (Main)", "$<$ 5 (Robust)"),
         title = "Diff-in-Diff: Effect of Being Suckered on Contributions"
     )
 }
