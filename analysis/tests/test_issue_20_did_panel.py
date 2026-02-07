@@ -21,6 +21,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "derived"))
 from issue_20_build_did_panel import (
     build_suckered_flags as derive_per_round_suckering,
     add_did_variables as compute_did_variables,
+    add_always_cooperator_flags,
 )
 
 # DEFAULTS for mock data builders
@@ -229,6 +230,116 @@ class TestComputeDidVariables:
         """compute_did_variables should not change row count."""
         df = self._base_df()
         assert len(compute_did_variables(df)) == len(df)
+
+
+# =====
+# Helpers for always-cooperator tests
+# =====
+PLAYER_SEGMENT_KEYS = ['session_code', 'segment', 'label']
+
+_AC_DEFAULTS = {
+    'session_code': 'test_session',
+    'segment': 'supergame_test',
+}
+
+
+def _ac_player_rows(label, contributions, got_suckered_20=False,
+                    got_suckered_5=False, event_count_20=0,
+                    event_count_5=0, segment=None):
+    """Build rows for one player across rounds for always-coop tests.
+
+    contributions is a dict {round: contribution_amount}.
+    """
+    seg = segment or _AC_DEFAULTS['segment']
+    rows = []
+    for rnd, contrib in sorted(contributions.items()):
+        rows.append({
+            'session_code': _AC_DEFAULTS['session_code'],
+            'segment': seg,
+            'label': label,
+            'round': rnd,
+            'contribution': contrib,
+            'got_suckered_20': got_suckered_20,
+            'got_suckered_5': got_suckered_5,
+            'suckered_event_count_20': event_count_20,
+            'suckered_event_count_5': event_count_5,
+        })
+    return rows
+
+
+# =====
+# Tests for add_always_cooperator_flags
+# =====
+class TestAlwaysCooperatorFlag:
+    """Tests for the add_always_cooperator_flags function."""
+
+    def test_always_25_from_round_2_is_flagged(self):
+        """Player contributing 25 in rounds 2-5, never suckered -> always_coop_20."""
+        contribs = {1: 25, 2: 25, 3: 25, 4: 25, 5: 25}
+        rows = _ac_player_rows('A', contribs)
+        df = pd.DataFrame(rows)
+        result = add_always_cooperator_flags(df)
+        assert (result['always_coop_20'] == True).all()
+
+    def test_round_1_excluded(self):
+        """Round 1 contribution is irrelevant; 0 in round 1, 25 in 2-5 -> flagged."""
+        contribs = {1: 0, 2: 25, 3: 25, 4: 25, 5: 25}
+        rows = _ac_player_rows('A', contribs)
+        df = pd.DataFrame(rows)
+        result = add_always_cooperator_flags(df)
+        assert (result['always_coop_20'] == True).all()
+
+    def test_one_defection_disqualifies(self):
+        """One round with contribution < 25 (round 3 = 20) -> not always_coop."""
+        contribs = {1: 25, 2: 25, 3: 20, 4: 25, 5: 25}
+        rows = _ac_player_rows('A', contribs)
+        df = pd.DataFrame(rows)
+        result = add_always_cooperator_flags(df)
+        assert (result['always_coop_20'] == False).all()
+
+    def test_suckered_player_not_always_coop(self):
+        """Player contributes 25 every round but was suckered -> not always_coop."""
+        contribs = {1: 25, 2: 25, 3: 25, 4: 25, 5: 25}
+        rows = _ac_player_rows('A', contribs, got_suckered_20=True,
+                               event_count_20=1)
+        df = pd.DataFrame(rows)
+        result = add_always_cooperator_flags(df)
+        assert (result['always_coop_20'] == False).all()
+
+    def test_segment_boundary(self):
+        """Always-coop in segment 1 but not in segment 2 -> flag differs."""
+        # Segment 1: all 25 from round 2, never suckered
+        rows_s1 = _ac_player_rows('A', {1: 10, 2: 25, 3: 25},
+                                  segment='sg1')
+        # Segment 2: defects in round 2
+        rows_s2 = _ac_player_rows('A', {1: 25, 2: 15, 3: 25},
+                                  segment='sg2')
+        df = pd.DataFrame(rows_s1 + rows_s2)
+        result = add_always_cooperator_flags(df)
+        sg1 = result[result['segment'] == 'sg1']
+        sg2 = result[result['segment'] == 'sg2']
+        assert (sg1['always_coop_20'] == True).all()
+        assert (sg2['always_coop_20'] == False).all()
+
+    def test_did_sample_robust_includes_treated(self):
+        """Suckered-exactly-once player -> did_sample_robust_20 is True."""
+        contribs = {1: 25, 2: 25, 3: 25, 4: 25, 5: 25}
+        # Suckered once (event_count=1), so treated; not always_coop
+        rows = _ac_player_rows('A', contribs, got_suckered_20=True,
+                               event_count_20=1)
+        df = pd.DataFrame(rows)
+        result = add_always_cooperator_flags(df)
+        assert (result['did_sample_robust_20'] == True).all()
+
+    def test_did_sample_robust_excludes_non_coop_controls(self):
+        """Never-suckered player who defected in round > 1 -> robust=False."""
+        contribs = {1: 25, 2: 25, 3: 15, 4: 25, 5: 25}
+        rows = _ac_player_rows('A', contribs)
+        df = pd.DataFrame(rows)
+        result = add_always_cooperator_flags(df)
+        # Not always_coop (defected), not suckered (event_count=0)
+        assert (result['always_coop_20'] == False).all()
+        assert (result['did_sample_robust_20'] == False).all()
 
 
 # =====

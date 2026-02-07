@@ -9,6 +9,10 @@
 #   < 20 (tau_20): Groupmate broke promise by contributing < 20
 #   < 5  (tau_5):  Groupmate broke promise by contributing < 5
 #
+# Two sample definitions per threshold:
+#   Main:   suckered-once treated vs never-suckered control
+#   Robust: suckered-once treated vs always-cooperator control (contributed 25 every round > 1)
+#
 # Control players (got_suckered == FALSE) have NA tau. We set tau = 999 for these
 # players so i() produces zero coefficients, with ref = c(0, 999).
 
@@ -23,6 +27,8 @@ OUTPUT_DIR_TABLES <- "output/tables"
 OUTPUT_DIR_PLOTS <- "output/plots"
 OUTPUT_TEX <- file.path(OUTPUT_DIR_TABLES, "issue_20_did_sentiment.tex")
 OUTPUT_PLOT <- file.path(OUTPUT_DIR_PLOTS, "issue_20_sentiment_trajectory.png")
+OUTPUT_COEFPLOT_20 <- file.path(OUTPUT_DIR_PLOTS, "issue_20_sentiment_coefplot_20.png")
+OUTPUT_COEFPLOT_5 <- file.path(OUTPUT_DIR_PLOTS, "issue_20_sentiment_coefplot_5.png")
 
 # =====
 # Main function (FIRST - shows high-level flow)
@@ -31,20 +37,21 @@ main <- function() {
     dt <- load_and_prepare_data(INPUT_CSV)
     validate_data(dt)
 
-    model_strict <- run_regression(dt, "tau_20", "got_suckered_20", "did_sample_20")
-    model_lenient <- run_regression(dt, "tau_5", "got_suckered_5", "did_sample_5")
-
-    report_sample_sizes(model_strict, model_lenient)
+    models <- run_all_models(dt)
+    report_sample_sizes(models)
 
     dir.create(OUTPUT_DIR_TABLES, recursive = TRUE, showWarnings = FALSE)
     dir.create(OUTPUT_DIR_PLOTS, recursive = TRUE, showWarnings = FALSE)
 
-    export_latex_table(model_strict, model_lenient, OUTPUT_TEX)
+    export_latex_table(models, OUTPUT_TEX)
     cat("Regression table exported to:", OUTPUT_TEX, "\n")
 
-    coef_df <- build_coefficient_df(model_strict, model_lenient)
+    coef_df <- build_coefficient_df(models$main_20, models$main_5)
     create_trajectory_plot(coef_df, OUTPUT_PLOT)
     cat("Trajectory plot exported to:", OUTPUT_PLOT, "\n")
+
+    save_comparison_plot(models, "20", "< 20 Threshold", OUTPUT_COEFPLOT_20)
+    save_comparison_plot(models, "5", "< 5 Threshold", OUTPUT_COEFPLOT_5)
 }
 
 # =====
@@ -53,7 +60,11 @@ main <- function() {
 load_and_prepare_data <- function(filepath) {
     dt <- as.data.table(read.csv(filepath))
 
-    bool_cols <- c("got_suckered_20", "got_suckered_5", "did_sample_20", "did_sample_5")
+    bool_cols <- c(
+        "got_suckered_20", "got_suckered_5",
+        "did_sample_20", "did_sample_5",
+        "did_sample_robust_20", "did_sample_robust_5"
+    )
     for (col in bool_cols) {
         dt[, (col) := (get(col) == "True")]
     }
@@ -72,6 +83,7 @@ validate_data <- function(dt) {
     required_cols <- c(
         "sentiment_compound_mean", "got_suckered_20", "got_suckered_5",
         "tau_20", "tau_5", "did_sample_20", "did_sample_5",
+        "did_sample_robust_20", "did_sample_robust_5",
         "treatment", "round", "segment", "cluster_id"
     )
     missing <- setdiff(required_cols, names(dt))
@@ -82,14 +94,28 @@ validate_data <- function(dt) {
     cat("\n=== Data Summary ===\n")
     cat(sprintf("  Total rows: %d\n", nrow(dt)))
     cat(sprintf("  Sentiment NA: %d\n", sum(is.na(dt$sentiment_compound_mean))))
-    cat(sprintf("  did_sample_20 TRUE: %d\n", sum(dt$did_sample_20)))
-    cat(sprintf("  did_sample_5 TRUE: %d\n", sum(dt$did_sample_5)))
+    print_sample_counts(dt)
     cat("\n")
+}
+
+print_sample_counts <- function(dt) {
+    samples <- c("did_sample_20", "did_sample_robust_20",
+                 "did_sample_5", "did_sample_robust_5")
+    for (s in samples) cat(sprintf("  %s TRUE: %d\n", s, sum(dt[[s]])))
 }
 
 # =====
 # Regression estimation
 # =====
+run_all_models <- function(dt) {
+    list(
+        main_20   = run_regression(dt, "tau_20", "got_suckered_20", "did_sample_20"),
+        robust_20 = run_regression(dt, "tau_20", "got_suckered_20", "did_sample_robust_20"),
+        main_5    = run_regression(dt, "tau_5", "got_suckered_5", "did_sample_5"),
+        robust_5  = run_regression(dt, "tau_5", "got_suckered_5", "did_sample_robust_5")
+    )
+}
+
 run_regression <- function(dt, tau_var, treat_var, sample_var) {
     sub <- dt[get(sample_var) == TRUE & !is.na(sentiment_compound_mean)]
 
@@ -105,17 +131,18 @@ run_regression <- function(dt, tau_var, treat_var, sample_var) {
 # =====
 # Sample accountability
 # =====
-report_sample_sizes <- function(model_strict, model_lenient) {
+report_sample_sizes <- function(models) {
     cat("=== Sample Sizes ===\n")
-    cat(sprintf("  < 20 model: N = %d\n", model_strict$nobs))
-    cat(sprintf("  < 5 model: N = %d\n", model_lenient$nobs))
+    for (name in names(models)) {
+        cat(sprintf("  %s: N = %d\n", name, models[[name]]$nobs))
+    }
     cat("\n")
 }
 
 # =====
 # Coefficient extraction for plotting
 # =====
-extract_coefficients <- function(model, threshold_label) {
+extract_coefficients <- function(model, threshold_label, spec_label = "Main") {
     ct <- coeftable(model)
     coef_names <- rownames(ct)
 
@@ -131,6 +158,7 @@ extract_coefficients <- function(model, threshold_label) {
         ci_lower = ct_sub[, "Estimate"] - 1.96 * ct_sub[, "Std. Error"],
         ci_upper = ct_sub[, "Estimate"] + 1.96 * ct_sub[, "Std. Error"],
         threshold = threshold_label,
+        spec = spec_label,
         row.names = NULL
     )
 }
@@ -161,15 +189,46 @@ create_trajectory_plot <- function(coef_df, filepath) {
 }
 
 # =====
+# Comparison plots (main vs robustness spec)
+# =====
+save_comparison_plot <- function(models, threshold, label, output_path) {
+    main_key <- paste0("main_", threshold)
+    robust_key <- paste0("robust_", threshold)
+    coef_df <- rbind(
+        extract_coefficients(models[[main_key]], label, "Main"),
+        extract_coefficients(models[[robust_key]], label, "Always-Cooperator Controls")
+    )
+    create_comparison_plot(coef_df, output_path)
+    cat("Comparison plot exported to:", output_path, "\n")
+}
+
+create_comparison_plot <- function(coef_df, filepath) {
+    dodge <- position_dodge(width = 0.4)
+    spec_colors <- c("Main" = "black", "Always-Cooperator Controls" = "#377EB8")
+    p <- ggplot(coef_df, aes(x = tau, y = estimate, color = spec)) +
+        geom_hline(yintercept = 0, linetype = "dashed", color = "gray50") +
+        geom_vline(xintercept = 0, linetype = "dashed", color = "gray50") +
+        geom_errorbar(aes(ymin = ci_lower, ymax = ci_upper),
+                      width = 0.2, position = dodge) +
+        geom_point(size = 2, position = dodge) +
+        scale_color_manual(values = spec_colors) +
+        labs(x = expression("Rounds Since Suckered (" * tau * ")"),
+             y = "Effect on Sentiment (Compound)", color = "Specification") +
+        theme_minimal(base_size = 12) +
+        theme(panel.grid.minor = element_blank(), legend.position = "bottom")
+    ggsave(filepath, plot = p, width = 6.5, height = 4, dpi = 300)
+}
+
+# =====
 # LaTeX output
 # =====
-export_latex_table <- function(model_strict, model_lenient, filepath) {
+export_latex_table <- function(models, filepath) {
     etable(
-        model_strict, model_lenient,
+        models$main_20, models$robust_20, models$main_5, models$robust_5,
         file = filepath,
         tex = TRUE,
         fitstat = c("n", "r2"),
-        headers = c("< 20 Threshold", "< 5 Threshold"),
+        headers = c("< 20 (Main)", "< 20 (Robust)", "< 5 (Main)", "< 5 (Robust)"),
         title = "Diff-in-Diff: Effect of Being Suckered on Chat Sentiment"
     )
 }

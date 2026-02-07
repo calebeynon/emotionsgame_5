@@ -100,13 +100,20 @@ After each supergame, players are reshuffled into new groups, so any contributio
 \[
 	\text{Contribution}_{it} = \beta \cdot \text{SuckeredPrior}_i + \gamma \cdot \text{Treatment}_i + \alpha_r + \delta_s + \varepsilon_{it}
 \]
-and a decay model replacing the binary indicator with supergame-distance dummies $\mathbf{1}[\text{SegmentsSinceSuckered} = k]$. Table~\ref{tab:spillover} reports the results. The binary spillover coefficient is small and insignificant ($-0.36$, $p > 0.10$ under $< 20$; $-0.87$, $p > 0.10$ under $< 5$), suggesting the within-segment contribution decline does not carry over to new groups after reshuffling.
+and a decay model replacing the binary indicator with supergame-distance dummies $\mathbf{1}[\text{SegmentsSinceSuckered} = k]$. Tables~\ref{tab:spillover_20} and~\ref{tab:spillover_5} report the results, each including a robustness specification that adds always-cooperator controls to the sample. The binary spillover coefficient is small and insignificant ($-0.36$, $p > 0.10$ under $< 20$; $-0.87$, $p > 0.10$ under $< 5$), suggesting the within-segment contribution decline does not carry over to new groups after reshuffling.
 
 \begin{table}[H]
 	\centering
-	\caption{Cross-Segment Spillover: Effect of Prior Suckering on Contributions}
-	\label{tab:spillover}
-	{\scriptsize\input{issue_20_spillover_regression}}
+	\caption{Cross-Segment Spillover: High-Threshold ($< 20$)}
+	\label{tab:spillover_20}
+	{\scriptsize\input{issue_20_spillover_regression_20}}
+\end{table}
+
+\begin{table}[H]
+	\centering
+	\caption{Cross-Segment Spillover: Low-Threshold ($< 5$)}
+	\label{tab:spillover_5}
+	{\scriptsize\input{issue_20_spillover_regression_5}}
 \end{table}
 
 \FloatBarrier

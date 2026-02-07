@@ -1,12 +1,6 @@
 """
-Build round-level DiD panel for sucker and liar analysis (Issue #20).
-
-Derives per-round suckering/lying events from behavior and promise data,
-computes event-study variables (tau, post, did_sample), cross-segment
-spillover flags, and merges sentiment.
-
-Author: Claude Code
-Date: 2026-02-05
+Build round-level DiD panel for sucker/liar analysis (Issue #20).
+Author: Claude Code  Date: 2026-02-05
 """
 
 from pathlib import Path
@@ -32,7 +26,6 @@ SENTIMENT_COL = 'sentiment_compound_mean'
 EXPECTED_ROWS = 3520
 SEGMENT_ORDER = {f'supergame{i}': i for i in range(1, 6)}
 
-# Column naming: sucker keeps backward-compatible names; liar uses prefixed
 COL_TEMPLATES = {
     ('suckered', 'event_count'): 'suckered_event_count_{s}',
     ('suckered', 'first_round'): 'first_suckered_round_{s}',
@@ -48,16 +41,12 @@ COL_TEMPLATES = {
     ('liar', 'did_sample'): 'liar_did_sample_{s}',
 }
 
-# Event column specs: (event_col_template, prefix)
 EVENT_SPECS = [
     ('suckered_this_round_{s}', 'suckered'),
     ('lied_this_round_{s}', 'liar'),
 ]
 
 
-# =====
-# Main function
-# =====
 def main():
     """Main execution flow."""
     behavior_df = pd.read_csv(BEHAVIOR_FILE)
@@ -68,6 +57,7 @@ def main():
     panel = build_suckered_flags(behavior_df, promise_df)
     panel = build_liar_flags(panel, promise_df)
     panel = add_did_variables(panel)
+    panel = add_always_cooperator_flags(panel)
     panel = add_cross_segment_spillover(panel)
     sentiment = regression_df[PLAYER_ROUND_KEYS + [SENTIMENT_COL]].copy()
     panel = panel.merge(sentiment, on=PLAYER_ROUND_KEYS, how='left')
@@ -78,9 +68,6 @@ def main():
     save_and_summarize(panel)
 
 
-# =====
-# Suckering detection
-# =====
 def build_suckered_flags(behavior_df, promise_df):
     """Add per-round suckered_this_round flags for each threshold."""
     pcounts = promise_df[PLAYER_ROUND_KEYS + ['promise_count']].copy()
@@ -132,9 +119,6 @@ def _find_groupmate_breakers(candidates, enriched):
     )
 
 
-# =====
-# Liar detection
-# =====
 def build_liar_flags(df, promise_df):
     """Add per-round lied_this_round flags for each threshold."""
     pcounts = promise_df[PLAYER_ROUND_KEYS + ['promise_count']].copy()
@@ -149,9 +133,6 @@ def build_liar_flags(df, promise_df):
     return df
 
 
-# =====
-# Generic DiD event-study variables
-# =====
 def add_did_variables(df):
     """Add event-study DiD variables for sucker and (if present) liar events."""
     for suffix in THRESHOLDS:
@@ -191,9 +172,26 @@ def _merge_count_and_first(df, events, cnt_col, fst_col):
     return df.merge(first, on=PLAYER_SEGMENT_KEYS, how='left')
 
 
-# =====
-# Cross-segment spillover
-# =====
+def add_always_cooperator_flags(df):
+    """Add always-cooperator flags and robustness DiD sample indicators."""
+    full_coop = _full_cooperator_mask(df)
+    for suffix in THRESHOLDS:
+        ac = f'always_coop_{suffix}'
+        df[ac] = full_coop & ~df[f'got_suckered_{suffix}']
+        cnt = _col('suckered', 'event_count', suffix)
+        df[f'did_sample_robust_{suffix}'] = (df[cnt] == 1) | df[ac]
+    return df
+
+
+def _full_cooperator_mask(df):
+    """True for players who contributed 25 in every round > 1 of the segment."""
+    eligible = df[df['round'] > 1].copy()
+    missed = eligible[eligible['contribution'] != 25]
+    defectors = set(missed[PLAYER_SEGMENT_KEYS].apply(tuple, axis=1))
+    keys = df[PLAYER_SEGMENT_KEYS].apply(tuple, axis=1)
+    return ~keys.isin(defectors)
+
+
 def add_cross_segment_spillover(df):
     """Add flags for whether player was suckered in a prior segment."""
     df['segment_number'] = df['segment'].map(SEGMENT_ORDER)
@@ -228,9 +226,6 @@ def _compute_spillover_cols(df, suckered_ps, fss, suffix):
     return df
 
 
-# =====
-# Validation and output
-# =====
 def validate_output(df):
     """Validate output has expected row count and required columns."""
     assert len(df) == EXPECTED_ROWS, f"Expected {EXPECTED_ROWS} rows, got {len(df)}"
@@ -252,6 +247,7 @@ def _check_required_columns(df):
             f'suckered_this_round_{suffix}', f'lied_this_round_{suffix}',
             f'first_suckered_segment_{suffix}', f'suckered_prior_segment_{suffix}',
             f'segments_since_suckered_{suffix}',
+            f'always_coop_{suffix}', f'did_sample_robust_{suffix}',
         ]
     missing = [c for c in required if c not in df.columns]
     assert not missing, f"Missing columns: {missing}"
@@ -276,17 +272,17 @@ def save_and_summarize(df):
     """Save output CSV and print summary statistics."""
     OUTPUT_FILE.parent.mkdir(parents=True, exist_ok=True)
     df.to_csv(OUTPUT_FILE, index=False)
-    print(f"\nSaved: {OUTPUT_FILE}")
-    print(f"Shape: {df.shape}")
-    unique_ps = df.groupby(PLAYER_SEGMENT_KEYS).first()
-    for prefix, label in [('suckered', 'Suckered'), ('liar', 'Liar')]:
-        for suffix in THRESHOLDS:
-            n_s = unique_ps[_col(prefix, 'did_sample', suffix)].sum()
-            n_t = unique_ps[_col(prefix, 'treated', suffix)].sum()
-            print(f"  {label} DiD ({suffix}): {n_s}/{len(unique_ps)} sample, {n_t} treated")
-    for suffix in THRESHOLDS:
-        n = unique_ps[f'suckered_prior_segment_{suffix}'].sum()
-        print(f"  Suckered prior segment ({suffix}): {n} player-segments")
+    print(f"\nSaved: {OUTPUT_FILE}\nShape: {df.shape}")
+    u = df.groupby(PLAYER_SEGMENT_KEYS).first()
+    n = len(u)
+    for pfx, lbl in [('suckered', 'Suckered'), ('liar', 'Liar')]:
+        for s in THRESHOLDS:
+            print(f"  {lbl} DiD ({s}): {u[_col(pfx, 'did_sample', s)].sum()}/{n} sample,"
+                  f" {u[_col(pfx, 'treated', s)].sum()} treated")
+    for s in THRESHOLDS:
+        print(f"  Robust DiD ({s}): {u[f'did_sample_robust_{s}'].sum()}/{n} sample,"
+              f" {u[f'always_coop_{s}'].sum()} always-coop controls")
+        print(f"  Suckered prior segment ({s}): {u[f'suckered_prior_segment_{s}'].sum()} player-segments")
 
 
 # %%

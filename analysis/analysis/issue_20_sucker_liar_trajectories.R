@@ -1,9 +1,9 @@
-# Purpose: 2x2 faceted trajectory plot comparing sucker vs liar mean contributions
+# Purpose: Trajectory plot comparing sucker vs liar mean contributions by threshold
 # Author: Claude Code
 # Date: 2026-02-06
 #
 # Plots mean contribution at each event time (tau) for treated players,
-# with dashed reference lines for control grand mean, faceted by role x threshold.
+# with dashed reference lines for control grand mean, faceted by threshold.
 
 # nolint start
 library(data.table)
@@ -149,29 +149,32 @@ create_trajectory_plot <- function(treated_df, ctrl_df) {
 }
 
 build_trajectory_layers <- function(treated_df, ctrl_df) {
-    ggplot(treated_df, aes(x = tau, y = mean_contrib)) +
-        geom_hline(
-            data = ctrl_df, aes(yintercept = grand_mean),
-            linetype = "dashed", color = "gray50"
-        ) +
-        geom_vline(xintercept = 0, linetype = "dashed", color = "red") +
+    role_colors <- c("Sucker" = "#E41A1C", "Liar" = "#377EB8")
+
+    ggplot(treated_df, aes(x = tau, y = mean_contrib, color = role)) +
+        geom_vline(xintercept = 0, linetype = "dashed", color = "gray50") +
         geom_errorbar(
             aes(ymin = mean_contrib - se, ymax = mean_contrib + se),
             width = 0.2
         ) +
         geom_line() +
         geom_point(size = 2) +
-        facet_grid(role ~ threshold)
+        scale_color_manual(values = role_colors) +
+        facet_wrap(~ threshold)
 }
 
 style_trajectory_plot <- function() {
     list(
         labs(
             x = expression("Event Time (" * tau * ")"),
-            y = "Mean Contribution"
+            y = "Mean Contribution",
+            color = "Role"
         ),
         theme_minimal(base_size = 12),
-        theme(panel.grid.minor = element_blank())
+        theme(
+            panel.grid.minor = element_blank(),
+            legend.position = "bottom"
+        )
     )
 }
 

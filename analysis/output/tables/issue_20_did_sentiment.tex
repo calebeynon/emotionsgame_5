@@ -1,66 +1,66 @@
 
 \begingroup
 \centering
-\begin{tabular}{lcc}
+\begin{tabular}{lcccc}
    \tabularnewline \midrule \midrule
-   Dependent Variable: & \multicolumn{2}{c}{sentiment\_compound\_mean}\\
-                                                 & < 20 Threshold        & < 5 Threshold \\   
-   Model:                                        & (1)                   & (2)\\  
+   Dependent Variable: & \multicolumn{4}{c}{sentiment\_compound\_mean}\\
+                                                 & < 20 (Main)           & < 20 (Robust)   & < 5 (Main)      & < 5 (Robust) \\   
+   Model:                                        & (1)                   & (2)             & (3)             & (4)\\  
    \midrule
    \emph{Variables}\\
-   got\_suckered\_20 $\times$ tau\_20 $=$ -5     & -0.1775$^{**}$        &   \\   
-                                                 & (0.0684)              &   \\   
-   got\_suckered\_20 $\times$ tau\_20 $=$ -4     & 0.0729                &   \\   
-                                                 & (0.0532)              &   \\   
-   got\_suckered\_20 $\times$ tau\_20 $=$ -3     & -0.0608               &   \\   
-                                                 & (0.0479)              &   \\   
-   got\_suckered\_20 $\times$ tau\_20 $=$ -2     & 0.0028                &   \\   
-                                                 & (0.0305)              &   \\   
-   got\_suckered\_20 $\times$ tau\_20 $=$ -1     & -0.0134               &   \\   
-                                                 & (0.0424)              &   \\   
-   got\_suckered\_20 $\times$ tau\_20 $=$ 1      & -0.1294$^{***}$       &   \\   
-                                                 & (0.0214)              &   \\   
-   got\_suckered\_20 $\times$ tau\_20 $=$ 2      & -0.0353               &   \\   
-                                                 & (0.0609)              &   \\   
-   got\_suckered\_20 $\times$ tau\_20 $=$ 3      & -0.0427               &   \\   
-                                                 & (0.0358)              &   \\   
-   got\_suckered\_20 $\times$ tau\_20 $=$ 4      & -0.0929$^{*}$         &   \\   
-                                                 & (0.0480)              &   \\   
-   got\_suckered\_20 $\times$ tau\_20 $=$ 5      & 0.0297                &   \\   
-                                                 & (0.0674)              &   \\   
-   treatment                                     & $1.19\times 10^{-5}$  & 0.0001\\   
-                                                 & (0.0109)              & (0.0109)\\   
-   got\_suckered\_5 $\times$ tau\_5 $=$ -5       &                       & -0.1784$^{**}$\\   
-                                                 &                       & (0.0686)\\   
-   got\_suckered\_5 $\times$ tau\_5 $=$ -4       &                       & 0.0747$^{*}$\\   
-                                                 &                       & (0.0442)\\   
-   got\_suckered\_5 $\times$ tau\_5 $=$ -3       &                       & -0.0592\\   
-                                                 &                       & (0.0567)\\   
-   got\_suckered\_5 $\times$ tau\_5 $=$ -2       &                       & -0.0090\\   
-                                                 &                       & (0.0295)\\   
-   got\_suckered\_5 $\times$ tau\_5 $=$ -1       &                       & 0.0322\\   
-                                                 &                       & (0.0393)\\   
-   got\_suckered\_5 $\times$ tau\_5 $=$ 1        &                       & -0.1301$^{***}$\\   
-                                                 &                       & (0.0223)\\   
-   got\_suckered\_5 $\times$ tau\_5 $=$ 2        &                       & -0.0928\\   
-                                                 &                       & (0.0763)\\   
-   got\_suckered\_5 $\times$ tau\_5 $=$ 3        &                       & -0.0545$^{**}$\\   
-                                                 &                       & (0.0252)\\   
-   got\_suckered\_5 $\times$ tau\_5 $=$ 4        &                       & -0.0932$^{*}$\\   
-                                                 &                       & (0.0483)\\   
-   got\_suckered\_5 $\times$ tau\_5 $=$ 5        &                       & 0.0292\\   
-                                                 &                       & (0.0671)\\   
+   got\_suckered\_20 $\times$ tau\_20 $=$ -5     & -0.1775$^{**}$        & -0.1725$^{**}$  &                 &   \\   
+                                                 & (0.0684)              & (0.0682)        &                 &   \\   
+   got\_suckered\_20 $\times$ tau\_20 $=$ -4     & 0.0729                & 0.0676          &                 &   \\   
+                                                 & (0.0532)              & (0.0554)        &                 &   \\   
+   got\_suckered\_20 $\times$ tau\_20 $=$ -3     & -0.0608               & -0.0658         &                 &   \\   
+                                                 & (0.0479)              & (0.0488)        &                 &   \\   
+   got\_suckered\_20 $\times$ tau\_20 $=$ -2     & 0.0028                & -0.0051         &                 &   \\   
+                                                 & (0.0305)              & (0.0296)        &                 &   \\   
+   got\_suckered\_20 $\times$ tau\_20 $=$ -1     & -0.0134               & -0.0244         &                 &   \\   
+                                                 & (0.0424)              & (0.0430)        &                 &   \\   
+   got\_suckered\_20 $\times$ tau\_20 $=$ 1      & -0.1294$^{***}$       & -0.1485$^{***}$ &                 &   \\   
+                                                 & (0.0214)              & (0.0219)        &                 &   \\   
+   got\_suckered\_20 $\times$ tau\_20 $=$ 2      & -0.0353               & -0.0503         &                 &   \\   
+                                                 & (0.0609)              & (0.0596)        &                 &   \\   
+   got\_suckered\_20 $\times$ tau\_20 $=$ 3      & -0.0427               & -0.0563         &                 &   \\   
+                                                 & (0.0358)              & (0.0374)        &                 &   \\   
+   got\_suckered\_20 $\times$ tau\_20 $=$ 4      & -0.0929$^{*}$         & -0.1086$^{**}$  &                 &   \\   
+                                                 & (0.0480)              & (0.0450)        &                 &   \\   
+   got\_suckered\_20 $\times$ tau\_20 $=$ 5      & 0.0297                & 0.0369          &                 &   \\   
+                                                 & (0.0674)              & (0.0699)        &                 &   \\   
+   treatment                                     & $1.19\times 10^{-5}$  & 0.0037          & 0.0001          & 0.0042\\   
+                                                 & (0.0109)              & (0.0112)        & (0.0109)        & (0.0113)\\   
+   got\_suckered\_5 $\times$ tau\_5 $=$ -5       &                       &                 & -0.1784$^{**}$  & -0.1745$^{**}$\\   
+                                                 &                       &                 & (0.0686)        & (0.0684)\\   
+   got\_suckered\_5 $\times$ tau\_5 $=$ -4       &                       &                 & 0.0747$^{*}$    & 0.0667\\   
+                                                 &                       &                 & (0.0442)        & (0.0481)\\   
+   got\_suckered\_5 $\times$ tau\_5 $=$ -3       &                       &                 & -0.0592         & -0.0621\\   
+                                                 &                       &                 & (0.0567)        & (0.0574)\\   
+   got\_suckered\_5 $\times$ tau\_5 $=$ -2       &                       &                 & -0.0090         & -0.0165\\   
+                                                 &                       &                 & (0.0295)        & (0.0290)\\   
+   got\_suckered\_5 $\times$ tau\_5 $=$ -1       &                       &                 & 0.0322          & 0.0196\\   
+                                                 &                       &                 & (0.0393)        & (0.0409)\\   
+   got\_suckered\_5 $\times$ tau\_5 $=$ 1        &                       &                 & -0.1301$^{***}$ & -0.1493$^{***}$\\   
+                                                 &                       &                 & (0.0223)        & (0.0225)\\   
+   got\_suckered\_5 $\times$ tau\_5 $=$ 2        &                       &                 & -0.0928         & -0.1052\\   
+                                                 &                       &                 & (0.0763)        & (0.0738)\\   
+   got\_suckered\_5 $\times$ tau\_5 $=$ 3        &                       &                 & -0.0545$^{**}$  & -0.0672$^{**}$\\   
+                                                 &                       &                 & (0.0252)        & (0.0284)\\   
+   got\_suckered\_5 $\times$ tau\_5 $=$ 4        &                       &                 & -0.0932$^{*}$   & -0.1117$^{**}$\\   
+                                                 &                       &                 & (0.0483)        & (0.0456)\\   
+   got\_suckered\_5 $\times$ tau\_5 $=$ 5        &                       &                 & 0.0292          & 0.0345\\   
+                                                 &                       &                 & (0.0671)        & (0.0698)\\   
    \midrule
    \emph{Fixed-effects}\\
-   round                                         & Yes                   & Yes\\  
-   segment                                       & Yes                   & Yes\\  
+   round                                         & Yes                   & Yes             & Yes             & Yes\\  
+   segment                                       & Yes                   & Yes             & Yes             & Yes\\  
    \midrule
    \emph{Fit statistics}\\
-   Observations                                  & 2,230                 & 2,230\\  
-   R$^2$                                         & 0.02805               & 0.02590\\  
+   Observations                                  & 2,230                 & 1,762           & 2,230           & 1,742\\  
+   R$^2$                                         & 0.02805               & 0.04174         & 0.02590         & 0.03733\\  
    \midrule \midrule
-   \multicolumn{3}{l}{\emph{Clustered (cluster\_id) standard-errors in parentheses}}\\
-   \multicolumn{3}{l}{\emph{Signif. Codes: ***: 0.01, **: 0.05, *: 0.1}}\\
+   \multicolumn{5}{l}{\emph{Clustered (cluster\_id) standard-errors in parentheses}}\\
+   \multicolumn{5}{l}{\emph{Signif. Codes: ***: 0.01, **: 0.05, *: 0.1}}\\
 \end{tabular}
 \par\endgroup
 
