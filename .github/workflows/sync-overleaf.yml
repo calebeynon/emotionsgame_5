@@ -44,14 +44,22 @@ jobs:
 
           if [ -z "$last_sync" ]; then
             echo "No prior sync commit found — treating all commits as human edits"
-            human_commits=$(git log --format="%h %s (%an, %ai)" --all)
+            human_hashes=$(git log --format="%H" --all)
           else
             # Find commits after the last sync that are NOT by GitHub Actions
-            # Note: --invert-grep only inverts --grep, not --author, so we filter via tab-delimited author column
-            human_commits=$(git log --format="%aN	%h %s (%an, %ai)" "${last_sync}..HEAD" \
+            human_hashes=$(git log --format="%aN	%H" "${last_sync}..HEAD" \
               | grep -v "^GitHub Actions	" \
-              | cut -f2- || true)
+              | cut -f2 || true)
           fi
+
+          # Filter out empty commits (Overleaf autosaves with no actual changes)
+          human_commits=""
+          for hash in $human_hashes; do
+            if [ -n "$(git diff-tree --no-commit-id -r "$hash")" ]; then
+              human_commits="${human_commits}$(git log --format="%h %s (%an, %ai)" -1 "$hash")"$'\n'
+            fi
+          done
+          human_commits=$(echo "$human_commits" | sed '/^$/d')
 
           if [ -n "$human_commits" ]; then
             echo "::warning::Overleaf has unmerged human edits"
