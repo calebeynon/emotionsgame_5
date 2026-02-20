@@ -4,29 +4,26 @@ Author: Claude Code | Date: 2026-02-16
 """
 
 import sys
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Tuple
 
 import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
-
-from experiment_data import Experiment, Player, Session, load_experiment_data
-
-# FILE PATHS
-DATA_DIR = Path(__file__).parent.parent / 'datastore'
-RAW_DIR = DATA_DIR / 'raw'
-PROMISE_FILE = DATA_DIR / 'derived' / 'promise_classifications.csv'
+from experiment_data import Experiment, Player, Session
+from classify_states_io import (
+    PROMISE_FILE, load_experiment, load_promise_lookup,
+    build_lookup_from_df as _build_lookup_from_df,
+    build_group_mean_index as _build_group_mean_index,
+    obs_to_row as _obs_to_row,
+)
 
 # DEFAULT THRESHOLDS
 DEFAULT_GROUP_THRESHOLD = 50.0
 DEFAULT_PLAYER_THRESHOLD = 12.5
 
 
-# =====
-# Main function
-# =====
 def main():
     """Main execution flow for state classification."""
     experiment = load_experiment()
@@ -35,9 +32,6 @@ def main():
     print(classification.summary())
 
 
-# =====
-# Data classes
-# =====
 @dataclass
 class Observation:
     """Single player-round observation within a group state."""
@@ -191,80 +185,38 @@ class StateClassification:
 
     def summary(self) -> str:
         """Human-readable summary of classification results."""
-        lines = [
-            "=" * 50,
-            "STATE CLASSIFICATION SUMMARY",
-            "=" * 50,
-            f"Group threshold: {self.group_threshold}%",
-            f"Player threshold: {self.player_threshold}",
-        ]
+        sep = "=" * 50
+        lines = [sep, "STATE CLASSIFICATION SUMMARY", sep,
+                 f"Group threshold: {self.group_threshold}%",
+                 f"Player threshold: {self.player_threshold}"]
         for state in [self.cooperative, self.noncooperative]:
             lines.append(f"\n{state.label.upper()} STATE:")
             lines.append(f"  Group-rounds: {state.group_count}")
             lines.append(f"  Player observations: {state.observation_count}")
             for cell in state.matrix.cells:
-                lines.append(
-                    f"  {cell.behavior_label}/{cell.promise_label}: "
-                    f"{cell.count} players, {cell.observation_count} obs"
-                )
-        lines.append("=" * 50)
+                lines.append(f"  {cell.behavior_label}/{cell.promise_label}: "
+                             f"{cell.count} players, {cell.observation_count} obs")
+        lines.append(sep)
         return "\n".join(lines)
 
+    def to_dataframe(self) -> pd.DataFrame:
+        """Export classification to a flat DataFrame, one row per player-round."""
+        rows = []
+        for state in [self.cooperative, self.noncooperative]:
+            group_means = _build_group_mean_index(state.group_observations)
+            for cell in state.matrix.cells:
+                for ph in cell.players.values():
+                    for obs in ph.observations:
+                        rows.append(_obs_to_row(obs, state, cell, group_means, self))
+        return pd.DataFrame(rows)
 
-# =====
-# Data loading
-# =====
-def load_experiment() -> Experiment:
-    """Load experiment data from raw session files."""
-    return load_experiment_data(build_file_pairs(), name="State Classification")
-
-
-def build_file_pairs() -> list:
-    """Build list of (data_csv, chat_csv, treatment) tuples from raw directory."""
-    file_pairs = []
-    for data_file in sorted(RAW_DIR.glob("*_data.csv")):
-        treatment = extract_treatment(data_file.name)
-        chat_file = data_file.with_name(data_file.name.replace("_data", "_chat"))
-        chat_path = str(chat_file) if chat_file.exists() else None
-        file_pairs.append((str(data_file), chat_path, treatment))
-    return file_pairs
+    def to_csv(self, filepath: Path):
+        """Write classification DataFrame to CSV."""
+        filepath = Path(filepath)
+        filepath.parent.mkdir(parents=True, exist_ok=True)
+        self.to_dataframe().to_csv(filepath, index=False)
 
 
-def extract_treatment(filename: str) -> int:
-    """Extract treatment number from filename like '01_t1_data.csv'."""
-    if '_t1_' in filename:
-        return 1
-    return 2 if '_t2_' in filename else 0
-
-
-# =====
-# Promise lookup
-# =====
-def load_promise_lookup(filepath: Path) -> dict:
-    """Load promise_classifications.csv into lookup dict.
-
-    Returns:
-        dict mapping (session, segment, round, label) -> bool
-    """
-    if not filepath.exists():
-        print(f"Warning: Promise file not found at {filepath}")
-        return {}
-    df = pd.read_csv(filepath)
-    return _build_lookup_from_df(df)
-
-
-def _build_lookup_from_df(df: pd.DataFrame) -> dict:
-    """Build lookup dict from promise DataFrame."""
-    lookup = {}
-    for _, row in df.iterrows():
-        key = (row['session_code'], row['segment'], row['round'], row['label'])
-        lookup[key] = row['promise_count'] > 0
-    return lookup
-
-
-# =====
-# State classification builder
-# =====
 def build_state_classification(
     experiment: Experiment,
     promise_lookup: dict,
@@ -311,18 +263,16 @@ def _is_group_cooperative(group, threshold) -> tuple:
 
 def _classify_group_round(session_code, session, segment_name, round_num,
                           group_id, group, promise_lookup,
-                          group_threshold, player_threshold, classification):
+                          group_threshold, player_threshold, cls):
     """Classify a single group-round and its players."""
     mean_contrib, is_coop = _is_group_cooperative(group, group_threshold)
-    state = classification.cooperative if is_coop else classification.noncooperative
-    state.group_observations.append(GroupObservation(
-        session_code, segment_name, round_num, group_id, mean_contrib, is_coop
-    ))
+    state = cls.cooperative if is_coop else cls.noncooperative
+    group_obs = GroupObservation(session_code, segment_name, round_num, group_id, mean_contrib, is_coop)
+    state.group_observations.append(group_obs)
     for label, player in group.players.items():
         _classify_player_in_group(
             session_code, session, segment_name, round_num,
-            group_id, label, player, promise_lookup, player_threshold, state
-        )
+            group_id, label, player, promise_lookup, player_threshold, state)
 
 
 def _classify_player_in_group(session_code, session, segment_name, round_num,
@@ -331,14 +281,10 @@ def _classify_player_in_group(session_code, session, segment_name, round_num,
     """Classify a single player within a group-round into a matrix cell."""
     contribution = player.contribution or 0
     made_promise = _get_promise(promise_lookup, session_code, segment_name, round_num, label)
-
     behavior = "cooperative" if contribution >= player_threshold else "noncooperative"
     promise_axis = "promise" if made_promise else "no_promise"
-
-    obs = Observation(
-        session_code, session.treatment, segment_name, round_num,
-        group_id, label, contribution, made_promise, player
-    )
+    obs = Observation(session_code, session.treatment, segment_name, round_num,
+                      group_id, label, contribution, made_promise, player)
     state.matrix[(behavior, promise_axis)].add_observation(obs, session)
 
 
