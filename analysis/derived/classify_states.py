@@ -13,7 +13,7 @@ import pandas as pd
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from experiment_data import Experiment, Player, Session
 from classify_states_io import (
-    PROMISE_FILE, load_experiment, load_promise_lookup,
+    OUTPUT_FILE, PROMISE_FILE, load_experiment, load_promise_lookup,
     build_lookup_from_df as _build_lookup_from_df,
     build_group_mean_index as _build_group_mean_index,
     obs_to_row as _obs_to_row,
@@ -29,6 +29,8 @@ def main():
     experiment = load_experiment()
     promise_lookup = load_promise_lookup(PROMISE_FILE)
     classification = build_state_classification(experiment, promise_lookup)
+    classification.to_csv(OUTPUT_FILE)
+    print(f"Wrote {OUTPUT_FILE}")
     print(classification.summary())
 
 

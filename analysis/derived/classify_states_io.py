@@ -16,6 +16,7 @@ from experiment_data import Experiment, load_experiment_data
 DATA_DIR = Path(__file__).parent.parent / 'datastore'
 RAW_DIR = DATA_DIR / 'raw'
 PROMISE_FILE = DATA_DIR / 'derived' / 'promise_classifications.csv'
+OUTPUT_FILE = DATA_DIR / 'derived' / 'state_classification.csv'
 
 
 # =====
