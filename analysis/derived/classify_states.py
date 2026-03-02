@@ -20,8 +20,8 @@ from classify_states_io import (
 )
 
 # DEFAULT THRESHOLDS
-DEFAULT_GROUP_THRESHOLD = 50.0
-DEFAULT_PLAYER_THRESHOLD = 12.5
+DEFAULT_GROUP_THRESHOLD = 75.0
+DEFAULT_PLAYER_THRESHOLD = 20.0
 
 
 def main():
@@ -175,6 +175,24 @@ class CooperativeState:
         """Total player observations across all matrix cells."""
         return sum(cell.observation_count for cell in self.matrix.cells)
 
+    @property
+    def behavior_counts(self) -> Dict[str, int]:
+        """Player observation counts by behavior (summed across promise axis)."""
+        coop = (self.matrix.cooperative_promise.observation_count
+                + self.matrix.cooperative_no_promise.observation_count)
+        noncoop = (self.matrix.noncooperative_promise.observation_count
+                   + self.matrix.noncooperative_no_promise.observation_count)
+        return {"cooperative": coop, "noncooperative": noncoop}
+
+    @property
+    def zero_contributor_count(self) -> int:
+        """Number of player-round observations with contribution == 0."""
+        return sum(
+            1 for cell in self.matrix.cells
+            for ph in cell.players.values()
+            for obs in ph.observations if obs.contribution == 0
+        )
+
 
 class StateClassification:
     """Top-level container for the full state classification result."""
@@ -188,13 +206,21 @@ class StateClassification:
     def summary(self) -> str:
         """Human-readable summary of classification results."""
         sep = "=" * 50
+        total_obs = sum(s.observation_count for s in [self.cooperative, self.noncooperative])
+        total_gr = sum(s.group_count for s in [self.cooperative, self.noncooperative])
         lines = [sep, "STATE CLASSIFICATION SUMMARY", sep,
                  f"Group threshold: {self.group_threshold}%",
-                 f"Player threshold: {self.player_threshold}"]
+                 f"Player threshold: {self.player_threshold}",
+                 f"Total group-rounds: {total_gr}",
+                 f"Total player observations: {total_obs}"]
         for state in [self.cooperative, self.noncooperative]:
+            bc = state.behavior_counts
             lines.append(f"\n{state.label.upper()} STATE:")
             lines.append(f"  Group-rounds: {state.group_count}")
             lines.append(f"  Player observations: {state.observation_count}")
+            lines.append(f"  Cooperative behavior: {bc['cooperative']}")
+            lines.append(f"  Noncooperative behavior: {bc['noncooperative']}")
+            lines.append(f"  Zero contributors: {state.zero_contributor_count}")
             for cell in state.matrix.cells:
                 lines.append(f"  {cell.behavior_label}/{cell.promise_label}: "
                              f"{cell.count} players, {cell.observation_count} obs")

@@ -132,18 +132,18 @@ def test_noncooperative_group_sa7mprty_sg1_r1_g4(classification):
 # =====
 # Test: player behavior classification
 # =====
-def test_player_cooperative_behavior(classification):
-    """Player A (contrib=15 >= 12.5) in noncooperative group => noncooperative state, cooperative behavior."""
+def test_player_noncooperative_behavior_a(classification):
+    """Player A (contrib=15 < 20) in noncooperative group => noncooperative state, noncooperative behavior."""
     obs = _find_observation(classification, 'sa7mprty', 'supergame1', 1, 'A')
     assert obs is not None
     # In noncooperative state (group is noncooperative)
     cell = _find_cell_for_obs(classification.noncooperative, obs)
     assert cell is not None
-    assert cell.behavior_label == "cooperative"
+    assert cell.behavior_label == "noncooperative"
 
 
-def test_player_noncooperative_behavior(classification):
-    """Player J (contrib=5 < 12.5) in noncooperative group => noncooperative state, noncooperative behavior."""
+def test_player_noncooperative_behavior_j(classification):
+    """Player J (contrib=5 < 20) in noncooperative group => noncooperative state, noncooperative behavior."""
     obs = _find_observation(classification, 'sa7mprty', 'supergame1', 1, 'J')
     assert obs is not None
     cell = _find_cell_for_obs(classification.noncooperative, obs)

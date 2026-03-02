@@ -132,7 +132,7 @@ class TestToDataframe:
 
     def test_empty_classification_returns_empty_df(self):
         """Empty classification produces empty DataFrame with correct columns."""
-        empty = StateClassification(50.0, 12.5)
+        empty = StateClassification(75.0, 20.0)
         df = empty.to_dataframe()
         assert len(df) == 0
 

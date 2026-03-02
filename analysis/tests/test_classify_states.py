@@ -84,20 +84,20 @@ class TestGroupBoundary:
     """Group cooperative/noncooperative boundary at threshold."""
 
     def test_at_threshold_is_cooperative(self):
-        """Group mean at exactly 50% of endowment is cooperative."""
-        exp = make_experiment_1sg([[("A", 25.0, 1), ("B", 0.0, 2)]])
+        """Group mean at exactly 75% of endowment is cooperative."""
+        exp = make_experiment_1sg([[("A", 25.0, 1), ("B", 12.5, 2)]])
         result = build_state_classification(exp, {})
         assert result.cooperative.group_count == 1
         assert result.noncooperative.group_count == 0
 
     def test_above_threshold_is_cooperative(self):
-        """Group mean above 50% is cooperative."""
+        """Group mean above 75% is cooperative."""
         exp = make_experiment_1sg([[("A", 25.0, 1), ("B", 25.0, 2)]])
         result = build_state_classification(exp, {})
         assert result.cooperative.group_count == 1
 
     def test_below_threshold_is_noncooperative(self):
-        """Group mean below 50% is noncooperative (mean=12, pct=48%)."""
+        """Group mean below 75% is noncooperative (mean=12, pct=48%)."""
         exp = make_experiment_1sg([[("A", 24.0, 1), ("B", 0.0, 2)]])
         result = build_state_classification(exp, {})
         assert result.noncooperative.group_count == 1
@@ -111,14 +111,14 @@ class TestPlayerBoundary:
     """Player cooperative/noncooperative boundary at threshold."""
 
     def test_at_threshold_is_cooperative(self):
-        """Player contribution exactly at 12.5 is cooperative."""
-        exp = make_experiment_1sg([[("A", 12.5, 1), ("B", 25.0, 2)]])
+        """Player contribution exactly at 20.0 is cooperative."""
+        exp = make_experiment_1sg([[("A", 20.0, 1), ("B", 25.0, 2)]])
         result = build_state_classification(exp, {})
         assert result.cooperative.matrix.cooperative_no_promise.observation_count >= 1
 
     def test_below_threshold_is_noncooperative(self):
-        """Player contribution below 12.5 is noncooperative."""
-        exp = make_experiment_1sg([[("A", 12.0, 1), ("B", 25.0, 2)]])
+        """Player contribution below 20.0 is noncooperative."""
+        exp = make_experiment_1sg([[("A", 19.0, 1), ("B", 25.0, 2)]])
         result = build_state_classification(exp, {})
         assert result.cooperative.matrix.noncooperative_no_promise.observation_count >= 1
 
@@ -132,8 +132,8 @@ class TestMatrixCells:
     def test_all_four_cells_populated(self):
         """All 4 cells get observations with mixed behavior and promise data."""
         exp = make_experiment_1sg([
-            [("A", 25.0, 1), ("B", 25.0, 2), ("C", 0.0, 3), ("D", 0.0, 4)],
-            [("A", 25.0, 1), ("B", 25.0, 2), ("C", 0.0, 3), ("D", 0.0, 4)],
+            [("A", 25.0, 1), ("B", 25.0, 2), ("C", 15.0, 3), ("D", 15.0, 4)],
+            [("A", 25.0, 1), ("B", 25.0, 2), ("C", 15.0, 3), ("D", 15.0, 4)],
         ])
         lookup = {
             ("s1", "supergame1", 2, "A"): True,
@@ -279,10 +279,40 @@ class TestSummaryStats:
         assert total == 3  # 1 group * 3 rounds
 
     def test_summary_string(self, multi_round_experiment):
-        """Summary string includes thresholds and state labels."""
+        """Summary string includes thresholds, labels, and behavior breakdown."""
         summary = build_state_classification(multi_round_experiment, {}).summary()
-        for expected in ["50.0%", "12.5", "COOPERATIVE", "NONCOOPERATIVE"]:
+        for expected in ["75.0%", "20.0", "COOPERATIVE", "NONCOOPERATIVE",
+                         "Cooperative behavior:", "Noncooperative behavior:",
+                         "Zero contributors:"]:
             assert expected in summary
+
+    def test_behavior_counts(self, multi_round_experiment):
+        """Behavior counts sum to total observations within each state."""
+        result = build_state_classification(multi_round_experiment, {})
+        for state in [result.cooperative, result.noncooperative]:
+            bc = state.behavior_counts
+            assert bc["cooperative"] + bc["noncooperative"] == state.observation_count
+
+    def test_behavior_counts_values(self):
+        """Behavior counts match expected split for known data."""
+        exp = make_experiment_1sg([
+            [("A", 25.0, 1), ("B", 25.0, 2), ("C", 0.0, 3), ("D", 0.0, 4)],
+        ])
+        result = build_state_classification(exp, {})
+        # Group mean=12.5 => pct=50% < 75% => noncooperative state
+        bc = result.noncooperative.behavior_counts
+        assert bc["cooperative"] == 2  # A=25, B=25 both >= 20
+        assert bc["noncooperative"] == 2  # C=0, D=0 both < 20
+
+    def test_zero_contributor_count(self):
+        """Zero contributor count matches number of contribution=0 observations."""
+        exp = make_experiment_1sg([
+            [("A", 25.0, 1), ("B", 0.0, 2), ("C", 0.0, 3), ("D", 25.0, 4)],
+        ])
+        result = build_state_classification(exp, {})
+        # Group mean=12.5 => pct=50% < 75% => noncooperative state
+        assert result.noncooperative.zero_contributor_count == 2
+        assert result.cooperative.zero_contributor_count == 0
 
     def test_cell_mean_contribution(self):
         """MatrixCell.mean_contribution calculates correctly."""
