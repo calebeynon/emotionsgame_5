@@ -21,6 +21,9 @@ SESSIONS_DIR = Path('analysis/datastore/sessions')
 POINTS_TO_DOLLARS = 0.10
 PARTICIPATION_FEE = 7.50
 SUPERGAME_ROUNDS = {1: 3, 2: 4, 3: 3, 4: 7, 5: 5}
+# Session 03 raw data uses z8dowljr, but derived CSVs use irrzlgk2
+SESSION_CODE_REMAP = {'z8dowljr': 'irrzlgk2'}
+
 SESSION_CODE_TO_TREATMENT = {
     'sa7mprty': 1,
     'irrzlgk2': 2,

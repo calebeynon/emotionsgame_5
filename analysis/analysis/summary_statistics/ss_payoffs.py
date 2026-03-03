@@ -106,7 +106,7 @@ def compute_inequality(df):
     for label, subset in _treatment_groups(df):
         payoffs = subset['total_payoff'].values
         gini = gini_coefficient(payoffs)
-        cv = round(np.std(payoffs) / np.mean(payoffs), 4) if np.mean(payoffs) > 0 else 0.0
+        cv = round(np.std(payoffs, ddof=1) / np.mean(payoffs), 4) if np.mean(payoffs) > 0 else 0.0
         iqr = round(np.percentile(payoffs, 75) - np.percentile(payoffs, 25), 2)
         rows.append([label, round(gini, 4), cv, iqr])
     result = pd.DataFrame(rows, columns=['Treatment', 'Gini', 'CV', 'IQR'])

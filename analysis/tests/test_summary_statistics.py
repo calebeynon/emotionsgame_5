@@ -70,7 +70,7 @@ _EXPERIMENT_FILES = [
     'experiment_totals.tex',
     'experiment_timing.tex',
 ]
-_EXPECTED_TEX_COUNT = 34
+_EXPECTED_TEX_COUNT = 35
 _EXPECTED_PNG_COUNT = 2
 _EXPECTED_TOTAL = _EXPECTED_TEX_COUNT + _EXPECTED_PNG_COUNT
 

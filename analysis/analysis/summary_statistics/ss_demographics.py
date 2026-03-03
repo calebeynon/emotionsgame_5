@@ -15,6 +15,7 @@ import pandas as pd
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from ss_common import (
+    SESSION_CODE_REMAP,
     ensure_output_dir,
     load_contributions,
     load_raw_data,
@@ -73,6 +74,7 @@ def extract_survey_data():
     survey = survey.rename(columns={
         'session.code': 'session_code', 'participant.label': 'label',
     })
+    survey['session_code'] = survey['session_code'].replace(SESSION_CODE_REMAP)
     return survey
 
 
