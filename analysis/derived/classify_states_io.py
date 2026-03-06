@@ -30,12 +30,16 @@ def load_experiment() -> Experiment:
 
 def build_file_pairs() -> list:
     """Build list of (data_csv, chat_csv, treatment) tuples from raw directory."""
+    if not RAW_DIR.exists():
+        raise FileNotFoundError(f"Raw data directory not found: {RAW_DIR}")
     file_pairs = []
     for data_file in sorted(RAW_DIR.glob("*_data.csv")):
         treatment = extract_treatment(data_file.name)
         chat_file = data_file.with_name(data_file.name.replace("_data", "_chat"))
         chat_path = str(chat_file) if chat_file.exists() else None
         file_pairs.append((str(data_file), chat_path, treatment))
+    if not file_pairs:
+        raise FileNotFoundError(f"No *_data.csv files found in {RAW_DIR}")
     return file_pairs
 
 
@@ -43,7 +47,12 @@ def extract_treatment(filename: str) -> int:
     """Extract treatment number from filename like '01_t1_data.csv'."""
     if '_t1_' in filename:
         return 1
-    return 2 if '_t2_' in filename else 0
+    if '_t2_' in filename:
+        return 2
+    raise ValueError(
+        f"Cannot extract treatment from '{filename}'. "
+        f"Expected '_t1_' or '_t2_' in the name."
+    )
 
 
 # =====
@@ -56,8 +65,10 @@ def load_promise_lookup(filepath: Path) -> dict:
         dict mapping (session, segment, round, label) -> bool
     """
     if not filepath.exists():
-        print(f"Warning: Promise file not found at {filepath}")
-        return {}
+        raise FileNotFoundError(
+            f"Promise file not found at {filepath}. "
+            f"Run 'uv run python derived/classify_promises.py' first."
+        )
     df = pd.read_csv(filepath)
     return build_lookup_from_df(df)
 
@@ -69,6 +80,26 @@ def build_lookup_from_df(df: pd.DataFrame) -> dict:
         key = (row['session_code'], row['segment'], row['round'], row['label'])
         lookup[key] = row['promise_count'] > 0
     return lookup
+
+
+# =====
+# Promise and contribution helpers
+# =====
+def get_promise(lookup, session_code, segment, round_num, label) -> bool:
+    """Check if player made a promise. Round 1 always returns False."""
+    if round_num == 1:
+        return False
+    return lookup.get((session_code, segment, round_num, label), False)
+
+
+def validate_contribution(player, label, session_code, segment, round_num):
+    """Validate that player contribution is not None. Raises ValueError if missing."""
+    if player.contribution is None:
+        raise ValueError(
+            f"Missing contribution for {label} in "
+            f"{session_code}/{segment}/R{round_num}"
+        )
+    return player.contribution
 
 
 # =====

@@ -13,11 +13,11 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from experiment_data import Experiment, Session
 from classify_states import (
     DEFAULT_PLAYER_THRESHOLD, MatrixCell, Observation, PlayerHistory,
-    TwoByTwoMatrix, _get_promise,
+    TwoByTwoMatrix,
 )
 from classify_states_io import (
     PLAYER_OUTPUT_FILE, PROMISE_FILE, load_experiment, load_promise_lookup,
-    player_obs_to_row,
+    get_promise, validate_contribution, player_obs_to_row,
 )
 
 # DEFAULT THRESHOLDS
@@ -160,7 +160,7 @@ def _classify_group_players(session_code, session, segment_name, round_num,
 def _others_total_contribution(group, exclude_label) -> float:
     """Sum contributions of all group members except the excluded player."""
     return sum(
-        (p.contribution or 0)
+        p.contribution
         for lbl, p in group.players.items() if lbl != exclude_label
     )
 
@@ -177,8 +177,8 @@ def _classify_player_round(session_code, session, segment_name, round_num,
     """Classify a single player-round into the appropriate state and matrix cell."""
     others_total, is_coop = _is_others_cooperative(group, label, others_threshold)
     state = cls.cooperative if is_coop else cls.noncooperative
-    contribution = player.contribution or 0
-    made_promise = _get_promise(promise_lookup, session_code, segment_name, round_num, label)
+    contribution = validate_contribution(player, label, session_code, segment_name, round_num)
+    made_promise = get_promise(promise_lookup, session_code, segment_name, round_num, label)
     behavior = "cooperative" if contribution >= player_threshold else "noncooperative"
     promise_axis = "promise" if made_promise else "no_promise"
     obs = Observation(session_code, session.treatment, segment_name, round_num,

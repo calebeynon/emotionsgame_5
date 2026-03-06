@@ -14,6 +14,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from experiment_data import Experiment, Player, Session
 from classify_states_io import (
     OUTPUT_FILE, PROMISE_FILE, load_experiment, load_promise_lookup,
+    get_promise, validate_contribution,
     build_lookup_from_df as _build_lookup_from_df,
     build_group_mean_index as _build_group_mean_index,
     obs_to_row as _obs_to_row,
@@ -287,7 +288,7 @@ def _classify_session(session_code, session, promise_lookup,
 
 def _group_mean_contribution(group) -> float:
     """Calculate mean contribution for a group."""
-    contributions = [p.contribution or 0 for p in group.players.values()]
+    contributions = [p.contribution for p in group.players.values()]
     return sum(contributions) / len(contributions) if contributions else 0
 
 
@@ -315,20 +316,13 @@ def _classify_player_in_group(session_code, session, segment_name, round_num,
                               group_id, label, player, promise_lookup,
                               player_threshold, state):
     """Classify a single player within a group-round into a matrix cell."""
-    contribution = player.contribution or 0
-    made_promise = _get_promise(promise_lookup, session_code, segment_name, round_num, label)
+    contribution = validate_contribution(player, label, session_code, segment_name, round_num)
+    made_promise = get_promise(promise_lookup, session_code, segment_name, round_num, label)
     behavior = "cooperative" if contribution >= player_threshold else "noncooperative"
     promise_axis = "promise" if made_promise else "no_promise"
     obs = Observation(session_code, session.treatment, segment_name, round_num,
                       group_id, label, contribution, made_promise, player)
     state.matrix[(behavior, promise_axis)].add_observation(obs, session)
-
-
-def _get_promise(lookup, session_code, segment, round_num, label) -> bool:
-    """Check if player made a promise. Round 1 always returns False."""
-    if round_num == 1:
-        return False
-    return lookup.get((session_code, segment, round_num, label), False)
 
 
 # %%

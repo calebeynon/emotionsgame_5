@@ -15,8 +15,9 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 from classify_states import (
     MatrixCell, Observation, TwoByTwoMatrix,
-    _build_lookup_from_df, _get_promise, build_state_classification,
+    _build_lookup_from_df, build_state_classification,
 )
+from classify_states_io import get_promise
 from experiment_data import Segment, Session
 from conftest import make_experiment_1sg, make_group, make_player, _make_round
 
@@ -189,13 +190,13 @@ class TestRound1Promise:
         )
         assert total == 0
 
-    def test_get_promise_round1_returns_false(self):
-        """_get_promise returns False for round 1."""
-        assert _get_promise({("s1", "sg1", 1, "A"): True}, "s1", "sg1", 1, "A") is False
+    def testget_promise_round1_returns_false(self):
+        """get_promise returns False for round 1."""
+        assert get_promise({("s1", "sg1", 1, "A"): True}, "s1", "sg1", 1, "A") is False
 
-    def test_get_promise_round2_uses_lookup(self):
-        """_get_promise returns lookup value for round > 1."""
-        assert _get_promise({("s1", "sg1", 2, "A"): True}, "s1", "sg1", 2, "A") is True
+    def testget_promise_round2_uses_lookup(self):
+        """get_promise returns lookup value for round > 1."""
+        assert get_promise({("s1", "sg1", 2, "A"): True}, "s1", "sg1", 2, "A") is True
 
 
 # =====
