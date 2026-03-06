@@ -49,7 +49,14 @@ def main():
 # =====
 
 def compute_descriptive(df):
-    """Mean compound sentiment and SD, by treatment x supergame."""
+    """Mean compound sentiment and SD, by treatment x supergame.
+
+    Uses an unweighted mean-of-means: each player-round is one observation,
+    regardless of how many messages that player sent. The per-player-round
+    compound score (sentiment_compound_mean) is already averaged across
+    individual messages in the upstream data, so aggregating here gives
+    equal weight to every player-round rather than every message.
+    """
     grouped = df.groupby(['treatment', 'segment'])['sentiment_compound_mean']
     stats = grouped.agg(['mean', 'std', 'count']).round(4).reset_index()
     stats.columns = ['Treatment', 'Supergame', 'Mean', 'SD', 'N']

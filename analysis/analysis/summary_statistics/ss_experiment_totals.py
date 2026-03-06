@@ -25,6 +25,7 @@ from ss_common import (
 
 # PAGE TIMES MAPPING: contributions_session_code -> (relative path, filter_code)
 _PAGETIMES_MAP = {
+    # Leading space in path is intentional — matches the actual directory name on disk
     'sa7mprty': (' pilot session 1/session data/PageTimes-2025-09-11.csv', 'sa7mprty'),
     'irrzlgk2': ('session 3 oct 2/s3 data/PageTimes-2025-10-02.csv', 'z8dowljr'),
     '6uv359rf': ('session 4 oct 3/PageTimes-2025-10-03.csv', '6uv359rf'),

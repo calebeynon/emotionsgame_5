@@ -72,7 +72,7 @@ def _build_tex_lines(df, column_formats):
         '  \\toprule',
     ]
     header = ' & '.join(str(c) for c in df.columns) + ' \\\\ '
-    lines.append(header)
+    lines.append('  ' + header)
     lines.append('  \\midrule')
     for _, row in df.iterrows():
         row_str = ' & '.join(str(v) for v in row.values) + ' \\\\ '

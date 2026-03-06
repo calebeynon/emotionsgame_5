@@ -94,12 +94,12 @@ def _promise_by_round(df):
 # =====
 
 def compute_liar_rates(df):
-    """Liar count and rate at 20% and 5% thresholds by treatment x supergame."""
+    """Liar count and rate at 20 and 5 ECU thresholds by treatment x supergame."""
     return _classification_rates(df, 'is_liar_20', 'is_liar_5', 'Liars')
 
 
 def compute_sucker_rates(df):
-    """Sucker count and rate at 20% and 5% thresholds by treatment x supergame."""
+    """Sucker count and rate at 20 and 5 ECU thresholds by treatment x supergame."""
     return _classification_rates(df, 'is_sucker_20', 'is_sucker_5', 'Suckers')
 
 
@@ -114,7 +114,7 @@ def _classification_rates(df, col_20, col_5, label):
         rows.append([f'T{treatment}', _SG_DISPLAY[segment], c20, r20, c5, r5])
     cols = [
         'Treatment', 'Supergame',
-        f'{label} (20\\%)', 'Rate (20\\%)', f'{label} (5\\%)', 'Rate (5\\%)',
+        f'{label} (20 ECU)', 'Rate (20 ECU)', f'{label} (5 ECU)', 'Rate (5 ECU)',
     ]
     return pd.DataFrame(rows, columns=cols)
 
@@ -133,8 +133,8 @@ def compute_persistence(df):
             rows.append(row)
     cols = [
         'Treatment', 'Transition',
-        'Liar 20\\% Persist', 'Liar 5\\% Persist',
-        'Sucker 20\\% Persist', 'Sucker 5\\% Persist',
+        'Liar 20 ECU Persist', 'Liar 5 ECU Persist',
+        'Sucker 20 ECU Persist', 'Sucker 5 ECU Persist',
     ]
     return pd.DataFrame(rows, columns=cols)
 
@@ -156,7 +156,7 @@ def _persistence_row(t_df, treatment, sg_curr, sg_next):
 def _player_flags(sg_df):
     """Aggregate boolean flags to player level (True if ever True in supergame)."""
     flag_cols = ['is_liar_20', 'is_liar_5', 'is_sucker_20', 'is_sucker_5']
-    return sg_df.groupby('participant_id')[flag_cols].any()
+    return sg_df.groupby(['session_code', 'participant_id'])[flag_cols].any()
 
 
 def _persist_pct(curr_flags, next_flags, col):

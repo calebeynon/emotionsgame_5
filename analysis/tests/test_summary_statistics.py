@@ -70,7 +70,7 @@ _EXPERIMENT_FILES = [
     'experiment_totals.tex',
     'experiment_timing.tex',
 ]
-_EXPECTED_TEX_COUNT = 35
+_EXPECTED_TEX_COUNT = 34
 _EXPECTED_PNG_COUNT = 2
 _EXPECTED_TOTAL = _EXPECTED_TEX_COUNT + _EXPECTED_PNG_COUNT
 
@@ -172,8 +172,8 @@ def test_experiment_totals():
 
 @pytest.mark.integration
 def test_total_file_count():
-    """Verify total output is 36 files (34 .tex + 2 .png)."""
-    tex_files = list(OUTPUT_DIR.glob('*.tex'))
+    """Verify pipeline generates 34 .tex and 2 .png files (36 total)."""
+    tex_files = [f for f in OUTPUT_DIR.glob('*.tex') if f.name != 'review_all_tables.tex']
     png_files = list(OUTPUT_DIR.glob('*.png'))
     assert len(tex_files) == _EXPECTED_TEX_COUNT, (
         f"Expected {_EXPECTED_TEX_COUNT} .tex files, got {len(tex_files)}"

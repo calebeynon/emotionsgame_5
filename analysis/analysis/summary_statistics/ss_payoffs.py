@@ -117,8 +117,11 @@ def gini_coefficient(values):
     """Compute the Gini coefficient for an array of values."""
     sorted_vals = np.sort(values)
     n = len(sorted_vals)
+    total = np.sum(sorted_vals)
+    if total == 0:
+        return 0.0
     index = np.arange(1, n + 1)
-    return (2 * np.sum(index * sorted_vals) - (n + 1) * np.sum(sorted_vals)) / (n * np.sum(sorted_vals))
+    return (2 * np.sum(index * sorted_vals) - (n + 1) * total) / (n * total)
 
 
 # =====
