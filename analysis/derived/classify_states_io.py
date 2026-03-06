@@ -17,6 +17,7 @@ DATA_DIR = Path(__file__).parent.parent / 'datastore'
 RAW_DIR = DATA_DIR / 'raw'
 PROMISE_FILE = DATA_DIR / 'derived' / 'promise_classifications.csv'
 OUTPUT_FILE = DATA_DIR / 'derived' / 'state_classification.csv'
+PLAYER_OUTPUT_FILE = DATA_DIR / 'derived' / 'player_state_classification.csv'
 
 
 # =====
@@ -97,5 +98,24 @@ def obs_to_row(obs, state, cell, group_means, classification) -> dict:
         'player_behavior': cell.behavior_label,
         'made_promise': obs.made_promise,
         'group_threshold': classification.group_threshold,
+        'player_threshold': classification.player_threshold,
+    }
+
+
+def player_obs_to_row(obs, state, cell, others_total, classification) -> dict:
+    """Convert a player Observation into a flat dict for player-level CSV export."""
+    return {
+        'session_code': obs.session_code,
+        'treatment': obs.treatment,
+        'segment': obs.segment,
+        'round_num': obs.round_num,
+        'group_id': obs.group_id,
+        'label': obs.label,
+        'contribution': obs.contribution,
+        'others_total_contribution': others_total,
+        'player_state': state.label,
+        'player_behavior': cell.behavior_label,
+        'made_promise': obs.made_promise,
+        'others_threshold': classification.others_threshold,
         'player_threshold': classification.player_threshold,
     }

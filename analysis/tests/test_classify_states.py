@@ -11,57 +11,14 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 sys.path.insert(0, str(Path(__file__).parent.parent / 'derived'))
+sys.path.insert(0, str(Path(__file__).parent))
 
 from classify_states import (
     MatrixCell, Observation, TwoByTwoMatrix,
     _build_lookup_from_df, _get_promise, build_state_classification,
 )
-from experiment_data import Experiment, Group, Player, Round, Segment, Session
-
-
-# =====
-# Synthetic data builders
-# =====
-def make_player(label, contribution, pid=1):
-    """Create a Player with given label and contribution."""
-    p = Player(participant_id=pid, label=label, id_in_group=1)
-    p.contribution = contribution
-    return p
-
-
-def make_group(group_id, players_data):
-    """Create a Group from list of (label, contribution, pid) tuples."""
-    g = Group(group_id)
-    for label, contribution, pid in players_data:
-        g.add_player(make_player(label, contribution, pid))
-    return g
-
-
-def make_experiment_1sg(rounds_data):
-    """Build single-session, single-supergame experiment from rounds data.
-
-    Args:
-        rounds_data: list of lists of (label, contribution, pid) per round.
-    """
-    seg = Segment("supergame1")
-    for i, players in enumerate(rounds_data, 1):
-        seg.add_round(_make_round(i, [make_group(1, players)]))
-    sess = Session("s1", 1)
-    sess.add_segment(seg)
-    for rnd in seg.rounds.values():
-        for label, player in rnd.players.items():
-            sess.participant_labels[player.participant_id] = label
-    exp = Experiment(name="Test")
-    exp.add_session(sess)
-    return exp
-
-
-def _make_round(num, groups):
-    """Create a Round from groups."""
-    r = Round(num)
-    for g in groups:
-        r.add_group(g)
-    return r
+from experiment_data import Segment, Session
+from conftest import make_experiment_1sg, make_group, make_player, _make_round
 
 
 # =====

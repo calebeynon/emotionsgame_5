@@ -11,44 +11,10 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 sys.path.insert(0, str(Path(__file__).parent.parent / 'derived'))
+sys.path.insert(0, str(Path(__file__).parent))
 
 from classify_states import StateClassification, build_state_classification
-from experiment_data import Experiment, Group, Player, Round, Segment, Session
-
-
-# =====
-# Synthetic data builders
-# =====
-def make_player(label, contribution, pid=1):
-    """Create a Player with given label and contribution."""
-    p = Player(participant_id=pid, label=label, id_in_group=1)
-    p.contribution = contribution
-    return p
-
-
-def make_group(group_id, players_data):
-    """Create a Group from list of (label, contribution, pid) tuples."""
-    g = Group(group_id)
-    for label, contribution, pid in players_data:
-        g.add_player(make_player(label, contribution, pid))
-    return g
-
-
-def make_experiment_1sg(rounds_data):
-    """Build single-session, single-supergame experiment from rounds data."""
-    seg = Segment("supergame1")
-    for i, players in enumerate(rounds_data, 1):
-        r = Round(i)
-        r.add_group(make_group(1, players))
-        seg.add_round(r)
-    sess = Session("s1", 1)
-    sess.add_segment(seg)
-    for rnd in seg.rounds.values():
-        for label, player in rnd.players.items():
-            sess.participant_labels[player.participant_id] = label
-    exp = Experiment(name="Test")
-    exp.add_session(sess)
-    return exp
+from conftest import make_experiment_1sg
 
 
 @pytest.fixture
