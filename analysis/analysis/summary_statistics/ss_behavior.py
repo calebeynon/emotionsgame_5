@@ -15,8 +15,9 @@ import pandas as pd
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from ss_common import (
-    ensure_output_dir,
     load_behavior,
+    safe_mean,
+    safe_pct,
     write_tex_table,
 )
 
@@ -39,7 +40,6 @@ _SG_DISPLAY = {f'supergame{i}': f'SG{i}' for i in range(1, 6)}
 def main():
     """Generate all behavior classification summary statistics."""
     df = load_behavior()
-    ensure_output_dir()
 
     promise = compute_promise_rates(df)
     write_tex_table(promise, 'behavior_promise_rates.tex', 'llrr')
@@ -74,7 +74,7 @@ def _promise_by_supergame(df):
     rows = []
     for (treatment, segment), g in df.groupby(['treatment', 'segment']):
         count = g['made_promise'].sum()
-        rate = round(100 * count / len(g), 1)
+        rate = safe_pct(count, len(g))
         rows.append([f'T{treatment}', _SG_DISPLAY[segment], count, rate])
     return rows
 
@@ -84,7 +84,7 @@ def _promise_by_round(df):
     rows = []
     for (treatment, rnd), g in df.groupby(['treatment', 'round']):
         count = g['made_promise'].sum()
-        rate = round(100 * count / len(g), 1)
+        rate = safe_pct(count, len(g))
         rows.append([f'T{treatment}', f'Rd {rnd}', count, rate])
     return rows
 
@@ -109,8 +109,8 @@ def _classification_rates(df, col_20, col_5, label):
     for (treatment, segment), g in df.groupby(['treatment', 'segment']):
         n = len(g)
         c20, c5 = g[col_20].sum(), g[col_5].sum()
-        r20 = round(100 * c20 / n, 1)
-        r5 = round(100 * c5 / n, 1)
+        r20 = safe_pct(c20, n)
+        r5 = safe_pct(c5, n)
         rows.append([f'T{treatment}', _SG_DISPLAY[segment], c20, r20, c5, r5])
     cols = [
         'Treatment', 'Supergame',
@@ -177,18 +177,11 @@ def compute_conditional_contribution(df):
     """Mean contribution when promise made vs not, by treatment x supergame."""
     rows = []
     for (treatment, segment), g in df.groupby(['treatment', 'segment']):
-        mean_promise = _safe_mean(g[g['made_promise']]['contribution'])
-        mean_no = _safe_mean(g[~g['made_promise']]['contribution'])
+        mean_promise = safe_mean(g[g['made_promise']]['contribution'])
+        mean_no = safe_mean(g[~g['made_promise']]['contribution'])
         rows.append([f'T{treatment}', _SG_DISPLAY[segment], mean_promise, mean_no])
     cols = ['Treatment', 'Supergame', 'Mean (Promise)', 'Mean (No Promise)']
     return pd.DataFrame(rows, columns=cols)
-
-
-def _safe_mean(series):
-    """Return rounded mean or '--' if series is empty."""
-    if len(series) == 0:
-        return '--'
-    return round(series.mean(), 2)
 
 
 # %%

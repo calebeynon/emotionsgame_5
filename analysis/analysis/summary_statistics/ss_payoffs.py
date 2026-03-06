@@ -18,8 +18,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from ss_common import (
     PARTICIPATION_FEE,
     POINTS_TO_DOLLARS,
-    ensure_output_dir,
     load_payoffs,
+    safe_mean,
+    safe_pct,
     write_tex_table,
 )
 
@@ -40,7 +41,6 @@ def main():
     """Generate all payoff summary statistics tables."""
     df = load_payoffs()
     df['dollar_earnings'] = df['total_payoff'] * POINTS_TO_DOLLARS + PARTICIPATION_FEE
-    ensure_output_dir()
 
     summary = compute_summary(df)
     write_tex_table(summary, 'payoffs_summary.tex', 'lrrrrrr')
@@ -75,6 +75,8 @@ def _summary_row(label, subset, pts_col, dollar_col):
     """Build a single summary row for a treatment group."""
     pts = subset[pts_col]
     dollars = subset[dollar_col]
+    if len(pts) == 0:
+        return [label] + ['--'] * 6
     return [
         label,
         round(pts.mean(), 2), round(pts.median(), 2), round(pts.std(), 2),
@@ -135,7 +137,7 @@ def compute_dollar_distribution(df):
         binned = pd.cut(subset['dollar_earnings'], bins=_DOLLAR_BINS, right=False, labels=_DOLLAR_LABELS)
         for bin_label in _DOLLAR_LABELS:
             count = (binned == bin_label).sum()
-            pct = round(100 * count / len(subset), 1)
+            pct = safe_pct(count, len(subset))
             rows.append([label, bin_label, count, pct])
     result = pd.DataFrame(rows, columns=['Treatment', 'Bin', 'Count', 'Pct (\\%)'])
     return result

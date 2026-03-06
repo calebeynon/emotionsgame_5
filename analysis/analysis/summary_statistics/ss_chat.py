@@ -18,15 +18,12 @@ from nltk.corpus import stopwords
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from ss_common import (
+    GROUPS_PER_SESSION,
+    PLAYERS_PER_SESSION,
     SUPERGAME_ROUNDS,
-    ensure_output_dir,
     load_chat_raw,
     write_tex_table,
 )
-
-# CONSTANTS
-_GROUPS_PER_SESSION = 4
-_PLAYERS_PER_SESSION = 16
 _STOPWORDS = set(stopwords.words('english'))
 _TOP_N_WORDS = 20
 
@@ -38,7 +35,6 @@ _TOP_N_WORDS = 20
 def main():
     """Generate all chat summary statistics tables."""
     chat = _prepare_chat(load_chat_raw())
-    ensure_output_dir()
     _write_all_tables(chat)
 
 
@@ -77,7 +73,7 @@ def compute_volume_stats(chat):
         total = len(grp)
         n_sessions = grp['session_code'].nunique()
         n_rounds = SUPERGAME_ROUNDS[grp['sg_num'].iloc[0]]
-        player_rounds = _PLAYERS_PER_SESSION * n_rounds * n_sessions
+        player_rounds = PLAYERS_PER_SESSION * n_rounds * n_sessions
         mean_per_pr = round(total / player_rounds, 2)
         rows.append([trt, sg, total, mean_per_pr])
     cols = ['Treatment', 'Supergame', 'Total Msgs', 'Mean/Player-Round']
@@ -109,7 +105,7 @@ def compute_participation(chat):
     for (trt, sg), grp in chat.groupby(['treatment', 'supergame']):
         n_sessions = grp['session_code'].nunique()
         n_rounds = SUPERGAME_ROUNDS[grp['sg_num'].iloc[0]]
-        total_pr = _PLAYERS_PER_SESSION * n_rounds * n_sessions
+        total_pr = PLAYERS_PER_SESSION * n_rounds * n_sessions
         active = grp.groupby(['session_code', 'nickname', 'ch_page']).ngroups
         pct = round(100 * active / total_pr, 1)
         rows.append([trt, sg, pct])
@@ -171,7 +167,7 @@ def _tag_orphan_messages(chat):
     chat = chat.copy()
     bases = chat.groupby(['session_code', 'supergame'])['ch_page'].transform('min')
     n_rounds = chat['sg_num'].map(SUPERGAME_ROUNDS)
-    orphan_start = bases + (n_rounds - 1) * _GROUPS_PER_SESSION
+    orphan_start = bases + (n_rounds - 1) * GROUPS_PER_SESSION
     chat['is_orphan'] = chat['ch_page'] >= orphan_start
     return chat
 

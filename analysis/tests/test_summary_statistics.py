@@ -1,7 +1,7 @@
 """
-Purpose: Integration tests for the summary statistics pipeline. Runs each
-         ss_*.py module's main() and verifies expected output files exist
-         with correct LaTeX structure.
+Purpose: Unit and integration tests for the summary statistics pipeline.
+         Unit tests verify core computations with synthetic data.
+         Integration tests run each module's main() and verify output files.
 Author: Caleb Eynon
 Date: 2026-03-02
 """
@@ -9,13 +9,15 @@ Date: 2026-03-02
 import sys
 from pathlib import Path
 
+import numpy as np
+import pandas as pd
 import pytest
 
 # Allow imports from the summary_statistics package
 _SS_DIR = Path(__file__).resolve().parent.parent / 'analysis' / 'summary_statistics'
 sys.path.insert(0, str(_SS_DIR))
 
-from ss_common import OUTPUT_DIR
+from ss_common import OUTPUT_DIR, safe_mean, safe_pct
 
 # EXPECTED OUTPUT FILES per module
 _CONTRIBUTIONS_FILES = [
@@ -100,6 +102,178 @@ def _verify_outputs(filenames):
             _verify_tex_file(path)
         elif name.endswith('.png'):
             _verify_png_file(path)
+
+
+# =====
+# Unit tests — shared utilities
+# =====
+
+def test_safe_mean_normal():
+    assert safe_mean(pd.Series([10, 20, 30])) == 20.0
+
+
+def test_safe_mean_empty():
+    assert safe_mean(pd.Series([], dtype=float)) == '--'
+
+
+def test_safe_mean_all_nan():
+    assert safe_mean(pd.Series([float('nan'), float('nan')])) == '--'
+
+
+def test_safe_pct_normal():
+    assert safe_pct(25, 100) == 25.0
+
+
+def test_safe_pct_zero_total():
+    assert safe_pct(5, 0) == 0.0
+
+
+# =====
+# Unit tests — gini coefficient
+# =====
+
+def test_gini_perfect_equality():
+    from ss_payoffs import gini_coefficient
+    values = np.array([100, 100, 100, 100])
+    assert gini_coefficient(values) == 0.0
+
+
+def test_gini_known_value():
+    """Gini of [1,2,3,4,5] = 0.2667 (known analytical result)."""
+    from ss_payoffs import gini_coefficient
+    values = np.array([1, 2, 3, 4, 5])
+    assert abs(gini_coefficient(values) - 0.2667) < 0.001
+
+
+def test_gini_all_zero():
+    from ss_payoffs import gini_coefficient
+    assert gini_coefficient(np.array([0, 0, 0])) == 0.0
+
+
+def test_gini_single_element():
+    from ss_payoffs import gini_coefficient
+    assert gini_coefficient(np.array([42])) == 0.0
+
+
+# =====
+# Unit tests — sentiment classification
+# =====
+
+def test_assign_category_positive():
+    from ss_sentiment import _assign_category
+    df = pd.DataFrame({'sentiment_compound_mean': [0.5, 0.1, -0.1, 0.0]})
+    result = _assign_category(df)
+    assert list(result['category']) == ['Positive', 'Positive', 'Negative', 'Neutral']
+
+
+def test_assign_category_thresholds():
+    """Values exactly at thresholds: >=0.05 is Positive, <=-0.05 is Negative."""
+    from ss_sentiment import _assign_category
+    df = pd.DataFrame({'sentiment_compound_mean': [0.05, -0.05, 0.04, -0.04]})
+    result = _assign_category(df)
+    assert list(result['category']) == ['Positive', 'Negative', 'Neutral', 'Neutral']
+
+
+def test_assign_intensity():
+    from ss_sentiment import _assign_intensity
+    df = pd.DataFrame({'sentiment_compound_mean': [0.7, -0.3, 0.1, 0.0]})
+    result = _assign_intensity(df)
+    assert list(result['intensity']) == ['Strong', 'Moderate', 'Weak', 'Weak']
+
+
+# =====
+# Unit tests — extreme contribution rates
+# =====
+
+def test_compute_extreme_rates():
+    from ss_contributions import compute_extreme_rates
+    df = pd.DataFrame({
+        'treatment': [1, 1, 1, 1],
+        'segment': ['supergame1'] * 4,
+        'round': [1, 1, 1, 1],
+        'contribution': [0, 25, 25, 10],
+    })
+    result = compute_extreme_rates(df)
+    assert result['Pct Max'].iloc[0] == 50.0
+    assert result['Pct Zero'].iloc[0] == 25.0
+
+
+# =====
+# Unit tests — orphan chat tagging
+# =====
+
+def test_tag_orphan_messages():
+    from ss_chat import _tag_orphan_messages
+    # Supergame 1 has 3 rounds, 4 groups per session
+    # Pages: base=0, round1=0-3, round2=4-7, round3(orphan)=8-11
+    chat = pd.DataFrame({
+        'session_code': ['s1'] * 4,
+        'supergame': ['supergame1'] * 4,
+        'sg_num': [1] * 4,
+        'ch_page': [0, 4, 8, 11],
+    })
+    result = _tag_orphan_messages(chat)
+    assert list(result['is_orphan']) == [False, False, True, True]
+
+
+# =====
+# Unit tests — behavioral persistence
+# =====
+
+def test_persist_pct_all_persist():
+    from ss_behavior import _persist_pct
+    # Player (s1, p1) flagged in both supergames
+    curr = pd.DataFrame(
+        {'is_liar_20': [True]},
+        index=pd.MultiIndex.from_tuples([('s1', 'p1')]),
+    )
+    nxt = pd.DataFrame(
+        {'is_liar_20': [True]},
+        index=pd.MultiIndex.from_tuples([('s1', 'p1')]),
+    )
+    assert _persist_pct(curr, nxt, 'is_liar_20') == '100.0\\%'
+
+
+def test_persist_pct_none_persist():
+    from ss_behavior import _persist_pct
+    curr = pd.DataFrame(
+        {'is_liar_20': [True]},
+        index=pd.MultiIndex.from_tuples([('s1', 'p1')]),
+    )
+    nxt = pd.DataFrame(
+        {'is_liar_20': [False]},
+        index=pd.MultiIndex.from_tuples([('s1', 'p1')]),
+    )
+    assert _persist_pct(curr, nxt, 'is_liar_20') == '0.0\\%'
+
+
+def test_persist_pct_empty_returns_sentinel():
+    from ss_behavior import _persist_pct
+    curr = pd.DataFrame(
+        {'is_liar_20': [False]},
+        index=pd.MultiIndex.from_tuples([('s1', 'p1')]),
+    )
+    nxt = pd.DataFrame(
+        {'is_liar_20': [False]},
+        index=pd.MultiIndex.from_tuples([('s1', 'p1')]),
+    )
+    assert _persist_pct(curr, nxt, 'is_liar_20') == '--'
+
+
+# =====
+# Unit tests — extract_treatment
+# =====
+
+def test_extract_treatment_valid():
+    from ss_common import extract_treatment
+    assert extract_treatment('03_t2_data.csv') == 2
+    assert extract_treatment('01_t1_chat.csv') == 1
+
+
+def test_extract_treatment_invalid():
+    from ss_common import extract_treatment
+    with pytest.raises(ValueError):
+        extract_treatment('readme.csv')
 
 
 # =====

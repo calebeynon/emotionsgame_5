@@ -18,6 +18,9 @@ RAW_DIR = Path('analysis/datastore/raw')
 SESSIONS_DIR = Path('analysis/datastore/sessions')
 
 # EXPERIMENT CONSTANTS
+ENDOWMENT = 25
+PLAYERS_PER_SESSION = 16
+GROUPS_PER_SESSION = 4
 POINTS_TO_DOLLARS = 0.10
 PARTICIPATION_FEE = 7.50
 SUPERGAME_ROUNDS = {1: 3, 2: 4, 3: 3, 4: 7, 5: 5}
@@ -49,6 +52,20 @@ _VALID_SESSION_CODE_03 = 'z8dowljr'
 def ensure_output_dir():
     """Create the output directory if it does not exist."""
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+
+
+def safe_mean(series, decimals=2, empty='--'):
+    """Return rounded mean or sentinel string if series is empty/all-NaN."""
+    if len(series) == 0 or series.isna().all():
+        return empty
+    return round(series.mean(), decimals)
+
+
+def safe_pct(count, total, decimals=1, empty=0.0):
+    """Return rounded percentage or sentinel if total is zero."""
+    if total == 0:
+        return empty
+    return round(100 * count / total, decimals)
 
 
 def write_tex_table(df, filename, column_formats=None):
@@ -129,8 +146,11 @@ def load_raw_data():
     For 03_t2_data.csv, only the bottom 16 rows (session_code == 'z8dowljr')
     are valid; the top 16 rows with session_code 'irrzlgk2' are dropped.
     """
+    files = sorted(RAW_DIR.glob('*_data.csv'))
+    if not files:
+        raise FileNotFoundError(f"No *_data.csv files found in {RAW_DIR}")
     frames = []
-    for path in sorted(RAW_DIR.glob('*_data.csv')):
+    for path in files:
         treatment = extract_treatment(path.name)
         df = pd.read_csv(path, encoding='utf-8-sig')
         df['treatment'] = treatment
@@ -142,8 +162,11 @@ def load_raw_data():
 
 def load_chat_raw():
     """Load all raw *_chat.csv files and combine with treatment column."""
+    files = sorted(RAW_DIR.glob('*_chat.csv'))
+    if not files:
+        raise FileNotFoundError(f"No *_chat.csv files found in {RAW_DIR}")
     frames = []
-    for path in sorted(RAW_DIR.glob('*_chat.csv')):
+    for path in files:
         treatment = extract_treatment(path.name)
         df = pd.read_csv(path, encoding='utf-8-sig')
         df['treatment'] = treatment

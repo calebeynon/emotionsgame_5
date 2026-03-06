@@ -6,6 +6,7 @@ Date: 2026-03-02
 
 import sys
 import time
+import traceback
 from pathlib import Path
 
 # Allow imports from this package when run as a script
@@ -29,6 +30,8 @@ def main():
         success, elapsed = run_module(name, func)
         results.append((name, success, elapsed))
     print_summary(results)
+    if not all(success for _, success, _ in results):
+        sys.exit(1)
 
 
 def _get_modules():
@@ -69,6 +72,7 @@ def run_module(name, func):
     except Exception as e:
         elapsed = round(time.time() - start, 2)
         print(f'  FAILED ({elapsed}s): {e}')
+        traceback.print_exc()
         return False, elapsed
 
 

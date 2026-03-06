@@ -16,9 +16,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from ss_common import (
     SESSION_CODE_REMAP,
-    ensure_output_dir,
     load_contributions,
     load_raw_data,
+    safe_mean,
+    safe_pct,
     write_tex_table,
 )
 
@@ -49,7 +50,6 @@ _RELIGION_ORDER = [
 def main():
     """Generate all demographic summary statistics tables."""
     survey = extract_survey_data()
-    ensure_output_dir()
 
     write_tex_table(compute_gender_table(survey), 'demographics_gender.tex', 'lrrr')
     write_tex_table(compute_age_table(survey), 'demographics_age.tex', 'lrrrrr')
@@ -115,7 +115,7 @@ def _count_and_pct(df, column, order=None):
         counts = counts.reindex(order, fill_value=0)
     total = len(df)
     return [
-        [cat, int(n), round(100 * n / total, 1)]
+        [cat, int(n), safe_pct(n, total)]
         for cat, n in counts.items()
     ]
 
@@ -148,6 +148,8 @@ def _continuous_table(survey, column):
 
 def _describe_numeric(series):
     """Return [mean, median, sd, min, max] rounded to 2 decimal places."""
+    if len(series) == 0 or series.isna().all():
+        return ['--'] * 5
     return [
         round(series.mean(), 2),
         round(series.median(), 2),
@@ -166,6 +168,9 @@ def compute_demographic_correlations(survey):
     contrib = load_contributions()
     mean_contrib = _participant_mean_contributions(contrib)
     merged = survey.merge(mean_contrib, on=['session_code', 'label'])
+    n_dropped = len(survey) - len(merged)
+    if n_dropped > 0:
+        raise ValueError(f"Demographics merge dropped {n_dropped} participants")
     rows = []
     rows.extend(_gender_correlation(merged))
     rows.extend(_age_correlation(merged))
@@ -228,9 +233,9 @@ def _group_means(merged, category_label, column):
         t2 = subset[subset['treatment'] == 2]['mean_contribution']
         rows.append([
             category_label, value,
-            round(t1.mean(), 2) if len(t1) > 0 else '--',
-            round(t2.mean(), 2) if len(t2) > 0 else '--',
-            round(subset['mean_contribution'].mean(), 2),
+            safe_mean(t1),
+            safe_mean(t2),
+            safe_mean(subset['mean_contribution']),
         ])
     return rows
 

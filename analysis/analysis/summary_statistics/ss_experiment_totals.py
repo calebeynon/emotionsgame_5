@@ -14,10 +14,10 @@ import pandas as pd
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from ss_common import (
+    PLAYERS_PER_SESSION,
     SESSIONS_DIR,
     SESSION_CODE_TO_TREATMENT,
     SUPERGAME_ROUNDS,
-    ensure_output_dir,
     load_chat_raw,
     load_contributions,
     write_tex_table,
@@ -41,16 +41,12 @@ _PAGETIMES_MAP = {
 # Pages to report timing for (excluding wait pages and init)
 _TIMED_PAGES = ['Contribute', 'Results', 'StartPage', 'RegroupingMessage']
 
-_PLAYERS_PER_SESSION = 16
-
-
 # =====
 # Main function
 # =====
 
 def main():
     """Generate experiment totals and timing tables."""
-    ensure_output_dir()
 
     contribs = load_contributions()
     chat = load_chat_raw()
@@ -77,7 +73,7 @@ def compute_experiment_totals(contribs, chat):
     ).ngroups
     rows = [
         ['Sessions', n_sessions],
-        ['Participants', n_sessions * _PLAYERS_PER_SESSION],
+        ['Participants', n_sessions * PLAYERS_PER_SESSION],
         ['Participants (T1)', n_per_treatment[1]],
         ['Participants (T2)', n_per_treatment[2]],
         ['Player-rounds', len(contribs)],
@@ -93,7 +89,7 @@ def _count_per_treatment(contribs):
     result = {}
     for treatment in [1, 2]:
         t_sessions = contribs[contribs['treatment'] == treatment]['session_code'].nunique()
-        result[treatment] = t_sessions * _PLAYERS_PER_SESSION
+        result[treatment] = t_sessions * PLAYERS_PER_SESSION
     return result
 
 

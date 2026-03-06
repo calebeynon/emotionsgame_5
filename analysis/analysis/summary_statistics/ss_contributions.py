@@ -17,9 +17,10 @@ import pandas as pd
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from ss_common import (
+    ENDOWMENT,
     OUTPUT_DIR,
-    ensure_output_dir,
     load_contributions,
+    safe_pct,
     write_tex_table,
 )
 
@@ -35,7 +36,6 @@ _FREQ_LABELS = ['0', '1--4', '5--9', '10--14', '15--19', '20--24', '25']
 def main():
     """Generate all contribution summary statistics and plots."""
     df = load_contributions()
-    ensure_output_dir()
 
     desc = compute_descriptive_stats(df)
     write_tex_table(desc, 'contributions_descriptive.tex', 'clrrrrrr')
@@ -73,7 +73,7 @@ def compute_frequency_table(df):
         counts = _bin_contributions(t_data)
         total = len(t_data)
         for label, count in zip(_FREQ_LABELS, counts):
-            pct = round(100 * count / total, 1) if total > 0 else 0.0
+            pct = safe_pct(count, total)
             rows.append([treatment, label, count, pct])
     result = pd.DataFrame(rows, columns=['Treatment', 'Bin', 'Count', 'Pct'])
     return result
@@ -93,8 +93,8 @@ def compute_extreme_rates(df):
     rows = []
     for (treatment, segment, rnd), group in grouped:
         total = len(group)
-        pct_max = round(100 * (group['contribution'] == 25).sum() / total, 1)
-        pct_zero = round(100 * (group['contribution'] == 0).sum() / total, 1)
+        pct_max = safe_pct((group['contribution'] == ENDOWMENT).sum(), total)
+        pct_zero = safe_pct((group['contribution'] == 0).sum(), total)
         rows.append([treatment, segment, rnd, pct_max, pct_zero])
     result = pd.DataFrame(
         rows, columns=['Treatment', 'Supergame', 'Round', 'Pct Max', 'Pct Zero'],

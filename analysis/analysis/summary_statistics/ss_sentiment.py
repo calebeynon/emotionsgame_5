@@ -15,8 +15,9 @@ import pandas as pd
 # Allow imports from this package when run as a script
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+import numpy as np
+
 from ss_common import (
-    ensure_output_dir,
     load_sentiment,
     write_tex_table,
 )
@@ -35,7 +36,6 @@ _MODERATE_THRESHOLD = 0.2
 def main():
     """Generate all sentiment summary statistics tables."""
     df = load_sentiment()
-    ensure_output_dir()
 
     write_tex_table(compute_descriptive(df), 'sentiment_descriptive.tex', 'clrrr')
     write_tex_table(compute_components(df), 'sentiment_components.tex', 'clrrr')
@@ -151,9 +151,10 @@ def compute_correlation(df):
 
 def _pearson_corr(df):
     """Pearson r between compound sentiment and contribution, rounded."""
-    return round(
-        df['sentiment_compound_mean'].corr(df['contribution']), 4,
-    )
+    r = df['sentiment_compound_mean'].corr(df['contribution'])
+    if np.isnan(r):
+        return '--'
+    return round(r, 4)
 
 
 def _pct(df, column, value, total):

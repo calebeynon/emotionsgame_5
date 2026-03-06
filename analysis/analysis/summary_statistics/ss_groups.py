@@ -15,14 +15,12 @@ import pandas as pd
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from ss_common import (
+    ENDOWMENT,
     SUPERGAME_ROUNDS,
-    ensure_output_dir,
     load_contributions,
+    safe_mean,
     write_tex_table,
 )
-
-# CONSTANTS
-_ENDOWMENT = 25
 _SUPERGAME_ORDER = [f'supergame{i}' for i in range(1, 6)]
 
 
@@ -33,7 +31,6 @@ _SUPERGAME_ORDER = [f'supergame{i}' for i in range(1, 6)]
 def main():
     """Generate all group dynamics summary statistics tables."""
     df = load_contributions()
-    ensure_output_dir()
 
     coop = compute_cooperation_rate(df)
     write_tex_table(coop, 'groups_cooperation.tex', 'clrrrrr')
@@ -55,7 +52,7 @@ def main():
 def compute_cooperation_rate(df):
     """Mean cooperation rate (contribution / endowment) by treatment x supergame."""
     df = df.copy()
-    df['coop_rate'] = df['contribution'] / _ENDOWMENT
+    df['coop_rate'] = df['contribution'] / ENDOWMENT
     grouped = df.groupby(['treatment', 'segment'])['coop_rate']
     stats = grouped.agg(['mean', 'std', 'min', 'max', 'count'])
     stats = stats.round(3).reset_index()
@@ -142,7 +139,7 @@ def _mean_contribution_at(df, treatment, sg_num, round_num):
         & (df['segment'] == segment)
         & (df['round'] == round_num)
     )
-    return round(df.loc[mask, 'contribution'].mean(), 2)
+    return safe_mean(df.loc[mask, 'contribution'])
 
 
 # %%
