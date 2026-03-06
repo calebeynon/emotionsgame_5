@@ -214,16 +214,7 @@ class StateClassification:
                  f"Total group-rounds: {total_gr}",
                  f"Total player observations: {total_obs}"]
         for state in [self.cooperative, self.noncooperative]:
-            bc = state.behavior_counts
-            lines.append(f"\n{state.label.upper()} STATE:")
-            lines.append(f"  Group-rounds: {state.group_count}")
-            lines.append(f"  Player observations: {state.observation_count}")
-            lines.append(f"  Cooperative behavior: {bc['cooperative']}")
-            lines.append(f"  Noncooperative behavior: {bc['noncooperative']}")
-            lines.append(f"  Zero contributors: {state.zero_contributor_count}")
-            for cell in state.matrix.cells:
-                lines.append(f"  {cell.behavior_label}/{cell.promise_label}: "
-                             f"{cell.count} players, {cell.observation_count} obs")
+            lines.extend(_state_summary_lines(state))
         lines.append(sep)
         return "\n".join(lines)
 
@@ -243,6 +234,23 @@ class StateClassification:
         filepath = Path(filepath)
         filepath.parent.mkdir(parents=True, exist_ok=True)
         self.to_dataframe().to_csv(filepath, index=False)
+
+
+def _state_summary_lines(state) -> list:
+    """Build summary lines for one cooperative/noncooperative state."""
+    bc = state.behavior_counts
+    lines = [
+        f"\n{state.label.upper()} STATE:",
+        f"  Group-rounds: {state.group_count}",
+        f"  Player observations: {state.observation_count}",
+        f"  Cooperative behavior: {bc['cooperative']}",
+        f"  Noncooperative behavior: {bc['noncooperative']}",
+        f"  Zero contributors: {state.zero_contributor_count}",
+    ]
+    for cell in state.matrix.cells:
+        lines.append(f"  {cell.behavior_label}/{cell.promise_label}: "
+                     f"{cell.count} players, {cell.observation_count} obs")
+    return lines
 
 
 def build_state_classification(
