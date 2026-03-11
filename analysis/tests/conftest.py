@@ -13,10 +13,57 @@ import sys
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from experiment_data import load_experiment_data, Session, Experiment
+from experiment_data import (
+    Experiment, Group, Player, Round, Segment, Session, load_experiment_data,
+)
 
 # FILE PATHS
 RAW_DATA_DIR = Path(__file__).parent.parent / "datastore" / "raw"
+
+
+# =====
+# Shared synthetic-data builders (used across test modules)
+# =====
+def make_player(label, contribution, pid=1):
+    """Create a Player with given label and contribution."""
+    p = Player(participant_id=pid, label=label, id_in_group=1)
+    p.contribution = contribution
+    return p
+
+
+def make_group(group_id, players_data):
+    """Create a Group from list of (label, contribution, pid) tuples."""
+    g = Group(group_id)
+    for label, contribution, pid in players_data:
+        g.add_player(make_player(label, contribution, pid))
+    return g
+
+
+def _make_round(num, groups):
+    """Create a Round from a list of groups."""
+    r = Round(num)
+    for g in groups:
+        r.add_group(g)
+    return r
+
+
+def make_experiment_1sg(rounds_data):
+    """Build single-session, single-supergame experiment from rounds data.
+
+    Args:
+        rounds_data: list of lists of (label, contribution, pid) per round.
+    """
+    seg = Segment("supergame1")
+    for i, players in enumerate(rounds_data, 1):
+        seg.add_round(_make_round(i, [make_group(1, players)]))
+    sess = Session("s1", 1)
+    sess.add_segment(seg)
+    for rnd in seg.rounds.values():
+        for label, player in rnd.players.items():
+            sess.participant_labels[player.participant_id] = label
+    exp = Experiment(name="Test")
+    exp.add_session(sess)
+    return exp
 
 
 # =====
