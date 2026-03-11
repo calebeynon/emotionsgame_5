@@ -17,7 +17,7 @@ import pytest
 sys.path.insert(0, str(Path(__file__).parent.parent))
 sys.path.insert(0, str(Path(__file__).parent.parent / 'derived'))
 
-from classify_behavior import build_file_pairs
+from classify_states_io import build_file_pairs
 from experiment_data import load_experiment_data
 
 # FILE PATHS
@@ -40,7 +40,12 @@ PLAYERS_PER_GROUP = 4
 def experiment():
     """Load the full experiment once for all tests."""
     file_pairs = build_file_pairs()
-    return load_experiment_data(file_pairs, name="Accuracy Test")
+    if not file_pairs:
+        pytest.skip("No raw data files found in datastore/raw")
+    exp = load_experiment_data(file_pairs, name="Accuracy Test")
+    if not exp.sessions:
+        pytest.skip("No sessions loaded from raw data")
+    return exp
 
 
 @pytest.fixture(scope="module")

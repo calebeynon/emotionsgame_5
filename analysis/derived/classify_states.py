@@ -20,7 +20,8 @@ from classify_states_io import (
     obs_to_row as _obs_to_row,
 )
 
-# DEFAULT THRESHOLDS
+# CONSTANTS
+DEFAULT_ENDOWMENT = 25.0
 DEFAULT_GROUP_THRESHOLD = 75.0
 DEFAULT_PLAYER_THRESHOLD = 20.0
 
@@ -295,7 +296,7 @@ def _group_mean_contribution(group) -> float:
 def _is_group_cooperative(group, threshold) -> tuple:
     """Determine if group is cooperative. Returns (mean_contrib, is_cooperative)."""
     mean_contrib = _group_mean_contribution(group)
-    return mean_contrib, (mean_contrib / 25.0) * 100 >= threshold
+    return mean_contrib, (mean_contrib / DEFAULT_ENDOWMENT) * 100 >= threshold
 
 
 def _classify_group_round(session_code, session, segment_name, round_num,

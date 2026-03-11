@@ -44,7 +44,10 @@ TOTAL_GROUP_ROUNDS = TOTAL_SESSIONS * GROUPS_PER_SESSION * TOTAL_ROUNDS  # 880
 @pytest.fixture(scope="module")
 def experiment():
     """Load the full experiment once for all tests."""
-    return load_experiment()
+    exp = load_experiment()
+    if not exp.sessions:
+        pytest.skip("No raw data files found in datastore/raw")
+    return exp
 
 
 @pytest.fixture(scope="module")
