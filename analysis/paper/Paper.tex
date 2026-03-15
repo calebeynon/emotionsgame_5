@@ -25,7 +25,7 @@
 \renewcommand{\thefootnote}{\arabic{footnote}}
 
 %\title{Transforming Emotions to Confidence}
-\title{Public Goods and Emotions}
+\title{Facial emotions vs Verbal Sentiments in a public Goods game}
 
 \author{
     Caleb Eynon^{1} \and 
@@ -45,7 +45,7 @@
 \footnotetext[2]{Center for the Philosophy of Freedom, The University of Arizona}
 
 \section*{Abstract}
-
+This paper studies how information structure and emotions affect cooperation in infinitely repeated public goods games with communication. We conduct a laboratory experiment in which groups of four participants play a series of probabilistically-ending supergames. The key treatment variations are in feedback: in one treatment participants observe both individual contributions and the group total, while in the other they observe only the group total. In addition to contribution decisions and chat messages, we record facial expressions to measure emotional responses using facial emotion recognition and text sentiment analysis. Preliminary results show higher average contributions when only aggregate contributions are observable. Communication helps identify behavioral patterns such as promise-making, lying, and “sucker” behavior. While promises themselves do not significantly predict contributions due to ceiling effects, being exploited by a lying group member significantly reduces subsequent contributions. Sentiment analysis further shows that more positive communication is associated with higher contributions, highlighting the role of emotions and communication in sustaining cooperation under different monitoring structures.
 
 
 \vspace{1em}
@@ -55,7 +55,48 @@
 \end{spacing}
 \newpage
 \section{Introduction}
+Cooperation in public-goods environments critically depends on both communication and the information individuals have about one another’s behavior. A large experimental literature shows that allowing subjects to communicate can substantially increase contributions relative to settings without communication, even when communication is cheap talk and non-binding. At the same time, the degree of transparency surrounding individual actions—specifically, whether individual contributions are observable or only aggregate outcomes are revealed—has been shown to shape incentives, social norms, and the sustainability of cooperation. Despite extensive study of these two mechanisms independently, less is known about how communication interacts with informational visibility to influence cooperative behavior over time.
 
+In many real-world collective action problems, individuals can communicate freely while facing varying degrees of transparency about others’ behavior. In some settings, such as small teams or committees, individual contributions are highly visible. In others, such as large organizations or anonymous online platforms, only aggregate outcomes are observed, obscuring individual responsibility. Understanding how cooperation emerges and evolves under these different informational regimes—particularly when communication is present—is essential for explaining variation in cooperative outcomes across institutional environments.
+
+This paper experimentally studies how the visibility of individual contributions affects cooperation, communication, and contribution dynamics in a repeated public-goods game with endogenous communication. We employ a between-subjects design with two treatments that vary informational transparency. In the Information Known treatment, subjects observe the individual contributions of all group members at the end of each period. In the Information Unknown treatment, subjects observe only the aggregate group contribution. In both treatments, subjects can communicate freely via an on-screen chat before each decision. This design allows us to isolate how transparency at the individual versus group level interacts with communication to shape cooperative behavior.
+
+Our experimental environment incorporates several features that reflect realistic collective decision-making settings. Subjects interact repeatedly within segments but are rematched across segments, limiting the scope for long-term reputation building while preserving short-run strategic considerations. Communication is unrestricted and occurs prior to each contribution decision, allowing groups to coordinate, make promises, and express approval or disapproval. Finally, the random-ending structure within each segment mitigates endgame effects and encourages forward-looking behavior throughout the interaction.
+
+The contribution of this paper is threefold. First, we provide causal evidence on how informational visibility alters contribution levels and dynamics when communication is available. While prior studies have examined the effects of communication or visibility in isolation, our design directly compares individual-level and aggregate-level transparency within an otherwise identical communicative environment. Second, we analyze how communication content and patterns differ across informational regimes, shedding light on the mechanisms through which transparency influences cooperation. Third, we examine how cooperation evolves over time within and across segments, highlighting differences in stability, responsiveness to deviations, and decay in contributions.
+
+
+The remainder of the paper proceeds as follows. Section 2 reviews the related literature. Section 3 describes the experimental design and procedures. Section 4 presents the main results on contributions and communication. Section 5 discusses robustness and additional analyses. Section 6 concludes.
+
+\section{Related Literature}
+
+Communication significantly enhances cooperation in public-goods and social dilemma settings. Early experimental studies demonstrate that allowing participants to communicate—even when communication is non-binding and has no direct payoff consequences—leads to higher contributions and improved group outcomes relative to no-communication baselines \cite{Dawes1977_Communication}. These findings challenged the prediction of standard self-interest models and highlighted the importance of social interaction and norm formation in collective action problems.
+
+Subsequent work has confirmed the generality of this effect across a wide range of institutional settings. \cite{Sally1995_Meta} provides a comprehensive meta-analysis of experiments conducted over several decades, showing that communication consistently increases cooperation and reduces free-riding behavior. Communication allows participants to coordinate expectations, articulate shared goals, and invoke social norms, thereby mitigating strategic uncertainty and fostering trust.
+
+More recent research has shifted focus toward understanding the mechanisms through which communication operates. \cite{Brandts2019_Communication} survey the experimental literature on communication and emphasize that its effectiveness depends critically on institutional details, including the information available to participants and the structure of interaction. Communication can facilitate cooperation by enabling coordination on strategies, reinforcing social norms, and expressing approval or disapproval, but its impact is not uniform across environments.
+
+The timing and structure of communication also matter. \cite{Oprea2014_ContinuousTime} study continuous-time communication in a public-goods experiment and find that richer communication opportunities improve coordination and reduce early misalignment of beliefs. Their results suggest that communication serves as an active coordination device rather than merely a symbolic signal of intent.
+
+When individual contributions are observable, participants can condition their behavior on others’ actions, enabling informal reciprocity, reputation building, and norm enforcement. \cite{Fischbacher2001_Conditional} provide seminal evidence that many individuals are conditionally cooperative, increasing their contributions when others contribute more and reducing them when others free ride. Such behavior relies fundamentally on the ability to observe or infer others’ actions.
+
+Visibility also interacts with social preferences and framing effects. \cite{Andreoni1995_Cooperation} shows that cooperation can be influenced by how decisions are framed, highlighting the role of moral considerations and social image. When individual behavior is observable, social image concerns and accountability are likely to be more salient, strengthening incentives to cooperate.
+
+More broadly, the ability to monitor and respond to individual behavior has been shown to support the emergence of informal governance structures. \cite{Ostrom1992_Covenants} demonstrate that groups can sustain cooperation through self-governance mechanisms even in the absence of formal enforcement, provided that individual actions are sufficiently transparent. Similarly, \cite{Gachter2007_Norms} show that mechanisms enabling norm enforcement generate long-run benefits for cooperation, underscoring the importance of accountability in sustaining collective action.
+
+In contrast, when only aggregate outcomes are observable, individual responsibility is blurred. This may weaken conditional cooperation and reduce the effectiveness of informal sanctions, leading to more rapid decay in contributions.
+
+While both communication and informational visibility have been shown to promote cooperation, fewer studies examine how these mechanisms interact. Communication may substitute for visibility by allowing individuals to signal intentions and coordinate behavior, or it may depend on visibility to be effective by enabling verification and accountability.
+
+\cite{Haruvy2017_CommunicationVisibility} directly investigate this interaction by varying the visibility of individual contributions in a public-goods game with communication. They find that communication is substantially more effective when individual contributions are observable, suggesting that transparency and communication are complementary. When individual actions are hidden, communication alone is less successful in sustaining cooperation.
+
+\cite{Brandts2019_Communication} similarly emphasize that the impact of communication depends on the surrounding informational environment, noting that communication without the ability to attribute behavior may be insufficient to support stable cooperation. However, existing studies provide limited insight into how communication content and contribution dynamics differ across informational regimes, particularly in settings with repeated interaction and rematching.
+
+Finally, this paper relates to the literature on dynamic incentives and repeated interaction in public-goods experiments. Random-ending designs are commonly used to mitigate endgame effects and encourage forward-looking behavior. \cite{Isaac1988_Communication}study the dynamics of public-goods provision using random continuation probabilities and show that such structures influence contribution trajectories and strategic adjustment over time.
+
+By combining repeated interaction within segments, random rematching across segments, and endogenous communication, our design allows us to study how cooperation evolves dynamically under different informational regimes while limiting long-term reputation effects.
+
+While prior work establishes that both communication and visibility matter for cooperation, we show that the effectiveness of communication critically depends on the ability to attribute behavior to individuals. Moreover, we document how informational transparency shapes not only contribution levels but also the nature and function of communication itself.
 
 \section{Experimental Design}
 Our study employs a between-subjects design with two treatments that vary the degree of informational visibility in a standard public-goods environment. Across the two treatments, we manipulate whether subjects can observe both the individual contributions of their group members or only the aggregate contribution of the group. 

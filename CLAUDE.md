@@ -159,8 +159,12 @@ Two-stage process for behavioral video annotation:
 ## Environment Variables
 - `GEMINI_API_KEY`: Required for promise classification in `analysis_up8.py`
 
+## Symlinks
+- `analysis/datastore` → `/Users/caleb/Library/CloudStorage/Box-Box/SharedFolder_LPCP` (shared Box folder with experiment data)
+- When creating git worktrees, recreate this symlink: `ln -s /Users/caleb/Library/CloudStorage/Box-Box/SharedFolder_LPCP <worktree>/analysis/datastore`
+
 ## Data Files
-- **Input**: oTree data CSV, oTree chat CSV, PageTimes CSV, timesheet.xlsx
+- **Input**: oTree data CSV, oTree chat CSV, PageTimes CSV, timesheet.xlsx (in `analysis/datastore/`)
 - **Output**: Analysis results in `analysis/results/`, annotations in `analysis/datastore/annotations/`
 
 
