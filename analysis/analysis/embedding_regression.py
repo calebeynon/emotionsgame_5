@@ -1,9 +1,9 @@
 """
-Logistic regression baselines comparing VADER, embedding projections, and full embeddings.
+Logistic regression: can cooperative-direction embeddings predict contributions?
 
-Runs 5-fold cross-validated logistic regression on group-round level data,
-comparing four feature sets for predicting cooperative vs non-cooperative state.
-Outputs a LaTeX comparison table.
+Runs 5-fold cross-validated logistic regression at the player-round level,
+comparing feature sets for predicting high contribution (>= 20/25).
+Uses cooperative direction vector projections as features.
 
 Author: Claude Code
 Date: 2026-03-15
@@ -22,23 +22,22 @@ from sklearn.metrics import (
 from sklearn.model_selection import StratifiedKFold
 from sklearn.preprocessing import StandardScaler
 
-# Add derived directory for analyze_embeddings imports
 sys.path.insert(0, str(Path(__file__).parent.parent / 'derived'))
 
 # FILE PATHS
 DERIVED_DIR = Path(__file__).parent.parent / 'datastore' / 'derived'
-EMBEDDINGS_SMALL = DERIVED_DIR / 'embeddings_small.parquet'
+EMBEDDINGS_PR = DERIVED_DIR / 'embeddings_player_round_small.parquet'
 PROJECTIONS_FILE = DERIVED_DIR / 'embedding_projections.csv'
 SENTIMENT_FILE = DERIVED_DIR / 'sentiment_scores.csv'
-STATE_FILE = DERIVED_DIR / 'player_state_classification.csv'
 OUTPUT_DIR = Path(__file__).parent.parent / 'output' / 'tables'
 OUTPUT_FILE = OUTPUT_DIR / 'embedding_regression_comparison.tex'
 
-# MODEL COMPARISON CONFIG
+# MODEL CONFIG
 N_FOLDS = 5
 PCA_COMPONENTS = 50
 RANDOM_STATE = 42
-GROUP_KEYS = ['session_code', 'segment', 'round', 'group']
+PLAYER_KEYS = ['session_code', 'segment', 'round', 'group', 'label']
+HIGH_CONTRIB_THRESHOLD = 20
 
 VADER_FEATURES = [
     'sentiment_compound_mean', 'sentiment_positive_mean',
@@ -51,10 +50,8 @@ VADER_FEATURES = [
 # =====
 def main():
     """Main execution flow."""
-    dataset = build_dataset(
-        EMBEDDINGS_SMALL, SENTIMENT_FILE, STATE_FILE, PROJECTIONS_FILE,
-    )
-    print(f"Dataset: {len(dataset)} group-rounds")
+    dataset = build_dataset()
+    print(f"Dataset: {len(dataset)} player-rounds")
 
     results = run_model_comparison(dataset)
     print_summary(results)
@@ -64,71 +61,46 @@ def main():
 # =====
 # Dataset construction
 # =====
-def build_dataset(
-    embeddings_path: Path,
-    sentiment_path: Path,
-    state_path: Path,
-    projections_path: Path,
-) -> pd.DataFrame:
-    """Merge group-round embeddings, VADER sentiment, and state labels."""
-    emb_df = _load_group_embeddings(embeddings_path)
-    vader_df = _aggregate_sentiment(sentiment_path)
-    state_df = _aggregate_state(state_path)
-    proj_df = _aggregate_projections(projections_path)
+def build_dataset() -> pd.DataFrame:
+    """Merge player-round embeddings, VADER, projections, and contribution."""
+    emb_df = _load_player_embeddings()
+    vader_df = _load_sentiment()
+    proj_df = _load_projections()
 
-    merged = emb_df.merge(vader_df, on=GROUP_KEYS, how='inner')
-    merged = merged.merge(state_df, on=GROUP_KEYS, how='inner')
-    merged = merged.merge(proj_df, on=GROUP_KEYS, how='inner')
+    merged = emb_df.merge(vader_df, on=PLAYER_KEYS, how='inner')
+    merged = merged.merge(proj_df, on=PLAYER_KEYS, how='inner')
+    merged = merged.dropna(subset=['high_contribution'])
     return merged
 
 
-def _load_group_embeddings(path: Path) -> pd.DataFrame:
-    """Load embeddings and aggregate to group-round means."""
-    df = pd.read_parquet(path)
+def _load_player_embeddings() -> pd.DataFrame:
+    """Load player-round embeddings parquet."""
+    df = pd.read_parquet(EMBEDDINGS_PR)
     emb_cols = [c for c in df.columns if c.startswith('emb_')]
-    return df.groupby(GROUP_KEYS)[emb_cols].mean().reset_index()
+    return df[PLAYER_KEYS + emb_cols]
 
 
-def _aggregate_sentiment(path: Path) -> pd.DataFrame:
-    """Aggregate player-level VADER scores to group-round means."""
-    df = pd.read_csv(path)
-    return df.groupby(GROUP_KEYS)[VADER_FEATURES].mean().reset_index()
+def _load_sentiment() -> pd.DataFrame:
+    """Load player-round VADER scores and contribution."""
+    df = pd.read_csv(SENTIMENT_FILE)
+    df['high_contribution'] = (df['contribution'] >= HIGH_CONTRIB_THRESHOLD).astype(int)
+    return df[PLAYER_KEYS + VADER_FEATURES + ['high_contribution']]
 
 
-def _aggregate_state(path: Path) -> pd.DataFrame:
-    """Aggregate player states to group-round majority vote."""
-    df = pd.read_csv(path)
-    df = df.rename(columns={'round_num': 'round', 'group_id': 'group'})
-
-    grouped = df.groupby(GROUP_KEYS)['player_state'].apply(
-        _majority_vote
-    ).reset_index()
-    grouped['cooperative'] = (grouped['player_state'] == 'cooperative').astype(int)
-    return grouped[GROUP_KEYS + ['cooperative']]
-
-
-def _aggregate_projections(path: Path) -> pd.DataFrame:
-    """Aggregate message-level projections to group-round means."""
-    df = pd.read_csv(path)
-    proj_cols = [c for c in df.columns if c.startswith('projection_score')]
-    return df.groupby(GROUP_KEYS)[proj_cols].mean().reset_index()
-
-
-def _majority_vote(states: pd.Series) -> str:
-    """Return most common state label. Ties go to cooperative."""
-    counts = states.value_counts()
-    if len(counts) > 1 and counts.iloc[0] == counts.iloc[1]:
-        return 'cooperative'
-    return counts.index[0]
+def _load_projections() -> pd.DataFrame:
+    """Aggregate message-level projections to player-round means."""
+    df = pd.read_csv(PROJECTIONS_FILE)
+    proj_cols = [c for c in df.columns if c.startswith('proj_')]
+    return df.groupby(PLAYER_KEYS)[proj_cols].mean().reset_index()
 
 
 # =====
 # Model comparison
 # =====
 def run_model_comparison(dataset: pd.DataFrame) -> pd.DataFrame:
-    """Run 5-fold CV for 4 model configurations, return metrics."""
+    """Run 5-fold CV for 4 model configurations."""
     models = _define_models(dataset)
-    y = dataset['cooperative'].values
+    y = dataset['high_contribution'].values
 
     records = []
     for name, X in models.items():
@@ -143,7 +115,7 @@ def run_model_comparison(dataset: pd.DataFrame) -> pd.DataFrame:
 def _define_models(dataset: pd.DataFrame) -> dict:
     """Define feature matrices for each model configuration."""
     emb_cols = [c for c in dataset.columns if c.startswith('emb_')]
-    proj_cols = [c for c in dataset.columns if c.startswith('projection_score')]
+    proj_cols = [c for c in dataset.columns if c.startswith('proj_')]
     return {
         'VADER only': dataset[VADER_FEATURES].values,
         'Projection only': dataset[proj_cols].values,
@@ -153,9 +125,7 @@ def _define_models(dataset: pd.DataFrame) -> dict:
 
 
 def cross_validate_model(
-    X: np.ndarray,
-    y: np.ndarray,
-    use_pca: bool = False,
+    X: np.ndarray, y: np.ndarray, use_pca: bool = False,
 ) -> dict:
     """Run stratified 5-fold CV and return mean metrics."""
     skf = StratifiedKFold(n_splits=N_FOLDS, shuffle=True, random_state=RANDOM_STATE)
@@ -169,13 +139,10 @@ def cross_validate_model(
 
 
 def _evaluate_fold(
-    X: np.ndarray,
-    y: np.ndarray,
-    train_idx: np.ndarray,
-    test_idx: np.ndarray,
-    use_pca: bool,
+    X: np.ndarray, y: np.ndarray,
+    train_idx: np.ndarray, test_idx: np.ndarray, use_pca: bool,
 ) -> dict:
-    """Train and evaluate one fold, return metric dict."""
+    """Train and evaluate one fold."""
     X_train, X_test = X[train_idx], X[test_idx]
     y_train, y_test = y[train_idx], y[test_idx]
 
@@ -183,12 +150,11 @@ def _evaluate_fold(
 
     clf = LogisticRegression(max_iter=1000, random_state=RANDOM_STATE)
     clf.fit(X_train, y_train)
-
     return _compute_metrics(clf, X_test, y_test)
 
 
 def _preprocess(
-    X_train: np.ndarray, X_test: np.ndarray, use_pca: bool
+    X_train: np.ndarray, X_test: np.ndarray, use_pca: bool,
 ) -> tuple[np.ndarray, np.ndarray]:
     """Scale features and optionally apply PCA."""
     scaler = StandardScaler()
@@ -196,8 +162,8 @@ def _preprocess(
     X_test = scaler.transform(X_test)
 
     if use_pca:
-        n_components = min(PCA_COMPONENTS, X_train.shape[1], X_train.shape[0])
-        pca = PCA(n_components=n_components, random_state=RANDOM_STATE)
+        n = min(PCA_COMPONENTS, X_train.shape[1], X_train.shape[0])
+        pca = PCA(n_components=n, random_state=RANDOM_STATE)
         X_train = pca.fit_transform(X_train)
         X_test = pca.transform(X_test)
 
@@ -230,7 +196,7 @@ def _average_metrics(fold_metrics: list[dict]) -> dict:
 def print_summary(results: pd.DataFrame) -> None:
     """Print comparison table to stdout."""
     print("\n" + "=" * 70)
-    print("LOGISTIC REGRESSION MODEL COMPARISON (5-fold CV)")
+    print("COOP PROJECTION → PLAYER CONTRIBUTION (5-fold CV)")
     print("=" * 70)
     metrics = ['accuracy', 'auc', 'precision', 'recall', 'f1']
     print(f"{'Model':<25} " + " ".join(f"{m:>10}" for m in metrics))
@@ -278,7 +244,7 @@ def _latex_footer() -> list[str]:
     """Build LaTeX table footer lines."""
     return [
         r"   \midrule \midrule",
-        r"   \multicolumn{6}{l}{\emph{5-fold stratified cross-validation}}\\",
+        r"   \multicolumn{6}{l}{\emph{5-fold stratified CV, player-round level}}\\",
         r"\end{tabular}", r"\par\endgroup",
     ]
 
