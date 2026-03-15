@@ -2,7 +2,7 @@
 Purpose: Tests for Issue #39 emotion-sentiment analysis R scripts.
          Verifies that R scripts run without errors and produce valid outputs.
          Covers issue_39_common.R, issue_39_plot_dotplots.R,
-         issue_39_regression_horserace.R, and issue_39_regression_decomposition.R.
+         and issue_39_regression_decomposition.R.
 Author: Claude Code
 Date: 2026-03-14
 """
@@ -25,7 +25,6 @@ WORKING_DIR = Path(__file__).resolve().parent.parent
 # R SCRIPT PATHS
 COMMON_SCRIPT = ANALYSIS_DIR / "issue_39_common.R"
 DOTPLOT_SCRIPT = ANALYSIS_DIR / "issue_39_plot_dotplots.R"
-HORSERACE_SCRIPT = ANALYSIS_DIR / "issue_39_regression_horserace.R"
 DECOMPOSITION_SCRIPT = ANALYSIS_DIR / "issue_39_regression_decomposition.R"
 
 # EXPECTED OUTPUT FILES
@@ -34,8 +33,6 @@ DOTPLOT_FILES = [
     "emotion_sentiment_gap_by_liar_status.png",
     "emotion_sentiment_gap_by_sucker_status.png",
 ]
-
-HORSERACE_TABLE = "emotion_sentiment_horserace.tex"
 
 DECOMPOSITION_TABLES = [
     "emotion_sentiment_orthogonal.tex",
@@ -168,19 +165,6 @@ class TestDotPlots:
 # =====
 # Regression tests
 # =====
-class TestHorseraceRegression:
-    """Test horse race regression."""
-
-    def test_script_runs(self):
-        result = run_r_script(HORSERACE_SCRIPT, timeout=180)
-        assert result.returncode == 0, result.stderr
-
-    def test_table_exists(self):
-        path = TABLE_DIR / HORSERACE_TABLE
-        assert path.exists()
-        assert path.stat().st_size >= MIN_TEX_SIZE
-
-
 class TestDecompositionRegression:
     """Test decomposition and deception regressions."""
 

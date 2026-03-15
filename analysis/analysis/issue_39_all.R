@@ -14,7 +14,6 @@ main <- function() {
     run_script(script_dir, "issue_39_plot_dotplots.R", "Dot Plots by Player Type")
 
     # Regression scripts
-    run_script(script_dir, "issue_39_regression_horserace.R", "Horse Race Regression")
     run_script(script_dir, "issue_39_regression_decomposition.R", "Decomposition Regression")
     run_script(script_dir, "issue_39_gap_tests.R", "Gap Tests")
 
@@ -52,7 +51,6 @@ print_output_summary <- function() {
     message("    - emotion_sentiment_gap_by_liar_status.png")
     message("    - emotion_sentiment_gap_by_sucker_status.png")
     message("  Tables: output/tables/")
-    message("    - emotion_sentiment_horserace.tex")
     message("    - emotion_sentiment_orthogonal.tex")
     message("    - emotion_sentiment_deception.tex")
     message("    - emotion_sentiment_deception_descriptive.tex")
