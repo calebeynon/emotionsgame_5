@@ -322,18 +322,18 @@ class TestBuildProjectionCsvRegression:
     """Regression tests for output DataFrame construction."""
 
     def test_small_suffix_column_name(self):
-        """Small model should produce projection_score_small column."""
+        """Small model should produce proj_pr_dir_small column."""
         meta = _make_metadata(2)
         proj = np.array([1.0, -1.0])
         result = build_projection_csv(meta, proj, 'small')
-        assert 'projection_score_small' in result.columns
+        assert 'proj_pr_dir_small' in result.columns
 
     def test_large_suffix_column_name(self):
-        """Large model should produce projection_score_large column."""
+        """Large model should produce proj_pr_dir_large column."""
         meta = _make_metadata(2)
         proj = np.array([1.0, -1.0])
         result = build_projection_csv(meta, proj, 'large')
-        assert 'projection_score_large' in result.columns
+        assert 'proj_pr_dir_large' in result.columns
 
     def test_includes_player_state(self):
         """Output should include player_state column."""
@@ -347,7 +347,7 @@ class TestBuildProjectionCsvRegression:
         meta = _make_metadata(2)
         proj = np.array([1.0, -1.0])
         result = build_projection_csv(meta, proj, 'small')
-        expected = set(ID_COLS + ['player_state', 'projection_score_small'])
+        expected = set(ID_COLS + ['player_state', 'proj_pr_dir_small'])
         assert set(result.columns) == expected
 
 
@@ -367,8 +367,8 @@ class TestMergeProjections:
 
         merged = _merge_projections(df_small, df_large)
 
-        assert 'projection_score_small' in merged.columns
-        assert 'projection_score_large' in merged.columns
+        assert 'proj_pr_dir_small' in merged.columns
+        assert 'proj_pr_dir_large' in merged.columns
 
     def test_preserves_row_count(self):
         """Merge should not add or remove rows."""
@@ -391,10 +391,10 @@ class TestMergeProjections:
         merged = _merge_projections(df_small, df_large)
 
         np.testing.assert_array_almost_equal(
-            merged['projection_score_small'].values, proj_s
+            merged['proj_pr_dir_small'].values, proj_s
         )
         np.testing.assert_array_almost_equal(
-            merged['projection_score_large'].values, proj_l
+            merged['proj_pr_dir_large'].values, proj_l
         )
 
 
@@ -442,8 +442,8 @@ class TestFullAnalysisPipeline:
 
         expected_cols = set(
             ID_COLS + ['player_state',
-                       'projection_score_small',
-                       'projection_score_large']
+                       'proj_pr_dir_small',
+                       'proj_pr_dir_large']
         )
         assert set(merged.columns) == expected_cols
         assert len(merged) == n

@@ -22,6 +22,7 @@ DERIVED_DIR = Path(__file__).parent.parent / 'datastore' / 'derived'
 STATE_FILE = DERIVED_DIR / 'player_state_classification.csv'
 SENTIMENT_FILE = DERIVED_DIR / 'sentiment_scores.csv'
 PROJECTION_FILE = DERIVED_DIR / 'embedding_projections.csv'
+PROMISE_PROJECTION_FILE = DERIVED_DIR / 'promise_embedding_projections.csv'
 OUTPUT_FILE = DERIVED_DIR / 'merged_panel.csv'
 
 # MERGE CONFIGURATION
@@ -40,6 +41,11 @@ SENTIMENT_COLS = [
 EMBEDDING_COLS = [
     'proj_msg_dir_small', 'proj_pr_dir_small',
     'proj_msg_dir_large', 'proj_pr_dir_large',
+]
+
+PROMISE_EMBEDDING_COLS = [
+    'proj_promise_msg_dir_small', 'proj_promise_pr_dir_small',
+    'proj_promise_msg_dir_large', 'proj_promise_pr_dir_large',
 ]
 
 OUTPUT_ORDER = [
@@ -63,6 +69,8 @@ def main():
     panel = merge_sentiment(panel, sentiment_df)
     projection_df = load_projection_data()
     panel = merge_projections(panel, projection_df)
+    promise_proj_df = load_promise_projection_data()
+    panel = merge_promise_projections(panel, promise_proj_df)
     panel = merge_emotion(panel, emotion_df)
 
     validate_panel(panel)
@@ -90,6 +98,13 @@ def load_projection_data() -> pd.DataFrame:
     """Load projections, aggregate message-level to player-round means."""
     df = pd.read_csv(PROJECTION_FILE)
     grouped = df.groupby(STATE_MERGE_KEYS)[EMBEDDING_COLS].mean()
+    return grouped.reset_index()
+
+
+def load_promise_projection_data() -> pd.DataFrame:
+    """Load promise projections, aggregate message-level to player-round means."""
+    df = pd.read_csv(PROMISE_PROJECTION_FILE)
+    grouped = df.groupby(STATE_MERGE_KEYS)[PROMISE_EMBEDDING_COLS].mean()
     return grouped.reset_index()
 
 
@@ -130,6 +145,16 @@ def merge_projections(panel: pd.DataFrame, projection_df: pd.DataFrame) -> pd.Da
     merged = panel.merge(projection_df, on=STATE_MERGE_KEYS, how='left')
     n_matched = merged[EMBEDDING_COLS[0]].notna().sum()
     print(f"Projection merge: {n_matched} rows matched")
+    return merged
+
+
+def merge_promise_projections(
+    panel: pd.DataFrame, promise_df: pd.DataFrame
+) -> pd.DataFrame:
+    """LEFT JOIN promise embedding projection scores onto panel."""
+    merged = panel.merge(promise_df, on=STATE_MERGE_KEYS, how='left')
+    n_matched = merged[PROMISE_EMBEDDING_COLS[0]].notna().sum()
+    print(f"Promise projection merge: {n_matched} rows matched")
     return merged
 
 
@@ -190,7 +215,7 @@ def _validate_round_1_sentiment(panel: pd.DataFrame):
 def _validate_round_1_embeddings(panel: pd.DataFrame):
     """Verify round 1 has NaN embedding projections (no prior chat)."""
     r1 = panel[panel['round'] == 1]
-    for col in EMBEDDING_COLS:
+    for col in EMBEDDING_COLS + PROMISE_EMBEDDING_COLS:
         if r1[col].notna().any():
             raise ValueError(f"Round 1 has non-NaN values in {col}")
 
@@ -208,7 +233,10 @@ def _validate_instruction_rows(panel: pd.DataFrame):
 # =====
 def save_panel(panel: pd.DataFrame):
     """Save merged panel to CSV with enforced column order."""
-    final_order = OUTPUT_ORDER + SENTIMENT_COLS + EMBEDDING_COLS + EMOTION_COLS
+    final_order = (
+        OUTPUT_ORDER + SENTIMENT_COLS + EMBEDDING_COLS
+        + PROMISE_EMBEDDING_COLS + EMOTION_COLS
+    )
     panel = panel[final_order]
     OUTPUT_FILE.parent.mkdir(parents=True, exist_ok=True)
     panel.to_csv(OUTPUT_FILE, index=False)

@@ -256,11 +256,11 @@ class TestBuildProjectionCsv:
     """Tests for output DataFrame construction."""
 
     def test_has_projection_column(self):
-        """Output should include projection_score_{suffix} column."""
+        """Output should include proj_pr_dir_{suffix} column."""
         meta = _make_metadata(4)
         projections = np.array([1.0, 2.0, -1.0, -2.0])
         result = build_projection_csv(meta, projections, 'small')
-        assert 'projection_score_small' in result.columns
+        assert 'proj_pr_dir_small' in result.columns
 
     def test_preserves_id_columns(self):
         """All ID columns should be present."""

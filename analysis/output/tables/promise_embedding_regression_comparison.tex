@@ -1,0 +1,14 @@
+\begingroup
+\centering
+\begin{tabular}{lccccc}
+   \tabularnewline \midrule \midrule
+   Model & ACCURACY & AUC & PRECISION & RECALL & F1 \\
+   \midrule
+   VADER only & 0.6282 & 0.6730 & 0.6122 & 0.4125 & 0.4911 \\
+   Promise projection only & 0.8096 & 0.8968 & 0.7875 & 0.7732 & 0.7799 \\
+   Full embedding (PCA 50) & 0.8142 & 0.8853 & 0.7850 & 0.7904 & 0.7870 \\
+   VADER + Promise proj. & 0.8051 & 0.8999 & 0.7829 & 0.7663 & 0.7736 \\
+   \midrule \midrule
+   \multicolumn{6}{l}{\emph{5-fold stratified cross-validation}}\\
+\end{tabular}
+\par\endgroup
