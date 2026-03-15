@@ -1,9 +1,9 @@
 """
-Merge state classification, sentiment, and emotion data into a single panel.
+Merge state classification, sentiment, emotion, and embedding data into a single panel.
 
 Builds a panel dataset by cross-joining player-round state data with page types,
-appending instruction-phase emotion rows, and LEFT JOINing sentiment and emotion
-scores. Validates row counts and key uniqueness before saving.
+appending instruction-phase emotion rows, and LEFT JOINing sentiment, emotion,
+and embedding projection scores. Validates row counts and key uniqueness before saving.
 
 Author: Claude Code
 Date: 2026-03-11
@@ -21,6 +21,7 @@ from load_emotion_data import EMOTION_COLS, load_emotion_data
 DERIVED_DIR = Path(__file__).parent.parent / 'datastore' / 'derived'
 STATE_FILE = DERIVED_DIR / 'player_state_classification.csv'
 SENTIMENT_FILE = DERIVED_DIR / 'sentiment_scores.csv'
+PROJECTION_FILE = DERIVED_DIR / 'embedding_projections.csv'
 OUTPUT_FILE = DERIVED_DIR / 'merged_panel.csv'
 
 # MERGE CONFIGURATION
@@ -34,6 +35,11 @@ SENTIMENT_COLS = [
     'sentiment_compound_min', 'sentiment_compound_max',
     'sentiment_positive_mean', 'sentiment_negative_mean',
     'sentiment_neutral_mean',
+]
+
+EMBEDDING_COLS = [
+    'proj_msg_dir_small', 'proj_pr_dir_small',
+    'proj_msg_dir_large', 'proj_pr_dir_large',
 ]
 
 OUTPUT_ORDER = [
@@ -55,6 +61,8 @@ def main():
     panel = build_game_panel(state_df)
     panel = append_instruction_rows(panel, emotion_df)
     panel = merge_sentiment(panel, sentiment_df)
+    projection_df = load_projection_data()
+    panel = merge_projections(panel, projection_df)
     panel = merge_emotion(panel, emotion_df)
 
     validate_panel(panel)
@@ -76,6 +84,13 @@ def load_sentiment_data() -> pd.DataFrame:
     """Load sentiment scores, selecting only merge keys and score columns."""
     df = pd.read_csv(SENTIMENT_FILE)
     return df[STATE_MERGE_KEYS + SENTIMENT_COLS]
+
+
+def load_projection_data() -> pd.DataFrame:
+    """Load projections, aggregate message-level to player-round means."""
+    df = pd.read_csv(PROJECTION_FILE)
+    grouped = df.groupby(STATE_MERGE_KEYS)[EMBEDDING_COLS].mean()
+    return grouped.reset_index()
 
 
 # =====
@@ -110,6 +125,14 @@ def merge_sentiment(panel: pd.DataFrame, sentiment_df: pd.DataFrame) -> pd.DataF
     return merged
 
 
+def merge_projections(panel: pd.DataFrame, projection_df: pd.DataFrame) -> pd.DataFrame:
+    """LEFT JOIN embedding projection scores onto panel."""
+    merged = panel.merge(projection_df, on=STATE_MERGE_KEYS, how='left')
+    n_matched = merged[EMBEDDING_COLS[0]].notna().sum()
+    print(f"Projection merge: {n_matched} rows matched")
+    return merged
+
+
 def merge_emotion(panel: pd.DataFrame, emotion_df: pd.DataFrame) -> pd.DataFrame:
     """LEFT JOIN emotion scores onto panel."""
     emotion_subset = emotion_df[EMOTION_MERGE_KEYS + EMOTION_COLS]
@@ -128,6 +151,7 @@ def validate_panel(panel: pd.DataFrame):
     _validate_no_duplicate_keys(panel)
     _validate_no_suffix_columns(panel)
     _validate_round_1_sentiment(panel)
+    _validate_round_1_embeddings(panel)
     _validate_instruction_rows(panel)
     print("All validations passed")
 
@@ -163,6 +187,14 @@ def _validate_round_1_sentiment(panel: pd.DataFrame):
             raise ValueError(f"Round 1 has non-NaN values in {col}")
 
 
+def _validate_round_1_embeddings(panel: pd.DataFrame):
+    """Verify round 1 has NaN embedding projections (no prior chat)."""
+    r1 = panel[panel['round'] == 1]
+    for col in EMBEDDING_COLS:
+        if r1[col].notna().any():
+            raise ValueError(f"Round 1 has non-NaN values in {col}")
+
+
 def _validate_instruction_rows(panel: pd.DataFrame):
     """Verify instruction rows have NaN for state columns."""
     instr = panel[panel['page_type'] == 'all_instructions']
@@ -176,7 +208,7 @@ def _validate_instruction_rows(panel: pd.DataFrame):
 # =====
 def save_panel(panel: pd.DataFrame):
     """Save merged panel to CSV with enforced column order."""
-    final_order = OUTPUT_ORDER + SENTIMENT_COLS + EMOTION_COLS
+    final_order = OUTPUT_ORDER + SENTIMENT_COLS + EMBEDDING_COLS + EMOTION_COLS
     panel = panel[final_order]
     OUTPUT_FILE.parent.mkdir(parents=True, exist_ok=True)
     panel.to_csv(OUTPUT_FILE, index=False)
