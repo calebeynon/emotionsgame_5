@@ -82,6 +82,11 @@ merge_behavior_classifications <- function(dt) {
     merge_cols <- c(merge_keys, "is_liar_20", "is_sucker_20")
     bc_subset <- bc[, ..merge_cols]
     merged <- merge(dt, bc_subset, by = merge_keys, all.x = TRUE)
+    na_count <- sum(is.na(merged$is_liar_20))
+    if (na_count > 0) {
+        message(sprintf("Note: %d of %d rows unmatched in behavior merge (NA values)",
+                        na_count, nrow(merged)))
+    }
     return(merged)
 }
 
@@ -94,6 +99,8 @@ compute_zscores <- function(dt) {
     val_sd <- sd(complete$emotion_valence)
     cmp_mean <- mean(complete$sentiment_compound_mean)
     cmp_sd <- sd(complete$sentiment_compound_mean)
+    if (val_sd == 0) stop("Zero variance in emotion_valence — cannot z-score")
+    if (cmp_sd == 0) stop("Zero variance in sentiment_compound_mean — cannot z-score")
     dt[, valence_z := (emotion_valence - val_mean) / val_sd]
     dt[, compound_z := (sentiment_compound_mean - cmp_mean) / cmp_sd]
     dt[, zscore_gap := valence_z - compound_z]
