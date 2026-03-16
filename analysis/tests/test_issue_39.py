@@ -7,6 +7,7 @@ Author: Claude Code
 Date: 2026-03-14
 """
 
+import re
 import subprocess
 from pathlib import Path
 
@@ -26,12 +27,14 @@ WORKING_DIR = Path(__file__).resolve().parent.parent
 COMMON_SCRIPT = ANALYSIS_DIR / "issue_39_common.R"
 DOTPLOT_SCRIPT = ANALYSIS_DIR / "issue_39_plot_dotplots.R"
 DECOMPOSITION_SCRIPT = ANALYSIS_DIR / "issue_39_regression_decomposition.R"
+GAP_TESTS_SCRIPT = ANALYSIS_DIR / "issue_39_gap_tests.R"
 
 # EXPECTED OUTPUT FILES
 DOTPLOT_FILES = [
     "emotion_sentiment_gap_by_cooperative_state.png",
     "emotion_sentiment_gap_by_liar_status.png",
     "emotion_sentiment_gap_by_sucker_status.png",
+    "emotion_sentiment_gap_by_liar_x_state.png",
 ]
 
 DECOMPOSITION_TABLES = [
@@ -86,6 +89,9 @@ class TestPreconditions:
     def test_dotplot_script_exists(self):
         assert DOTPLOT_SCRIPT.exists()
 
+    def test_gap_tests_script_exists(self):
+        assert GAP_TESTS_SCRIPT.exists()
+
 
 # =====
 # issue_39_common.R tests
@@ -135,7 +141,10 @@ cat("VALMEAN:", round(mean(complete$valence_z), 4), "\\n")
         assert result.returncode == 0, result.stderr
         assert "HAS_VALZ: TRUE" in result.stdout
         assert "HAS_GAP: TRUE" in result.stdout
-        assert "VALMEAN: 0" in result.stdout
+        # Parse the z-score mean and verify it's near zero (not just substring match)
+        match = re.search(r"VALMEAN:\s+([-\d.]+)", result.stdout)
+        assert match is not None, f"VALMEAN not found in output: {result.stdout}"
+        assert abs(float(match.group(1))) < 0.01, f"VALMEAN not near zero: {match.group(1)}"
 
 
 # =====
@@ -175,6 +184,25 @@ class TestDecompositionRegression:
     @pytest.mark.parametrize("filename", DECOMPOSITION_TABLES)
     def test_table_exists(self, filename):
         path = TABLE_DIR / filename
+        assert path.exists()
+        assert path.stat().st_size >= MIN_TEX_SIZE
+
+
+# =====
+# Gap tests
+# =====
+GAP_TESTS_TABLE = "emotion_sentiment_gap_tests.tex"
+
+
+class TestGapTests:
+    """Test gap tests script execution and outputs."""
+
+    def test_script_runs(self):
+        result = run_r_script(GAP_TESTS_SCRIPT)
+        assert result.returncode == 0, result.stderr
+
+    def test_output_table_exists(self):
+        path = TABLE_DIR / GAP_TESTS_TABLE
         assert path.exists()
         assert path.stat().st_size >= MIN_TEX_SIZE
 
