@@ -5,6 +5,7 @@
 
 # nolint start
 source("analysis/issue_39_common.R")
+# nolint end
 
 # OUTPUT FILES
 STATE_PLOT <- "emotion_sentiment_gap_by_cooperative_state.png"

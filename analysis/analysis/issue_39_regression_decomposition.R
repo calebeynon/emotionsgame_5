@@ -8,10 +8,10 @@
 #   and promise-breaking (lying).
 
 # nolint start
-library(data.table)
 library(fixest)
 
 source("analysis/issue_39_common.R")
+# nolint end
 
 # FILE PATHS
 ORTHOGONAL_TEX <- file.path(TABLE_DIR, "emotion_sentiment_orthogonal.tex")
@@ -38,10 +38,13 @@ main <- function() {
 # =====
 load_and_filter_data <- function() {
     dt <- load_contribute_data()
+    n_before <- nrow(dt)
 
     key_vars <- c("contribution", "emotion_valence",
                   "sentiment_compound_mean", "player_state")
     dt <- dt[complete.cases(dt[, ..key_vars])]
+    cat(sprintf("Complete-case filter: %d -> %d rows (%d dropped)\n",
+                n_before, nrow(dt), n_before - nrow(dt)))
 
     dt[, player_id := paste(label, session_code, sep = "_")]
     dt[, noncooperative := as.integer(player_state != "cooperative")]
@@ -134,10 +137,12 @@ run_deception_analysis <- function(dt) {
 compute_emotion_sentiment_gap <- function(dt) {
     # Min-max normalize both to [0,1] before computing gap
     # Valence ~0-100, sentiment ~-1 to 1: raw scales differ
-    dt[, valence_norm := (emotion_valence - min(emotion_valence)) /
-        (max(emotion_valence) - min(emotion_valence))]
-    dt[, sentiment_norm := (sentiment_compound_mean - min(sentiment_compound_mean)) /
-        (max(sentiment_compound_mean) - min(sentiment_compound_mean))]
+    val_range <- max(dt$emotion_valence) - min(dt$emotion_valence)
+    sent_range <- max(dt$sentiment_compound_mean) - min(dt$sentiment_compound_mean)
+    if (val_range == 0) stop("Zero range in emotion_valence — cannot normalize")
+    if (sent_range == 0) stop("Zero range in sentiment_compound_mean — cannot normalize")
+    dt[, valence_norm := (emotion_valence - min(emotion_valence)) / val_range]
+    dt[, sentiment_norm := (sentiment_compound_mean - min(sentiment_compound_mean)) / sent_range]
 
     # Positive gap = face happier than words
     dt[, emotion_sentiment_gap := valence_norm - sentiment_norm]
@@ -182,13 +187,19 @@ run_pooled_liar_logit <- function(dt_promise) {
 }
 
 run_liar_model <- function(dt_promise) {
-    # Small sample (N~71-94): try FE logit, fall back to pooled if needed
+    # Small sample: try FE logit, fall back to pooled if convergence fails
     tryCatch(
         feglm(lied ~ emotion_sentiment_gap | round + segment,
               data = dt_promise, family = binomial(link = "logit"),
               cluster = ~cluster_id),
         error = function(e) {
-            cat("FE logit failed:", e$message, "\n")
+            convergence_patterns <- c("convergence", "singular", "separation",
+                                       "not enough", "collinear")
+            if (!any(sapply(convergence_patterns, grepl, e$message, ignore.case = TRUE))) {
+                stop(e)
+            }
+            cat("FE logit convergence failed:", e$message, "\n")
+            cat("Falling back to pooled logit (no FE)\n")
             run_pooled_liar_logit(dt_promise)
         }
     )
@@ -227,14 +238,15 @@ export_descriptive_table <- function(dt, filepath) {
 }
 
 summarize_by_group <- function(dt, group_var, labels) {
-    dt[, .(
+    result <- dt[, .(
         n = .N,
         mean_valence = mean(emotion_valence, na.rm = TRUE),
         mean_sentiment = mean(sentiment_compound_mean, na.rm = TRUE),
         mean_contribution = mean(contribution, na.rm = TRUE)
-    ), by = group_var][order(get(group_var))][
-        , group_label := labels
-    ]
+    ), by = group_var][order(get(group_var))]
+    label_map <- setNames(labels, sort(unique(dt[[group_var]])))
+    result[, group_label := label_map[as.character(get(group_var))]]
+    return(result)
 }
 
 write_descriptive_tex <- function(desc_coop, desc_liar, filepath) {

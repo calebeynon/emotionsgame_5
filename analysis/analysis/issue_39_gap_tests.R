@@ -5,6 +5,7 @@
 
 # nolint start
 source("analysis/issue_39_common.R")
+# nolint end
 
 # OUTPUT FILE
 OUTPUT_TEX <- file.path(TABLE_DIR, "emotion_sentiment_gap_tests.tex")
@@ -42,6 +43,10 @@ prepare_data <- function() {
 gap_ttest <- function(dt, group_col, g1, g2, comparison) {
     d1 <- dt[get(group_col) == g1, zscore_gap]
     d2 <- dt[get(group_col) == g2, zscore_gap]
+    if (length(d1) < 2 || length(d2) < 2) {
+        stop(sprintf("Insufficient observations for '%s': n1=%d, n2=%d (need >=2 each)",
+                      comparison, length(d1), length(d2)))
+    }
     tt <- t.test(d1, d2)
     star <- ifelse(tt$p.value < 0.001, "***",
             ifelse(tt$p.value < 0.01, "**",
