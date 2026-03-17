@@ -26,6 +26,7 @@ WORKING_DIR = Path(__file__).resolve().parent.parent
 # R SCRIPT PATHS
 COMMON_SCRIPT = ANALYSIS_DIR / "issue_39_common.R"
 DOTPLOT_SCRIPT = ANALYSIS_DIR / "issue_39_plot_dotplots.R"
+NEGATIVE_EMOTIONS_SCRIPT = ANALYSIS_DIR / "issue_39_plot_negative_emotions.R"
 DECOMPOSITION_SCRIPT = ANALYSIS_DIR / "issue_39_regression_decomposition.R"
 GAP_TESTS_SCRIPT = ANALYSIS_DIR / "issue_39_gap_tests.R"
 
@@ -35,6 +36,14 @@ DOTPLOT_FILES = [
     "emotion_sentiment_gap_by_liar_status.png",
     "emotion_sentiment_gap_by_sucker_status.png",
     "emotion_sentiment_gap_by_liar_x_state.png",
+]
+
+SANDBOX_DIR = Path(__file__).resolve().parent.parent / "_sandbox_data"
+NEGATIVE_EMOTION_FILES = [
+    "negative_emotion_by_cooperative_state.png",
+    "negative_emotion_by_liar_status.png",
+    "negative_emotion_by_sucker_status.png",
+    "negative_emotion_by_liar_x_state.png",
 ]
 
 DECOMPOSITION_TABLES = [
@@ -91,6 +100,9 @@ class TestPreconditions:
 
     def test_gap_tests_script_exists(self):
         assert GAP_TESTS_SCRIPT.exists()
+
+    def test_negative_emotions_script_exists(self):
+        assert NEGATIVE_EMOTIONS_SCRIPT.exists()
 
 
 # =====
@@ -205,6 +217,79 @@ class TestGapTests:
         path = TABLE_DIR / GAP_TESTS_TABLE
         assert path.exists()
         assert path.stat().st_size >= MIN_TEX_SIZE
+
+
+# =====
+# issue_39_plot_negative_emotions.R tests
+# =====
+class TestNegativeEmotionPlots:
+    """Test negative emotion dot plot script execution and outputs."""
+
+    def test_script_runs_successfully(self):
+        result = run_r_script(NEGATIVE_EMOTIONS_SCRIPT)
+        assert result.returncode == 0, (
+            f"Failed (exit {result.returncode}):\n"
+            f"stderr: {result.stderr}"
+        )
+
+    @pytest.mark.parametrize("filename", NEGATIVE_EMOTION_FILES)
+    def test_plot_file_exists(self, filename):
+        assert (SANDBOX_DIR / filename).exists()
+
+    @pytest.mark.parametrize("filename", NEGATIVE_EMOTION_FILES)
+    def test_plot_file_nonempty(self, filename):
+        path = SANDBOX_DIR / filename
+        assert path.exists()
+        assert path.stat().st_size > 10_000
+
+    def test_anger_fear_zscores_computed(self):
+        """Verify anger and fear z-scores are computed and centered near zero."""
+        result = run_r_code("""
+source("analysis/issue_39_common.R")
+dt <- load_contribute_data()
+dt <- compute_zscores(dt)
+complete <- dt[!is.na(emotion_anger) & !is.na(emotion_fear)]
+anger_mean <- mean(complete$emotion_anger)
+anger_sd <- sd(complete$emotion_anger)
+fear_mean <- mean(complete$emotion_fear)
+fear_sd <- sd(complete$emotion_fear)
+dt[, anger_z := (emotion_anger - anger_mean) / anger_sd]
+dt[, fear_z := (emotion_fear - fear_mean) / fear_sd]
+complete_z <- dt[!is.na(anger_z) & !is.na(fear_z)]
+cat("ANGER_MEAN_Z:", round(mean(complete_z$anger_z), 4), "\\n")
+cat("FEAR_MEAN_Z:", round(mean(complete_z$fear_z), 4), "\\n")
+cat("ANGER_SD:", round(anger_sd, 6), "\\n")
+cat("FEAR_SD:", round(fear_sd, 6), "\\n")
+cat("N:", nrow(complete_z), "\\n")
+""")
+        assert result.returncode == 0, result.stderr
+        # Z-scores should be centered near zero
+        anger_match = re.search(r"ANGER_MEAN_Z:\s+([-\d.]+)", result.stdout)
+        fear_match = re.search(r"FEAR_MEAN_Z:\s+([-\d.]+)", result.stdout)
+        assert anger_match is not None, f"ANGER_MEAN_Z not found: {result.stdout}"
+        assert fear_match is not None, f"FEAR_MEAN_Z not found: {result.stdout}"
+        assert abs(float(anger_match.group(1))) < 0.01
+        assert abs(float(fear_match.group(1))) < 0.01
+        # Standard deviations must be positive (non-zero variance)
+        anger_sd_match = re.search(r"ANGER_SD:\s+([-\d.]+)", result.stdout)
+        fear_sd_match = re.search(r"FEAR_SD:\s+([-\d.]+)", result.stdout)
+        assert float(anger_sd_match.group(1)) > 0
+        assert float(fear_sd_match.group(1)) > 0
+
+    def test_three_measures_in_summary(self):
+        """Verify the script produces summaries with exactly 3 measures."""
+        result = run_r_code("""
+TESTING <- TRUE
+source("analysis/issue_39_plot_negative_emotions.R")
+dt <- prepare_plot_data()
+summary_dt <- summarize_by_group(dt, "state_label")
+cat("MEASURES:", paste(sort(unique(summary_dt$measure)), collapse="|"), "\\n")
+cat("N_ROWS:", nrow(summary_dt), "\\n")
+""")
+        assert result.returncode == 0, result.stderr
+        assert "MEASURES: Anger|Fear|Sentiment (Compound)" in result.stdout
+        # 2 groups (Cooperative, Noncooperative) × 3 measures = 6 rows
+        assert "N_ROWS: 6" in result.stdout
 
 
 # =====
