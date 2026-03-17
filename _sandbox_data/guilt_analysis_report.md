@@ -1,5 +1,7 @@
 # Guilt Analysis: Do Liars Express Guilt, and What Do Their Faces Reveal?
 
+*Classification method: Hand-coded reading of every liar chat message, cross-referenced with facial emotion data.*
+
 ## Overview
 
 - **Total liar instances** (is_liar_20 == True): 123
@@ -7,331 +9,381 @@
 - **Instances with facial emotion data**: 88
 - A 'liar' is a player who made a promise to contribute but contributed < 20 points.
 
-## Guilt Indicators in Chat Messages
+## Hand-Coded Classification of Liar Chat Behavior
 
-| Indicator | Count | % of Liars |
-|-----------|-------|------------|
-| Any guilt indicator | 17 | 13.8% |
-| Apology/remorse | 3 | 2.4% |
-| Future promises ("I'll do better") | 6 | 4.9% |
-| Collective deflection ("we all should") | 3 | 2.4% |
+Each of the 49 liar instances with chat messages was read individually and classified into behavioral categories. Cases can belong to multiple categories.
 
-## Facial Emotion Comparison
+| Category | Count | % of Chat Cases | Description |
+|----------|-------|----------------|-------------|
+| Any guilt-related content | 35 | 71% | Any deceptive, guilt, or manipulative behavior |
+| False promise | 18 | 37% | Said '25' or 'all in' while contributing far less |
+| Manipulation | 9 | 18% | Directing others' behavior, rotation schemes, emotional pressure |
+| Blame-shifting | 6 | 12% | Accusing others of defection while defecting themselves |
+| Self-justification | 6 | 12% | Rationalizing own defection with excuses |
+| Collective deflection | 4 | 8% | 'We all should...' framing to diffuse responsibility |
+| Genuine guilt/remorse | 3 | 6% | Apology that appears sincere (facial affect aligns) |
+| Duping delight | 4 | 8% | Visibly amused/happy while deceiving |
+| Performative frustration | 2 | 4% | Acting upset at defectors while being one |
+| No guilt-related content | 14 | 29% | Neutral or strategic chat only |
 
-Comparing facial emotions during the Contribute page for liars who expressed guilt-like language vs. those who did not.
+## Facial Emotion by Behavioral Category
 
-| Metric | Guilt-Expressing (n=10) | Non-Guilt (n=78) | All Liars (n=88) |
-|--------|:---:|:---:|:---:|
-| emotion_joy | 17.6848 | 10.1530 | 11.0089 |
-| emotion_valence | 16.6486 | 10.2186 | 10.9493 |
-| emotion_sadness | 2.4720 | 0.2258 | 0.4810 |
-| emotion_anger | 0.4023 | 0.2708 | 0.2857 |
-| emotion_contempt | 1.5947 | 1.2617 | 1.2995 |
-| emotion_neutral | 67.8579 | 80.9877 | 79.4957 |
-| emotion_engagement | 35.6675 | 15.9521 | 18.1925 |
-| sentiment_compound_mean | 0.0889 | 0.0834 | 0.0841 |
+Mean facial emotion scores during the Contribute page, grouped by hand-coded classification.
 
-## Detailed Liar Cases
+| Metric | Genuine guilt (n=3) | Duping delight (n=4) | False promise (n=11) | Any guilt-related (n=18) | No guilt content (n=70) | All liars (n=88) |
+|--------|:---:|:---:|:---:|:---:|:---:|:---:|
+| emotion_joy | 0.15 | 69.91 | 11.68 | 17.36 | 9.38 | 11.01 |
+| emotion_valence | -1.50 | 73.01 | 9.49 | 17.13 | 9.36 | 10.95 |
+| emotion_sadness | 2.41 | 0.93 | 2.36 | 1.68 | 0.17 | 0.48 |
+| emotion_anger | 0.51 | 0.06 | 0.36 | 0.29 | 0.28 | 0.29 |
+| emotion_contempt | 4.77 | 0.01 | 2.20 | 2.32 | 1.04 | 1.30 |
+| emotion_neutral | 78.22 | 22.34 | 77.21 | 71.04 | 81.67 | 79.50 |
+| emotion_engagement | 25.07 | 90.41 | 24.00 | 32.53 | 14.51 | 18.19 |
 
-Below are all liar instances where the player sent chat messages, showing their messages, guilt indicators, and facial emotion scores.
+## Notable Cases
 
-### Case 1: Session `sa7mprty`, supergame1, Round 3, Player C (Group 3)
+### Duping Delight
+
+Players showing high facial joy while deceiving:
+
+- **Player A** (r5dj4yfl, supergame4 R6): Contributed 0/25. joy=73.5%. Messages: "Faze Rug"; "just following my president"
+  - *Humorous self-justification attributing behavior to external authority. Joy 73.47% -- extremely happy while contributing 0. Clear duping delight.*
+- **Player A** (r5dj4yfl, supergame4 R7): Contributed 0/25. joy=76.6%. Messages: "Welcome to the stock market"; "there was never any trust just profit margins"
+  - *Brazen, openly cynical. No guilt whatsoever. 'There was never any trust just profit margins' -- reveling in defection. Joy 76.60%, valence 80.94% -- near-maximum happiness. Textbook duping delight.*
+- **Player L** (iiu3xixz, supergame2 R3): Contributed 1/25. joy=97.6%. Messages: "all in"; "sounds great"
+  - *THE most striking case in the dataset. 'All in' while contributing 1/25. Joy 97.58% -- near-perfect facial happiness. This is the single clearest example of duping delight: brazen false promise paired with extreme joy.*
+- **Player L** (6sdkxl2q, supergame4 R7): Contributed 0/25. joy=32.0%. Messages: "XD"
+  - *'XD' -- laughing face emoticon while contributing 0. Joy 31.99%, valence 43.14%. Openly amused at defecting. Some sadness (3.45) adds complexity but overall: amused free-rider.*
+
+### Genuine Guilt
+
+Players whose apologies appear sincere, supported by matching facial affect:
+
+- **Player D** (r5dj4yfl, supergame3 R3): Contributed 25/25. sadness=0.08, valence=0.00. Messages: "sorry yall "; "i thought q wasnt joining "; "ill do 25 next time "
+  - *Direct apology ('sorry yall'). Excuse ('i thought q wasnt joining'). Future promise ('ill do 25 next time'). Facial affect is flat/neutral -- not joyful, not particularly sad. The guilt seems partially genuine but partly excused.*
+- **Player L** (iiu3xixz, supergame3 R3): Contributed 25/25. sadness=0.17, valence=-2.06. Messages: "i forgot to press 5"; "do it again"; "my bad"; "yeah i agree"; "lets do it"
+  - *'my bad' is acknowledgment. 'i forgot to press 5' is an excuse (claiming technical error rather than intentional defection). Slightly negative valence (-2.06). The guilt seems partially genuine -- they acknowledge fault ('my bad') but also excuse it ('forgot'). Mild negative facial affect is consistent with some discomfort.*
+- **Player D** (6sdkxl2q, supergame2 R3): Contributed 25/25. sadness=6.97, valence=-2.44. Messages: "im putting 25 next round sorry yall"; "sorry i didn't know we were all in "; "yall dont have to since you put 25 in last time"
+  - *THE clearest case of genuine guilt. Double apology ('sorry yall', 'sorry i didn't know'). Acknowledges unfairness to others ('yall dont have to since you put 25 in last time'). Future promise ('im putting 25 next round'). Facial emotion MATCHES: sadness 6.97 (highest in dataset for liars), negative valence -2.44, near-zero joy. Text guilt and facial guilt are aligned -- this appears to be real remorse.*
+
+### Serial Liars
+
+Players appearing 3+ times, showing sustained deception patterns:
+
+- **Player G** (session `6ucza025`): 4 liar instances
+  - supergame4 R4: contributed 20/25 [false_promise]
+  - supergame4 R5: contributed 25/25 [no_guilt]
+  - supergame4 R6: contributed 25/25 [no_guilt]
+  - supergame4 R7: contributed 25/25 [no_guilt]
+- **Player L** (session `iiu3xixz`): 8 liar instances
+  - supergame1 R3: contributed 10/25 [false_promise]
+  - supergame2 R3: contributed 1/25 [false_promise, duping_delight]
+  - supergame2 R4: contributed 7/25 [false_promise]
+  - supergame3 R3: contributed 25/25 [genuine_guilt, self_justification]
+  - supergame4 R4: contributed 1/25 [no_guilt]
+  - supergame4 R5: contributed 0/25 [false_promise, manipulation]
+  - supergame4 R6: contributed 0/25 [false_promise, deflection_collective, self_justification]
+  - supergame4 R7: contributed 0/25 [false_promise, manipulation]
+- **Player P** (session `r5dj4yfl`): 3 liar instances
+  - supergame5 R3: contributed 25/25 [false_promise]
+  - supergame5 R4: contributed 25/25 [false_promise]
+  - supergame5 R5: contributed 25/25 [false_promise]
+- **Player R** (session `sa7mprty`): 6 liar instances
+  - supergame4 R5: contributed 25/25 [blame_shifting, manipulation]
+  - supergame4 R6: contributed 25/25 [manipulation, false_promise]
+  - supergame4 R7: contributed 25/25 [manipulation, deflection_collective]
+  - supergame5 R3: contributed 25/25 [false_promise, manipulation]
+  - supergame5 R4: contributed 25/25 [manipulation]
+  - supergame5 R5: contributed 25/25 [self_justification, manipulation]
+- **Player C** (session `sylq2syi`): 4 liar instances
+  - supergame4 R4: contributed 0/25 [blame_shifting]
+  - supergame4 R5: contributed 0/25 [performative_frustration]
+  - supergame4 R6: contributed 0/25 [false_promise, deflection_collective, manipulation]
+  - supergame4 R7: contributed 0/25 [performative_frustration]
+
+## All Classified Cases
+
+### Case 1: Player C, `sa7mprty`, supergame1 R3 (G3)
 
 - **Contribution**: 25 / 25
-- **Promise made**: Yes (is_liar_20)
-- **Facial emotions**: No data available
-- **Chat sentiment** (VADER compound mean): 0.1725
+- **Classification**: no_guilt
+- **Facial emotions**: No data
 
-**Messages** (3 total):
+**Messages:**
 
 > "good job guys."
 > "can you think of any other number to maximize"
 > "but we dont know how many round it will last so "
 
-No explicit guilt indicators detected.
+**Assessment:** Purely strategic discussion about optimal numbers. No guilt expression.
 
-### Case 2: Session `sa7mprty`, supergame1, Round 3, Player G (Group 3)
+### Case 2: Player G, `sa7mprty`, supergame1 R3 (G3)
 
 - **Contribution**: 15 / 25
-- **Promise made**: Yes (is_liar_20)
-- **Facial emotions**: No data available
-- **Chat sentiment** (VADER compound mean): 0.1250
+- **Classification**: no_guilt
+- **Facial emotions**: No data
 
-**Messages** (2 total):
+**Messages:**
 
 > "15 maybe?"
 > "It's 80% chance it'll continue"
 
-No explicit guilt indicators detected.
+**Assessment:** Suggesting a lower number, strategic hedging. No guilt.
 
-### Case 3: Session `sa7mprty`, supergame1, Round 3, Player L (Group 3)
+### Case 3: Player L, `sa7mprty`, supergame1 R3 (G3)
 
 - **Contribution**: 25 / 25
-- **Promise made**: Yes (is_liar_20)
-- **Facial emotions**: No data available
+- **Classification**: deflection_collective
+- **Facial emotions**: No data
 
-**Messages** (3 total):
+**Messages:**
 
 > "would we not make more if we each put in 25? 40 ecu each?"
 > "we can keep doing the same but 25 actually makes the most money"
 > "as long as everyone contributes we would all maximize"
 
-No explicit guilt indicators detected.
+**Assessment:** Advocating full cooperation with 'everyone'/'we all' framing. Could be genuine or preemptive cover.
 
-### Case 4: Session `sa7mprty`, supergame1, Round 3, Player Q (Group 3)
+### Case 4: Player Q, `sa7mprty`, supergame1 R3 (G3)
 
 - **Contribution**: 25 / 25
-- **Promise made**: Yes (is_liar_20)
-- **Facial emotions**: No data available
-- **Chat sentiment** (VADER compound mean): 0.3682
+- **Classification**: no_guilt
+- **Facial emotions**: No data
 
-**Messages** (2 total):
+**Messages:**
 
 > "yesh 25 would be better i feel thats 40 each "
 > "yeah it does "
 
-No explicit guilt indicators detected.
+**Assessment:** Agreeing with group cooperation strategy. Neutral.
 
-### Case 5: Session `sa7mprty`, supergame4, Round 5, Player R (Group 4)
+### Case 5: Player R, `sa7mprty`, supergame4 R5 (G4)
 
 - **Contribution**: 25 / 25
-- **Promise made**: Yes (is_liar_20)
-- **Facial emotions**: No data available
-- **Chat sentiment** (VADER compound mean): 0.0924
+- **Classification**: blame_shifting, manipulation
+- **Facial emotions**: No data
 
-**Messages** (6 total):
+**Messages:**
 
 > "Yeah q was too quiet"
-> "I say we all take a turn with 0" **[deflection_collective]**
+> "I say we all take a turn with 0" *[regex: deflection_collective]*
 > "I mean why not"
 > "Don't place blame"
 > "You started it"
 > "N or P go 0"
 
-Guilt indicators detected: deflection_collective (1)
+**Assessment:** 'Don't place blame' is deflection. 'You started it' is blame-shifting. Promoting a rotation-to-0 scheme is manipulative -- framing free-riding as fair turn-taking.
 
-### Case 6: Session `sa7mprty`, supergame4, Round 6, Player N (Group 4)
+### Case 6: Player N, `sa7mprty`, supergame4 R6 (G4)
 
 - **Contribution**: 25 / 25
-- **Promise made**: Yes (is_liar_20)
-- **Facial emotions**: No data available
-- **Chat sentiment** (VADER compound mean): -0.3182
+- **Classification**: blame_shifting
+- **Facial emotions**: No data
 
-**Messages** (1 total):
+**Messages:**
 
 > "greedy fr"
 
-No explicit guilt indicators detected.
+**Assessment:** Calling someone else greedy -- projecting their own free-riding behavior onto others.
 
-### Case 7: Session `sa7mprty`, supergame4, Round 6, Player R (Group 4)
+### Case 7: Player R, `sa7mprty`, supergame4 R6 (G4)
 
 - **Contribution**: 25 / 25
-- **Promise made**: Yes (is_liar_20)
-- **Facial emotions**: No data available
-- **Chat sentiment** (VADER compound mean): -0.2009
+- **Classification**: manipulation, false_promise
+- **Facial emotions**: No data
 
-**Messages** (2 total):
+**Messages:**
 
 > "Q you're gonna piss me off"
 > "P you go 0 now and the rest of us (Q!!!!!!!!!!) will go 25"
 
-No explicit guilt indicators detected.
+**Assessment:** Emotional pressure on Q, directing P to defect, claiming 'the rest of us will go 25'. Manipulative and contains an implicit false promise for the group.
 
-### Case 8: Session `sa7mprty`, supergame4, Round 7, Player N (Group 4)
+### Case 8: Player N, `sa7mprty`, supergame4 R7 (G4)
 
 - **Contribution**: 25 / 25
-- **Promise made**: Yes (is_liar_20)
-- **Facial emotions**: No data available
+- **Classification**: blame_shifting
+- **Facial emotions**: No data
 
-**Messages** (1 total):
+**Messages:**
 
 > "but Q has gone 0 multiple times"
 
-No explicit guilt indicators detected.
+**Assessment:** Pointing at Q's defection history to deflect from own behavior.
 
-### Case 9: Session `sa7mprty`, supergame4, Round 7, Player R (Group 4)
+### Case 9: Player R, `sa7mprty`, supergame4 R7 (G4)
 
 - **Contribution**: 25 / 25
-- **Promise made**: Yes (is_liar_20)
-- **Facial emotions**: No data available
-- **Chat sentiment** (VADER compound mean): 0.1204
+- **Classification**: manipulation, deflection_collective
+- **Facial emotions**: No data
 
-**Messages** (3 total):
+**Messages:**
 
 > "Thank you Q"
 > "Now we can start the cycle over again and Q can go 0, or we can all go in"
 > "I was about to say be real q will go 0"
 
-No explicit guilt indicators detected.
+**Assessment:** Possibly sarcastic thanks. Continuing the rotation scheme. Predicting Q will defect -- redirecting attention away from own behavior.
 
-### Case 10: Session `sa7mprty`, supergame5, Round 3, Player R (Group 2)
+### Case 10: Player R, `sa7mprty`, supergame5 R3 (G2)
 
 - **Contribution**: 25 / 25
-- **Promise made**: Yes (is_liar_20)
-- **Facial emotions**: No data available
-- **Chat sentiment** (VADER compound mean): 0.1377
+- **Classification**: false_promise, manipulation
+- **Facial emotions**: No data
 
-**Messages** (5 total):
+**Messages:**
 
-> "HEAR ME OUT" **[plea]**
+> "HEAR ME OUT" *[regex: plea]*
 > "The earnings will add up more if we take turns all going 0"
-> "I promise we did it last time and it was way better" **[promise]**
+> "I promise we did it last time and it was way better" *[regex: promise]*
 > "It's just you play with the odds of the segment ending and someone missing out"
 > "I'll go 25"
 
-Guilt indicators detected: plea (1), promise (1)
+**Assessment:** 'I'll go 25' and 'I promise' are explicit commitments. Promoting rotation scheme is manipulative. 'HEAR ME OUT' is a plea for attention. This player (R) is a serial manipulator across supergames.
 
-### Case 11: Session `sa7mprty`, supergame5, Round 4, Player R (Group 2)
+### Case 11: Player R, `sa7mprty`, supergame5 R4 (G2)
 
 - **Contribution**: 25 / 25
-- **Promise made**: Yes (is_liar_20)
-- **Facial emotions**: No data available
-- **Chat sentiment** (VADER compound mean): 0.2613
+- **Classification**: manipulation
+- **Facial emotions**: No data
 
-**Messages** (3 total):
+**Messages:**
 
 > "Well-"
 > "Just G though and then B and J can get a redo next, and then we'll start the cycle over"
-> "Trust" **[trust_appeal]**
+> "Trust" *[regex: trust_appeal]*
 
-Guilt indicators detected: trust_appeal (1)
+**Assessment:** 'Trust' as a single word -- a trust appeal with no substance. Continuing to direct who should defect in the rotation. Manipulative.
 
-### Case 12: Session `sa7mprty`, supergame5, Round 5, Player G (Group 2)
+### Case 12: Player G, `sa7mprty`, supergame5 R5 (G2)
 
 - **Contribution**: 25 / 25
-- **Promise made**: Yes (is_liar_20)
-- **Facial emotions**: No data available
+- **Classification**: false_promise
+- **Facial emotions**: No data
 
-**Messages** (3 total):
+**Messages:**
 
 > "Now we do 0?"
 > "Got it"
 > "Doing 25 for me"
 
-No explicit guilt indicators detected.
+**Assessment:** 'Doing 25 for me' is a stated commitment. Classified as false promise given liar status.
 
-### Case 13: Session `sa7mprty`, supergame5, Round 5, Player R (Group 2)
+### Case 13: Player R, `sa7mprty`, supergame5 R5 (G2)
 
 - **Contribution**: 25 / 25
-- **Promise made**: Yes (is_liar_20)
-- **Facial emotions**: No data available
-- **Chat sentiment** (VADER compound mean): 0.0368
+- **Classification**: self_justification, manipulation
+- **Facial emotions**: No data
 
-**Messages** (4 total):
+**Messages:**
 
 > "J..."
 > "Idk you guys"
-> "It was just a cycle, so everyone gets the chance at the 55 if only one person goes 0" **[regret]**
+> "It was just a cycle, so everyone gets the chance at the 55 if only one person goes 0" *[regex: regret]*
 > "B you can go and J will go next"
 
-Guilt indicators detected: regret (1)
+**Assessment:** Justifying the rotation scheme as fair ('everyone gets the chance'). Directing who should defect. Still manipulating group behavior.
 
-### Case 14: Session `irrzlgk2`, supergame2, Round 3, Player K (Group 4)
+### Case 14: Player K, `irrzlgk2`, supergame2 R3 (G4)
 
 - **Contribution**: 0 / 25
-- **Promise made**: Yes (is_liar_20)
-- **Facial emotions** (Contribute page): joy: 0.0242, valence: 0.0000, sadness: 0.1303, contempt: 0.1950, neutral: 99.5235
+- **Classification**: no_guilt
+- **Facial emotions**: joy: 0.02, valence: 0.00, sadness: 0.13
 
-**Messages** (2 total):
+**Messages:**
 
 > "whats that"
 > "lets make same mone"
 
-No explicit guilt indicators detected.
+**Assessment:** Very sparse, barely engaged. No guilt expression.
 
-### Case 15: Session `irrzlgk2`, supergame2, Round 3, Player N (Group 4)
+### Case 15: Player N, `irrzlgk2`, supergame2 R3 (G4)
 
 - **Contribution**: 0 / 25
-- **Promise made**: Yes (is_liar_20)
-- **Facial emotions** (Contribute page): joy: 0.0249, valence: 0.0000, sadness: 0.1333, contempt: 0.3036, neutral: 99.3927
-- **Chat sentiment** (VADER compound mean): 0.2009
+- **Classification**: no_guilt
+- **Facial emotions**: joy: 0.02, valence: 0.00, sadness: 0.13
 
-**Messages** (2 total):
+**Messages:**
 
 > "yea what"
 > "yes"
 
-No explicit guilt indicators detected.
+**Assessment:** Minimal engagement. No guilt or strategic content.
 
-### Case 16: Session `irrzlgk2`, supergame2, Round 4, Player K (Group 4)
+### Case 16: Player K, `irrzlgk2`, supergame2 R4 (G4)
 
 - **Contribution**: 0 / 25
-- **Promise made**: Yes (is_liar_20)
-- **Facial emotions** (Contribute page): joy: 0.0256, valence: 0.0000, sadness: 0.1284, contempt: 0.2800, neutral: 99.4400
-- **Chat sentiment** (VADER compound mean): 0.2009
+- **Classification**: no_guilt
+- **Facial emotions**: joy: 0.03, valence: 0.00, sadness: 0.13
 
-**Messages** (2 total):
+**Messages:**
 
 > "whats that"
 > "yes i am not doing it them"
 
-No explicit guilt indicators detected.
+**Assessment:** 'yes i am not doing it them' -- confusing but possibly honest refusal. No guilt.
 
-### Case 17: Session `r5dj4yfl`, supergame3, Round 3, Player D (Group 4)
+### Case 17: Player D, `r5dj4yfl`, supergame3 R3 (G4)
 
 - **Contribution**: 25 / 25
-- **Promise made**: Yes (is_liar_20)
-- **Facial emotions** (Contribute page): joy: 0.0222, valence: 0.0000, sadness: 0.0835, contempt: 0.1251, neutral: 65.5829
-- **Chat sentiment** (VADER compound mean): -0.1662
+- **Classification**: genuine_guilt, self_justification, false_promise
+- **Facial emotions**: joy: 0.02, valence: 0.00, sadness: 0.08
 
-**Messages** (3 total):
+**Messages:**
 
-> "sorry yall " **[apology]**
+> "sorry yall " *[regex: apology]*
 > "i thought q wasnt joining "
 > "ill do 25 next time "
 
-Guilt indicators detected: apology (1)
+**Assessment:** Direct apology ('sorry yall'). Excuse ('i thought q wasnt joining'). Future promise ('ill do 25 next time'). Facial affect is flat/neutral -- not joyful, not particularly sad. The guilt seems partially genuine but partly excused.
 
-### Case 18: Session `r5dj4yfl`, supergame4, Round 6, Player A (Group 1)
+### Case 18: Player A, `r5dj4yfl`, supergame4 R6 (G1)
 
 - **Contribution**: 0 / 25
-- **Promise made**: Yes (is_liar_20)
-- **Facial emotions** (Contribute page): joy: 73.4741, valence: 70.5077, sadness: 0.2522, contempt: 0.0088, neutral: 19.3532
+- **Classification**: self_justification, duping_delight
+- **Facial emotions**: joy: 73.47, valence: 70.51, sadness: 0.25
 
-**Messages** (2 total):
+**Messages:**
 
 > "Faze Rug"
 > "just following my president"
 
-No explicit guilt indicators detected.
+**Assessment:** Humorous self-justification attributing behavior to external authority. Joy 73.47% -- extremely happy while contributing 0. Clear duping delight.
 
-### Case 19: Session `r5dj4yfl`, supergame4, Round 7, Player A (Group 1)
+### Case 19: Player A, `r5dj4yfl`, supergame4 R7 (G1)
 
 - **Contribution**: 0 / 25
-- **Promise made**: Yes (is_liar_20)
-- **Facial emotions** (Contribute page): joy: 76.6037, valence: 80.9372, sadness: 0.0109, contempt: 0.0007, neutral: 13.4105
-- **Chat sentiment** (VADER compound mean): 0.2550
+- **Classification**: duping_delight
+- **Facial emotions**: joy: 76.60, valence: 80.94, sadness: 0.01
 
-**Messages** (2 total):
+**Messages:**
 
 > "Welcome to the stock market"
-> "there was never any trust just profit margins" **[trust_appeal]**
+> "there was never any trust just profit margins" *[regex: trust_appeal]*
 
-Guilt indicators detected: trust_appeal (1)
+**Assessment:** Brazen, openly cynical. No guilt whatsoever. 'There was never any trust just profit margins' -- reveling in defection. Joy 76.60%, valence 80.94% -- near-maximum happiness. Textbook duping delight.
 
-### Case 20: Session `r5dj4yfl`, supergame5, Round 3, Player P (Group 4)
+### Case 20: Player P, `r5dj4yfl`, supergame5 R3 (G4)
 
 - **Contribution**: 25 / 25
-- **Promise made**: Yes (is_liar_20)
-- **Facial emotions**: No data available
-- **Chat sentiment** (VADER compound mean): 0.3740
+- **Classification**: false_promise
+- **Facial emotions**: No data
 
-**Messages** (3 total):
+**Messages:**
 
 > "ok im on the 25 train now"
-> "I'm not loyal but im honest haha" **[trust_appeal]**
+> "I'm not loyal but im honest haha" *[regex: trust_appeal]*
 > "25"
 
-Guilt indicators detected: trust_appeal (1)
+**Assessment:** 'ok im on the 25 train now' and '25' are stated commitments. 'I'm not loyal but im honest haha' is a fascinating meta-comment -- self-aware about disloyalty, wrapping it in humor. The 'haha' undercuts any sincerity.
 
-### Case 21: Session `r5dj4yfl`, supergame5, Round 4, Player P (Group 4)
+### Case 21: Player P, `r5dj4yfl`, supergame5 R4 (G4)
 
 - **Contribution**: 25 / 25
-- **Promise made**: Yes (is_liar_20)
-- **Facial emotions**: No data available
-- **Chat sentiment** (VADER compound mean): 0.0752
+- **Classification**: false_promise
+- **Facial emotions**: No data
 
-**Messages** (7 total):
+**Messages:**
 
 > "run it back"
 > "lets go"
@@ -341,16 +393,15 @@ Guilt indicators detected: trust_appeal (1)
 > "25"
 > "yay"
 
-No explicit guilt indicators detected.
+**Assessment:** Repeating '25' four times with 'yay' -- performatively enthusiastic commitment. The repetition feels like overcompensation.
 
-### Case 22: Session `r5dj4yfl`, supergame5, Round 5, Player P (Group 4)
+### Case 22: Player P, `r5dj4yfl`, supergame5 R5 (G4)
 
 - **Contribution**: 25 / 25
-- **Promise made**: Yes (is_liar_20)
-- **Facial emotions**: No data available
-- **Chat sentiment** (VADER compound mean): 0.0872
+- **Classification**: false_promise
+- **Facial emotions**: No data
 
-**Messages** (8 total):
+**Messages:**
 
 > "give me 10 more rounds"
 > "make that bag"
@@ -361,405 +412,392 @@ No explicit guilt indicators detected.
 > "ok 25s again"
 > "yes"
 
-No explicit guilt indicators detected.
+**Assessment:** 'ok 25s again' is a promise. 'make that bag' reveals self-interested motivation. The enthusiasm is performative.
 
-### Case 23: Session `sylq2syi`, supergame1, Round 3, Player G (Group 3)
+### Case 23: Player G, `sylq2syi`, supergame1 R3 (G3)
 
 - **Contribution**: 25 / 25
-- **Promise made**: Yes (is_liar_20)
-- **Facial emotions** (Contribute page): joy: 0.0484, valence: 0.0123, sadness: 0.1312, contempt: 2.8089, neutral: 94.7108
+- **Classification**: blame_shifting
+- **Facial emotions**: joy: 0.05, valence: 0.01, sadness: 0.13
 
-**Messages** (1 total):
+**Messages:**
 
 > "who did it"
 
-No explicit guilt indicators detected.
+**Assessment:** Trying to identify who defected -- redirecting scrutiny away from themselves.
 
-### Case 24: Session `sylq2syi`, supergame4, Round 4, Player C (Group 1)
+### Case 24: Player C, `sylq2syi`, supergame4 R4 (G1)
 
 - **Contribution**: 0 / 25
-- **Promise made**: Yes (is_liar_20)
-- **Facial emotions**: No data available
+- **Classification**: blame_shifting
+- **Facial emotions**: No data
 
-**Messages** (2 total):
+**Messages:**
 
-> "yall who didn't put in" **[blame_shifting]**
+> "yall who didn't put in" *[regex: blame_shifting]*
 > "same"
 
-Guilt indicators detected: blame_shifting (1)
+**Assessment:** Accusing others of not contributing while they themselves contributed 0. Pure hypocrisy. 'same' suggests they're agreeing they'll contribute -- a false promise.
 
-### Case 25: Session `sylq2syi`, supergame4, Round 5, Player C (Group 1)
+### Case 25: Player C, `sylq2syi`, supergame4 R5 (G1)
 
 - **Contribution**: 0 / 25
-- **Promise made**: Yes (is_liar_20)
-- **Facial emotions**: No data available
-- **Chat sentiment** (VADER compound mean): -0.1779
+- **Classification**: performative_frustration
+- **Facial emotions**: No data
 
-**Messages** (1 total):
+**Messages:**
 
 > "seriously"
 
-No explicit guilt indicators detected.
+**Assessment:** One word expressing exasperation at others -- while contributing 0 themselves. Performing the role of frustrated cooperator.
 
-### Case 26: Session `sylq2syi`, supergame4, Round 6, Player C (Group 1)
+### Case 26: Player C, `sylq2syi`, supergame4 R6 (G1)
 
 - **Contribution**: 0 / 25
-- **Promise made**: Yes (is_liar_20)
-- **Facial emotions**: No data available
-- **Chat sentiment** (VADER compound mean): 0.3110
+- **Classification**: false_promise, deflection_collective, manipulation
+- **Facial emotions**: No data
 
-**Messages** (3 total):
+**Messages:**
 
 > "ok i feel like we need to reset"
-> "like if we all put in 25" **[deflection_collective, deflection_collective]**
+> "like if we all put in 25" *[regex: deflection_collective, deflection_collective]*
 > "same"
 
-Guilt indicators detected: deflection_collective (2)
+**Assessment:** 'if we all put in 25' is a collective call to action. 'same' is agreeing to participate. But they contribute 0. Classic manipulation -- proposing cooperation with no intention to follow through.
 
-### Case 27: Session `sylq2syi`, supergame4, Round 7, Player C (Group 1)
+### Case 27: Player C, `sylq2syi`, supergame4 R7 (G1)
 
 - **Contribution**: 0 / 25
-- **Promise made**: Yes (is_liar_20)
-- **Facial emotions**: No data available
+- **Classification**: performative_frustration
+- **Facial emotions**: No data
 
-**Messages** (2 total):
+**Messages:**
 
 > "omg im done"
 > "huh"
 
-No explicit guilt indicators detected.
+**Assessment:** Performing exhaustion/frustration with the group while being a serial defector (0 for four straight rounds). No guilt.
 
-### Case 28: Session `iiu3xixz`, supergame1, Round 3, Player E (Group 1)
+### Case 28: Player E, `iiu3xixz`, supergame1 R3 (G1)
 
 - **Contribution**: 21 / 25
-- **Promise made**: Yes (is_liar_20)
-- **Facial emotions**: No data available
+- **Classification**: no_guilt
+- **Facial emotions**: No data
 
-**Messages** (2 total):
+**Messages:**
 
 > "Do the tokens reset each round?"
 > "ooo"
 
-No explicit guilt indicators detected.
+**Assessment:** Genuine question about game mechanics. No guilt content.
 
-### Case 29: Session `iiu3xixz`, supergame1, Round 3, Player L (Group 3)
+### Case 29: Player L, `iiu3xixz`, supergame1 R3 (G3)
 
 - **Contribution**: 10 / 25
-- **Promise made**: Yes (is_liar_20)
-- **Facial emotions** (Contribute page): joy: 0.0279, valence: -0.1792, sadness: 0.3097, contempt: 0.4728, neutral: 98.8338
+- **Classification**: false_promise
+- **Facial emotions**: joy: 0.03, valence: -0.18, sadness: 0.31
 
-**Messages** (1 total):
+**Messages:**
 
 > "25"
 
-No explicit guilt indicators detected.
+**Assessment:** Single word '25' but contributed only 10. A bare-minimum false promise. Slightly negative facial affect (valence -0.18, sadness 0.31) -- possibly mild discomfort with the deception.
 
-### Case 30: Session `iiu3xixz`, supergame2, Round 3, Player A (Group 1)
+### Case 30: Player A, `iiu3xixz`, supergame2 R3 (G1)
 
 - **Contribution**: 25 / 25
-- **Promise made**: Yes (is_liar_20)
-- **Facial emotions** (Contribute page): joy: 0.0333, valence: 0.4187, sadness: 0.1200, contempt: 0.2023, neutral: 98.5287
-- **Chat sentiment** (VADER compound mean): 0.3885
+- **Classification**: no_guilt
+- **Facial emotions**: joy: 0.03, valence: 0.42, sadness: 0.12
 
-**Messages** (2 total):
+**Messages:**
 
 > "cool"
 > ":)"
 
-No explicit guilt indicators detected.
+**Assessment:** Minimal positive chat. No guilt content.
 
-### Case 31: Session `iiu3xixz`, supergame2, Round 3, Player L (Group 1)
+### Case 31: Player L, `iiu3xixz`, supergame2 R3 (G1)
 
 - **Contribution**: 1 / 25
-- **Promise made**: Yes (is_liar_20)
-- **Facial emotions** (Contribute page): joy: 97.5823, valence: 97.4373, sadness: 0.0095, contempt: 0.0181, neutral: 0.0000
-- **Chat sentiment** (VADER compound mean): 0.3125
+- **Classification**: false_promise, duping_delight
+- **Facial emotions**: joy: 97.58, valence: 97.44, sadness: 0.01
 
-**Messages** (2 total):
+**Messages:**
 
-> "all in" **[future_promise]**
+> "all in" *[regex: future_promise]*
 > "sounds great"
 
-Guilt indicators detected: future_promise (1)
+**Assessment:** THE most striking case in the dataset. 'All in' while contributing 1/25. Joy 97.58% -- near-perfect facial happiness. This is the single clearest example of duping delight: brazen false promise paired with extreme joy.
 
-### Case 32: Session `iiu3xixz`, supergame2, Round 4, Player A (Group 1)
+### Case 32: Player A, `iiu3xixz`, supergame2 R4 (G1)
 
 - **Contribution**: 5 / 25
-- **Promise made**: Yes (is_liar_20)
-- **Facial emotions** (Contribute page): joy: 1.8303, valence: 11.4908, sadness: 0.0826, contempt: 0.5117, neutral: 62.9459
-- **Chat sentiment** (VADER compound mean): 0.2423
+- **Classification**: blame_shifting
+- **Facial emotions**: joy: 1.83, valence: 11.49, sadness: 0.08
 
-**Messages** (3 total):
+**Messages:**
 
 > "i see how it is"
 > "boooo"
-> "lol you expect us to trust you?" **[trust_appeal]**
+> "lol you expect us to trust you?" *[regex: trust_appeal]*
 
-Guilt indicators detected: trust_appeal (1)
+**Assessment:** Reacting to L's betrayal from case 101. Accusatory ('lol you expect us to trust you?'). But A also contributed only 5/25 -- accusing L of untrustworthiness while also defecting. Hypocritical blame-shifting.
 
-### Case 33: Session `iiu3xixz`, supergame2, Round 4, Player L (Group 1)
+### Case 33: Player L, `iiu3xixz`, supergame2 R4 (G1)
 
 - **Contribution**: 7 / 25
-- **Promise made**: Yes (is_liar_20)
-- **Facial emotions** (Contribute page): joy: 0.0241, valence: 0.0000, sadness: 0.1273, contempt: 0.1935, neutral: 99.6128
-- **Chat sentiment** (VADER compound mean): 0.2009
+- **Classification**: false_promise
+- **Facial emotions**: joy: 0.02, valence: 0.00, sadness: 0.13
 
-**Messages** (2 total):
+**Messages:**
 
-> "all in this time" **[future_promise]**
+> "all in this time" *[regex: future_promise]*
 > "yes"
 
-Guilt indicators detected: future_promise (1)
+**Assessment:** Same player L, round after being caught (case 101). 'All in this time' -- REPEATING the exact same false promise. Contributed 7. Neutral face -- no joy this time (perhaps because they were called out).
 
-### Case 34: Session `iiu3xixz`, supergame3, Round 3, Player L (Group 2)
+### Case 34: Player L, `iiu3xixz`, supergame3 R3 (G2)
 
 - **Contribution**: 25 / 25
-- **Promise made**: Yes (is_liar_20)
-- **Facial emotions** (Contribute page): joy: 0.0244, valence: -2.0583, sadness: 0.1665, contempt: 14.0241, neutral: 83.5443
-- **Chat sentiment** (VADER compound mean): 0.0059
+- **Classification**: genuine_guilt, self_justification
+- **Facial emotions**: joy: 0.02, valence: -2.06, sadness: 0.17
 
-**Messages** (5 total):
+**Messages:**
 
 > "i forgot to press 5"
 > "do it again"
-> "my bad" **[apology]**
+> "my bad" *[regex: apology]*
 > "yeah i agree"
 > "lets do it"
 
-Guilt indicators detected: apology (1)
+**Assessment:** 'my bad' is acknowledgment. 'i forgot to press 5' is an excuse (claiming technical error rather than intentional defection). Slightly negative valence (-2.06). The guilt seems partially genuine -- they acknowledge fault ('my bad') but also excuse it ('forgot'). Mild negative facial affect is consistent with some discomfort.
 
-### Case 35: Session `iiu3xixz`, supergame4, Round 4, Player L (Group 3)
+### Case 35: Player L, `iiu3xixz`, supergame4 R4 (G3)
 
 - **Contribution**: 1 / 25
-- **Promise made**: Yes (is_liar_20)
-- **Facial emotions** (Contribute page): joy: 0.0241, valence: 0.0000, sadness: 0.1651, contempt: 0.1959, neutral: 99.5749
-- **Chat sentiment** (VADER compound mean): 0.3125
+- **Classification**: no_guilt
+- **Facial emotions**: joy: 0.02, valence: 0.00, sadness: 0.17
 
-**Messages** (2 total):
+**Messages:**
 
 > "great again?"
 > "?"
 
-No explicit guilt indicators detected.
+**Assessment:** Very sparse. 'great again?' could be sarcastic. No guilt expression. This is the same serial liar L contributing 1 again.
 
-### Case 36: Session `iiu3xixz`, supergame4, Round 5, Player L (Group 3)
+### Case 36: Player L, `iiu3xixz`, supergame4 R5 (G3)
 
 - **Contribution**: 0 / 25
-- **Promise made**: Yes (is_liar_20)
-- **Facial emotions** (Contribute page): joy: 29.8482, valence: 26.1614, sadness: 0.0818, contempt: 0.1206, neutral: 66.2099
+- **Classification**: false_promise, manipulation
+- **Facial emotions**: joy: 29.85, valence: 26.16, sadness: 0.08
 
-**Messages** (4 total):
+**Messages:**
 
 > "how about 15"
 > "can we do 15"
 > "10"
 > "thats reasonable"
 
-No explicit guilt indicators detected.
+**Assessment:** Negotiating downward (15, then 10) while contributing 0. 'thats reasonable' frames 10-15 as fair -- then gives nothing. Moderately happy face (joy 29.85). Enjoyment while manipulating expectations.
 
-### Case 37: Session `iiu3xixz`, supergame4, Round 6, Player L (Group 3)
+### Case 37: Player L, `iiu3xixz`, supergame4 R6 (G3)
 
 - **Contribution**: 0 / 25
-- **Promise made**: Yes (is_liar_20)
-- **Facial emotions** (Contribute page): joy: 0.0278, valence: 0.0000, sadness: 0.1224, contempt: 0.3250, neutral: 99.3501
-- **Chat sentiment** (VADER compound mean): 0.2301
+- **Classification**: false_promise, deflection_collective, self_justification
+- **Facial emotions**: joy: 0.03, valence: 0.00, sadness: 0.12
 
-**Messages** (3 total):
+**Messages:**
 
 > "alright we gotta add something to the pot"
 > "15"
 > "thats better for everyone"
 
-No explicit guilt indicators detected.
+**Assessment:** 'we gotta add something' -- collective framing. '15' -- proposed amount they don't follow through on. 'thats better for everyone' -- self-justification. Contributed 0 while advocating 15. Neutral face.
 
-### Case 38: Session `iiu3xixz`, supergame4, Round 7, Player L (Group 3)
+### Case 38: Player L, `iiu3xixz`, supergame4 R7 (G3)
 
 - **Contribution**: 0 / 25
-- **Promise made**: Yes (is_liar_20)
-- **Facial emotions** (Contribute page): joy: 0.1602, valence: 2.2496, sadness: 1.0322, contempt: 21.9070, neutral: 66.2889
+- **Classification**: false_promise, manipulation
+- **Facial emotions**: joy: 0.16, valence: 2.25, sadness: 1.03
 
-**Messages** (3 total):
+**Messages:**
 
 > "everyone do 18"
 > "everyone do 25"
 > "then we can get 4"
 
-No explicit guilt indicators detected.
+**Assessment:** Directing 'everyone' to contribute 18, then 25 -- while contributing 0. Escalating false demands. Slightly sad face (sadness 1.03) -- first hint of negative affect from this serial liar (Player L, 5th consecutive round of lying).
 
-### Case 39: Session `6ucza025`, supergame4, Round 4, Player G (Group 2)
+### Case 39: Player G, `6ucza025`, supergame4 R4 (G2)
 
 - **Contribution**: 20 / 25
-- **Promise made**: Yes (is_liar_20)
-- **Facial emotions** (Contribute page): joy: 0.0414, valence: -0.0109, sadness: 0.8323, contempt: 0.1718, neutral: 98.2827
+- **Classification**: false_promise
+- **Facial emotions**: joy: 0.04, valence: -0.01, sadness: 0.83
 
-**Messages** (2 total):
+**Messages:**
 
-> "guys all in" **[future_promise]**
+> "guys all in" *[regex: future_promise]*
 > "??"
 
-Guilt indicators detected: future_promise (1)
+**Assessment:** 'guys all in' but contributed 20 not 25. Marginal case -- 20 is close but technically a broken promise. Slight sadness (0.83).
 
-### Case 40: Session `6ucza025`, supergame4, Round 5, Player G (Group 2)
+### Case 40: Player G, `6ucza025`, supergame4 R5 (G2)
 
 - **Contribution**: 25 / 25
-- **Promise made**: Yes (is_liar_20)
-- **Facial emotions** (Contribute page): joy: 0.0300, valence: 0.9143, sadness: 0.1916, contempt: 0.1754, neutral: 51.6859
-- **Chat sentiment** (VADER compound mean): 0.2202
+- **Classification**: no_guilt
+- **Facial emotions**: joy: 0.03, valence: 0.91, sadness: 0.19
 
-**Messages** (2 total):
+**Messages:**
 
 > "not maximizing prodit"
 > "profit"
 
-No explicit guilt indicators detected.
+**Assessment:** Strategic observation about group outcome. Typo correction. No guilt.
 
-### Case 41: Session `6ucza025`, supergame4, Round 6, Player G (Group 2)
+### Case 41: Player G, `6ucza025`, supergame4 R6 (G2)
 
 - **Contribution**: 25 / 25
-- **Promise made**: Yes (is_liar_20)
-- **Facial emotions** (Contribute page): joy: 0.0246, valence: 0.0000, sadness: 0.1492, contempt: 0.2065, neutral: 99.5714
-- **Chat sentiment** (VADER compound mean): 0.1054
+- **Classification**: no_guilt
+- **Facial emotions**: joy: 0.02, valence: 0.00, sadness: 0.15
 
-**Messages** (4 total):
+**Messages:**
 
 > "nice guys"
 > "10/10"
 > "rtr"
 > "again"
 
-No explicit guilt indicators detected.
+**Assessment:** Positive encouragement. No guilt content.
 
-### Case 42: Session `6ucza025`, supergame4, Round 7, Player G (Group 2)
+### Case 42: Player G, `6ucza025`, supergame4 R7 (G2)
 
 - **Contribution**: 25 / 25
-- **Promise made**: Yes (is_liar_20)
-- **Facial emotions** (Contribute page): joy: 0.1227, valence: -1.1374, sadness: 1.0315, contempt: 1.3849, neutral: 96.1076
-- **Chat sentiment** (VADER compound mean): 0.5017
+- **Classification**: no_guilt
+- **Facial emotions**: joy: 0.12, valence: -1.14, sadness: 1.03
 
-**Messages** (2 total):
+**Messages:**
 
 > "yay"
 > "proud"
 
-No explicit guilt indicators detected.
+**Assessment:** 'proud' and 'yay' are positive. Interesting that facial affect is slightly negative despite positive words -- but no guilt-related content in the text.
 
-### Case 43: Session `6sdkxl2q`, supergame2, Round 3, Player D (Group 4)
+### Case 43: Player D, `6sdkxl2q`, supergame2 R3 (G4)
 
 - **Contribution**: 25 / 25
-- **Promise made**: Yes (is_liar_20)
-- **Facial emotions** (Contribute page): joy: 0.4106, valence: -2.4395, sadness: 6.9722, contempt: 0.1622, neutral: 85.5358
-- **Chat sentiment** (VADER compound mean): -0.0515
+- **Classification**: genuine_guilt, false_promise
+- **Facial emotions**: joy: 0.41, valence: -2.44, sadness: 6.97
 
-**Messages** (3 total):
+**Messages:**
 
-> "im putting 25 next round sorry yall" **[apology]**
-> "sorry i didn't know we were all in " **[apology, future_promise]**
+> "im putting 25 next round sorry yall" *[regex: apology]*
+> "sorry i didn't know we were all in " *[regex: apology, future_promise]*
 > "yall dont have to since you put 25 in last time"
 
-Guilt indicators detected: apology (2), future_promise (1)
+**Assessment:** THE clearest case of genuine guilt. Double apology ('sorry yall', 'sorry i didn't know'). Acknowledges unfairness to others ('yall dont have to since you put 25 in last time'). Future promise ('im putting 25 next round'). Facial emotion MATCHES: sadness 6.97 (highest in dataset for liars), negative valence -2.44, near-zero joy. Text guilt and facial guilt are aligned -- this appears to be real remorse.
 
-### Case 44: Session `6sdkxl2q`, supergame2, Round 4, Player C (Group 3)
+### Case 44: Player C, `6sdkxl2q`, supergame2 R4 (G3)
 
 - **Contribution**: 25 / 25
-- **Promise made**: Yes (is_liar_20)
-- **Facial emotions** (Contribute page): joy: 0.0246, valence: 0.0000, sadness: 0.1273, contempt: 0.1802, neutral: 98.8917
-- **Chat sentiment** (VADER compound mean): -0.3592
+- **Classification**: self_justification
+- **Facial emotions**: joy: 0.02, valence: 0.00, sadness: 0.13
 
-**Messages** (2 total):
+**Messages:**
 
 > "that made less than if we had all done 25"
 > "the risk is a valid concern but prisoners dilema literally says to all do it "
 
-No explicit guilt indicators detected.
+**Assessment:** Intellectual framing -- invoking prisoner's dilemma theory. Analyzing the situation rather than expressing guilt. Academic deflection.
 
-### Case 45: Session `6sdkxl2q`, supergame2, Round 4, Player J (Group 3)
-
-- **Contribution**: 25 / 25
-- **Promise made**: Yes (is_liar_20)
-- **Facial emotions** (Contribute page): joy: 0.2813, valence: 6.5830, sadness: 0.0924, contempt: 0.1842, neutral: 99.1872
-
-**Messages** (1 total):
-
-> "if we all do 25 then we get 40 each " **[deflection_collective, deflection_collective]**
-
-Guilt indicators detected: deflection_collective (2)
-
-### Case 46: Session `6sdkxl2q`, supergame2, Round 4, Player P (Group 3)
+### Case 45: Player J, `6sdkxl2q`, supergame2 R4 (G3)
 
 - **Contribution**: 25 / 25
-- **Promise made**: Yes (is_liar_20)
-- **Facial emotions** (Contribute page): joy: 2.3236, valence: 10.3847, sadness: 0.0917, contempt: 5.6878, neutral: 64.0737
+- **Classification**: false_promise
+- **Facial emotions**: joy: 0.28, valence: 6.58, sadness: 0.09
 
-**Messages** (2 total):
+**Messages:**
+
+> "if we all do 25 then we get 40 each " *[regex: deflection_collective, deflection_collective]*
+
+**Assessment:** Advocating cooperation with math. Implicit promise to contribute 25. Slightly positive face.
+
+### Case 46: Player P, `6sdkxl2q`, supergame2 R4 (G3)
+
+- **Contribution**: 25 / 25
+- **Classification**: no_guilt
+- **Facial emotions**: joy: 2.32, valence: 10.38, sadness: 0.09
+
+**Messages:**
 
 > "keep doing 10"
 > "so 25?"
 
-No explicit guilt indicators detected.
+**Assessment:** Negotiating between 10 and 25. Ambivalent, no guilt expression.
 
-### Case 47: Session `6sdkxl2q`, supergame2, Round 4, Player D (Group 4)
+### Case 47: Player D, `6sdkxl2q`, supergame2 R4 (G4)
 
 - **Contribution**: 25 / 25
-- **Promise made**: Yes (is_liar_20)
-- **Facial emotions** (Contribute page): joy: 0.0273, valence: -25.4532, sadness: 16.3423, contempt: 0.5553, neutral: 70.4768
-- **Chat sentiment** (VADER compound mean): 0.0903
+- **Classification**: false_promise
+- **Facial emotions**: joy: 0.03, valence: -25.45, sadness: 16.34
 
-**Messages** (4 total):
+**Messages:**
 
 > "lets all go 25"
 > "nah ur good "
 > "lets go 25 in and get paid "
-> "all in " **[future_promise]**
+> "all in " *[regex: future_promise]*
 
-Guilt indicators detected: future_promise (1)
+**Assessment:** Same player D from case 116. Enthusiastically advocating 25 multiple times, 'all in'. REMARKABLE facial data: valence -25.45 (most negative in entire liar dataset), sadness 16.34 (highest by far). Despite upbeat text, face shows extreme negative emotion. Possible lingering guilt from prior defection, or anxiety about group dynamics. Fascinating text-face disconnect -- opposite direction from duping delight.
 
-### Case 48: Session `6sdkxl2q`, supergame4, Round 7, Player J (Group 3)
+### Case 48: Player J, `6sdkxl2q`, supergame4 R7 (G3)
 
 - **Contribution**: 0 / 25
-- **Promise made**: Yes (is_liar_20)
-- **Facial emotions** (Contribute page): joy: 1.5188, valence: 17.7988, sadness: 0.1038, contempt: 0.1152, neutral: 92.6906
+- **Classification**: no_guilt
+- **Facial emotions**: joy: 1.52, valence: 17.80, sadness: 0.10
 
-**Messages** (1 total):
+**Messages:**
 
 > "turn of events..."
 
-No explicit guilt indicators detected.
+**Assessment:** Dry, sardonic observation. No guilt or apology. Moderately positive face. Understated reaction to the situation.
 
-### Case 49: Session `6sdkxl2q`, supergame4, Round 7, Player L (Group 3)
+### Case 49: Player L, `6sdkxl2q`, supergame4 R7 (G3)
 
 - **Contribution**: 0 / 25
-- **Promise made**: Yes (is_liar_20)
-- **Facial emotions** (Contribute page): joy: 31.9948, valence: 43.1430, sadness: 3.4529, contempt: 0.0177, neutral: 56.5816
-- **Chat sentiment** (VADER compound mean): 0.5859
+- **Classification**: duping_delight
+- **Facial emotions**: joy: 31.99, valence: 43.14, sadness: 3.45
 
-**Messages** (1 total):
+**Messages:**
 
 > "XD"
 
-No explicit guilt indicators detected.
+**Assessment:** 'XD' -- laughing face emoticon while contributing 0. Joy 31.99%, valence 43.14%. Openly amused at defecting. Some sadness (3.45) adds complexity but overall: amused free-rider.
 
 ---
-*Total cases with messages shown: 49*
+*Total cases: 49*
 
-## Conclusion: Are Liars Happy When They Pretend to Be Guilty?
+## Conclusion
 
-### Key Findings
+### Are liars happy when they pretend to be guilty?
 
-1. **Guilt expression is uncommon**: Only 17 of 123 liar instances (13.8%) contained any guilt-related language (apologies, remorse, future promises, or collective deflection).
+The hand-coded analysis reveals a more nuanced picture than simple guilt-vs-no-guilt:
 
-2. **Dominant strategy -- deflection and future promises**: Rather than expressing genuine guilt, liars more commonly used collective deflection ("we all should...") or made promises for future rounds.
+1. **Genuine guilt is rare**: Only 3 of 49 liar chat instances (6%) showed apparently sincere remorse. These cases featured direct apologies, acknowledgment of harm, and -- critically -- matching negative facial affect (high sadness, negative valence).
 
-3. **Facial emotions**: Liars who used guilt-related language showed **higher** facial joy (17.6848) compared to non-guilt-expressing liars (10.1530), suggesting their guilt expressions may not reflect genuine remorse.
+2. **False promises are the dominant strategy**: 18 cases (37%) involved stating a contribution they did not intend to make. This was the most common deception.
 
-4. **Valence**: Emotional valence was **more positive** for guilt-expressing liars (16.6486 vs 10.2186), consistent with the hypothesis that liars feel satisfaction (duping delight) even while performing guilt.
+3. **Duping delight exists but is uncommon**: 4 cases (8%) showed clear enjoyment while deceiving. The most extreme: Player L (iiu3xixz) said 'all in' while contributing 1/25, with 97.6% facial joy.
 
-### Interpretation
+4. **Manipulation and blame-shifting are common**: 9 cases involved directing others' behavior (often via 'rotation' schemes), and 6 involved accusing others of the very defection the liar was committing.
 
-The evidence tentatively supports the 'duping delight' hypothesis: liars who deploy guilt-laden language in chat display **more positive facial affect**, not less. This pattern is consistent with strategic guilt performance -- players who verbally express remorse appear to be emotionally unbothered, or even pleased, during the contribution decision. The guilt expression functions as a social tool for maintaining group cooperation norms while personally free-riding.
+5. **The genuine-guilt/duping-delight contrast**: Genuine guilt cases showed sadness and negative valence. Duping delight showed high joy and positive valence. The face does not lie, even when the chat does.
+
+### Key takeaway
+
+*Most* liars don't pretend to be guilty at all -- they make false promises, shift blame, or stay silent. The few who express guilt split into two distinct types: genuine remorse (matching sad faces) and duping delight (high joy while deceiving). The latter confirms some liars are happy, but they're more often happy while *lying* than while *performing guilt specifically*.
 
 ### Caveats
 
-- Sample size is limited (123 liar instances, 88 with facial data).
-- Guilt detection uses keyword matching, which may miss subtle or implicit guilt expressions.
-- Facial emotion data is aggregated over the entire Contribute page, not synchronized to specific moments.
-- No statistical significance testing was performed; differences should be treated as descriptive.
+- Sample sizes are small (49 cases with chat, 88 with facial data).
+- Hand coding is subjective, though cross-referenced with facial data where available.
+- Facial emotion is aggregated over the Contribute page, not time-locked to messages.

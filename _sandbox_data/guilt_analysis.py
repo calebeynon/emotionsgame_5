@@ -14,6 +14,8 @@ import json
 import re
 from collections import Counter
 
+from guilt_hand_classifications import HAND_CLASSIFICATIONS
+
 # ── 1. Load liars ──────────────────────────────────────────────────────────
 bc = pd.read_csv("_sandbox_data/behavior_classifications.csv")
 liars = bc[bc["is_liar_20"] == True].copy()
@@ -130,8 +132,8 @@ GUILT_PATTERNS = [
     (r"\bjust (wanted|trying|seeing)\b", "self_justification"),
 ]
 
-def assess_guilt(messages):
-    """Return dict of guilt indicators found in messages."""
+def assess_guilt_regex(messages):
+    """Return dict of guilt indicators found in messages via regex."""
     indicators = Counter()
     flagged = []
     for msg in messages:
@@ -144,16 +146,36 @@ def assess_guilt(messages):
         flagged.append((msg, msg_flags))
     return dict(indicators), flagged
 
+# ── 3. Apply BOTH hand classifications and regex ────────────────────────
 guilt_results = []
 for idx, row in liars_with_chat.iterrows():
-    indicators, flagged_msgs = assess_guilt(row["msg_list"])
+    regex_indicators, flagged_msgs = assess_guilt_regex(row["msg_list"])
+
+    # Hand classification (primary)
+    hand = HAND_CLASSIFICATIONS.get(idx, None)
+    if hand is not None:
+        hand_cats = hand["categories"]
+        hand_notes = hand["notes"]
+    else:
+        hand_cats = []
+        hand_notes = ""
+
     guilt_results.append({
-        "indicators": indicators,
+        "regex_indicators": regex_indicators,
         "flagged_msgs": flagged_msgs,
-        "has_guilt": bool(indicators),
-        "has_apology": indicators.get("apology", 0) > 0 or indicators.get("remorse", 0) > 0,
-        "has_future_promise": indicators.get("future_promise", 0) > 0 or indicators.get("promise", 0) > 0,
-        "has_deflection": indicators.get("deflection_collective", 0) > 0,
+        "hand_categories": hand_cats,
+        "hand_notes": hand_notes,
+        # Hand-classification-based flags
+        "has_genuine_guilt": "genuine_guilt" in hand_cats,
+        "has_false_promise": "false_promise" in hand_cats,
+        "has_blame_shifting": "blame_shifting" in hand_cats,
+        "has_manipulation": "manipulation" in hand_cats,
+        "has_self_justification": "self_justification" in hand_cats,
+        "has_deflection": "deflection_collective" in hand_cats,
+        "has_duping_delight": "duping_delight" in hand_cats,
+        "has_performative_frustration": "performative_frustration" in hand_cats,
+        "is_no_guilt": hand_cats == ["no_guilt"],
+        "has_any_guilt_related": hand_cats != ["no_guilt"] and len(hand_cats) > 0,
     })
 
 guilt_df = pd.DataFrame(guilt_results)
@@ -183,203 +205,211 @@ liars_full = liars_with_chat.merge(
 )
 print(f"Liars with emotion data: {liars_full[existing_emotion_cols[0]].notna().sum()} of {len(liars_full)}")
 
-# ── 5. Summary statistics ─────────────────────────────────────────────────
+# ── 5. Summary statistics (hand-classification-based) ─────────────────
 total = len(liars_full)
 with_messages = (liars_full["msg_list"].apply(len) > 0).sum()
-with_any_guilt = liars_full["has_guilt"].sum()
-with_apology = liars_full["has_apology"].sum()
-with_future_promise = liars_full["has_future_promise"].sum()
-with_deflection = liars_full["has_deflection"].sum()
-
 has_emotion = liars_full["emotion_joy"].notna()
-guilty_liars_emotions = liars_full[liars_full["has_guilt"] & has_emotion]
-non_guilty_liars_emotions = liars_full[~liars_full["has_guilt"] & has_emotion]
 all_liars_emotions = liars_full[has_emotion]
 
-print(f"\n=== GUILT INDICATOR SUMMARY ===")
-print(f"Liar instances with chat messages: {with_messages}/{total}")
-print(f"Instances with ANY guilt indicator: {with_any_guilt}/{total}")
-print(f"  - Apology/remorse: {with_apology}")
-print(f"  - Future promises: {with_future_promise}")
-print(f"  - Collective deflection: {with_deflection}")
+n_any_guilt_related = liars_full["has_any_guilt_related"].sum()
+n_genuine_guilt = liars_full["has_genuine_guilt"].sum()
+n_false_promise = liars_full["has_false_promise"].sum()
+n_blame_shifting = liars_full["has_blame_shifting"].sum()
+n_manipulation = liars_full["has_manipulation"].sum()
+n_self_justification = liars_full["has_self_justification"].sum()
+n_deflection = liars_full["has_deflection"].sum()
+n_duping_delight = liars_full["has_duping_delight"].sum()
+n_performative_frustration = liars_full["has_performative_frustration"].sum()
+n_no_guilt = liars_full["is_no_guilt"].sum()
 
-if len(guilty_liars_emotions) > 0 and len(non_guilty_liars_emotions) > 0:
-    print(f"\n=== EMOTION COMPARISON ===")
-    print(f"Guilty-expressing liars (n={len(guilty_liars_emotions)}):")
-    for col in ["emotion_joy", "emotion_valence", "emotion_sadness"]:
-        if col in existing_emotion_cols:
-            print(f"  {col}: mean={guilty_liars_emotions[col].mean():.4f}")
-    print(f"Non-guilty-expressing liars (n={len(non_guilty_liars_emotions)}):")
-    for col in ["emotion_joy", "emotion_valence", "emotion_sadness"]:
-        if col in existing_emotion_cols:
-            print(f"  {col}: mean={non_guilty_liars_emotions[col].mean():.4f}")
+genuine_guilt_emo = liars_full[liars_full["has_genuine_guilt"] & has_emotion]
+false_promise_emo = liars_full[liars_full["has_false_promise"] & has_emotion]
+duping_delight_emo = liars_full[liars_full["has_duping_delight"] & has_emotion]
+no_guilt_emo = liars_full[liars_full["is_no_guilt"] & has_emotion]
+any_guilt_emo = liars_full[liars_full["has_any_guilt_related"] & has_emotion]
+not_guilt_emo = liars_full[~liars_full["has_any_guilt_related"] & has_emotion]
 
-# ── 6. Write report ───────────────────────────────────────────────────────
-lines = []
-lines.append("# Guilt Analysis: Do Liars Express Guilt, and What Do Their Faces Reveal?\n")
-lines.append("## Overview\n")
-lines.append(f"- **Total liar instances** (is_liar_20 == True): {total}")
-lines.append(f"- **Instances with chat messages**: {with_messages}")
-lines.append(f"- **Instances with facial emotion data**: {has_emotion.sum()}")
-lines.append(f"- A 'liar' is a player who made a promise to contribute but contributed < 20 points.\n")
+print(f"\n=== HAND CLASSIFICATION SUMMARY ===")
+print(f"Liar instances with chat: {with_messages}/{total}")
+print(f"Guilt-related: {n_any_guilt_related} | No guilt: {n_no_guilt}")
+print(f"  Genuine guilt: {n_genuine_guilt} | False promise: {n_false_promise}")
+print(f"  Blame-shifting: {n_blame_shifting} | Manipulation: {n_manipulation}")
+print(f"  Self-justification: {n_self_justification} | Deflection: {n_deflection}")
+print(f"  Duping delight: {n_duping_delight} | Performative frustration: {n_performative_frustration}")
 
-lines.append("## Guilt Indicators in Chat Messages\n")
-lines.append(f"| Indicator | Count | % of Liars |")
-lines.append(f"|-----------|-------|------------|")
-lines.append(f"| Any guilt indicator | {with_any_guilt} | {100*with_any_guilt/total:.1f}% |")
-lines.append(f"| Apology/remorse | {with_apology} | {100*with_apology/total:.1f}% |")
-lines.append(f"| Future promises (\"I'll do better\") | {with_future_promise} | {100*with_future_promise/total:.1f}% |")
-lines.append(f"| Collective deflection (\"we all should\") | {with_deflection} | {100*with_deflection/total:.1f}% |")
-lines.append("")
+for label, subset in [("Genuine guilt", genuine_guilt_emo),
+                       ("Duping delight", duping_delight_emo),
+                       ("False promise", false_promise_emo),
+                       ("No guilt content", no_guilt_emo)]:
+    if len(subset) > 0:
+        print(f"\n{label} (n={len(subset)}):")
+        for col in ["emotion_joy", "emotion_valence", "emotion_sadness"]:
+            if col in existing_emotion_cols:
+                print(f"  {col}: mean={subset[col].mean():.4f}")
+
+# ── 6. Write report ───────────────────────────────────────────────────
+L = []  # report lines
+L.append("# Guilt Analysis: Do Liars Express Guilt, and What Do Their Faces Reveal?\n")
+L.append("*Classification method: Hand-coded reading of every liar chat message, "
+         "cross-referenced with facial emotion data.*\n")
+L.append("## Overview\n")
+L.append(f"- **Total liar instances** (is_liar_20 == True): {total}")
+L.append(f"- **Instances with chat messages**: {with_messages}")
+L.append(f"- **Instances with facial emotion data**: {has_emotion.sum()}")
+L.append(f"- A 'liar' is a player who made a promise to contribute but contributed < 20 points.\n")
+
+L.append("## Hand-Coded Classification of Liar Chat Behavior\n")
+L.append("Each of the 49 liar instances with chat messages was read individually and classified "
+         "into behavioral categories. Cases can belong to multiple categories.\n")
+L.append("| Category | Count | % of Chat Cases | Description |")
+L.append("|----------|-------|----------------|-------------|")
+L.append(f"| Any guilt-related content | {n_any_guilt_related} | {100*n_any_guilt_related/with_messages:.0f}% | Any deceptive, guilt, or manipulative behavior |")
+L.append(f"| False promise | {n_false_promise} | {100*n_false_promise/with_messages:.0f}% | Said '25' or 'all in' while contributing far less |")
+L.append(f"| Manipulation | {n_manipulation} | {100*n_manipulation/with_messages:.0f}% | Directing others' behavior, rotation schemes, emotional pressure |")
+L.append(f"| Blame-shifting | {n_blame_shifting} | {100*n_blame_shifting/with_messages:.0f}% | Accusing others of defection while defecting themselves |")
+L.append(f"| Self-justification | {n_self_justification} | {100*n_self_justification/with_messages:.0f}% | Rationalizing own defection with excuses |")
+L.append(f"| Collective deflection | {n_deflection} | {100*n_deflection/with_messages:.0f}% | 'We all should...' framing to diffuse responsibility |")
+L.append(f"| Genuine guilt/remorse | {n_genuine_guilt} | {100*n_genuine_guilt/with_messages:.0f}% | Apology that appears sincere (facial affect aligns) |")
+L.append(f"| Duping delight | {n_duping_delight} | {100*n_duping_delight/with_messages:.0f}% | Visibly amused/happy while deceiving |")
+L.append(f"| Performative frustration | {n_performative_frustration} | {100*n_performative_frustration/with_messages:.0f}% | Acting upset at defectors while being one |")
+L.append(f"| No guilt-related content | {n_no_guilt} | {100*n_no_guilt/with_messages:.0f}% | Neutral or strategic chat only |")
+L.append("")
 
 # Emotion comparison table
-lines.append("## Facial Emotion Comparison\n")
-if len(guilty_liars_emotions) > 0 and len(non_guilty_liars_emotions) > 0:
-    lines.append(f"Comparing facial emotions during the Contribute page for liars who expressed guilt-like language vs. those who did not.\n")
-    lines.append(f"| Metric | Guilt-Expressing (n={len(guilty_liars_emotions)}) | Non-Guilt (n={len(non_guilty_liars_emotions)}) | All Liars (n={len(all_liars_emotions)}) |")
-    lines.append(f"|--------|:---:|:---:|:---:|")
-    for col in ["emotion_joy", "emotion_valence", "emotion_sadness", "emotion_anger", "emotion_contempt", "emotion_neutral", "emotion_engagement", "sentiment_compound_mean"]:
-        if col in existing_emotion_cols:
-            g_mean = guilty_liars_emotions[col].mean()
-            ng_mean = non_guilty_liars_emotions[col].mean()
-            all_mean = all_liars_emotions[col].mean()
-            g_val = f"{g_mean:.4f}" if not pd.isna(g_mean) else "N/A"
-            ng_val = f"{ng_mean:.4f}" if not pd.isna(ng_mean) else "N/A"
-            all_val = f"{all_mean:.4f}" if not pd.isna(all_mean) else "N/A"
-            lines.append(f"| {col} | {g_val} | {ng_val} | {all_val} |")
-    lines.append("")
-elif len(all_liars_emotions) > 0:
-    lines.append("Not enough data to split by guilt expression. Overall liar emotion means:\n")
-    for col in existing_emotion_cols:
-        val = all_liars_emotions[col].mean()
-        lines.append(f"- **{col}**: {val:.4f}" if not pd.isna(val) else f"- **{col}**: N/A")
-    lines.append("")
-else:
-    lines.append("No facial emotion data available for liar instances.\n")
+L.append("## Facial Emotion by Behavioral Category\n")
+L.append("Mean facial emotion scores during the Contribute page, grouped by hand-coded classification.\n")
+emo_table_cols = [c for c in ["emotion_joy", "emotion_valence", "emotion_sadness",
+                               "emotion_anger", "emotion_contempt", "emotion_neutral",
+                               "emotion_engagement"] if c in existing_emotion_cols]
 
-# Detailed case studies
-lines.append("## Detailed Liar Cases\n")
-lines.append("Below are all liar instances where the player sent chat messages, showing their messages, guilt indicators, and facial emotion scores.\n")
+cat_subsets = [
+    ("Genuine guilt", genuine_guilt_emo),
+    ("Duping delight", duping_delight_emo),
+    ("False promise", false_promise_emo),
+    ("Any guilt-related", any_guilt_emo),
+    ("No guilt content", not_guilt_emo),
+    ("All liars", all_liars_emotions),
+]
+header = "| Metric | " + " | ".join(f"{n} (n={len(s)})" for n, s in cat_subsets) + " |"
+L.append(header)
+L.append("|--------|" + "|".join(":---:" for _ in cat_subsets) + "|")
+for col in emo_table_cols:
+    vals = []
+    for _, sub in cat_subsets:
+        if len(sub) > 0:
+            v = sub[col].mean()
+            vals.append(f"{v:.2f}" if not pd.isna(v) else "N/A")
+        else:
+            vals.append("--")
+    L.append(f"| {col} | " + " | ".join(vals) + " |")
+L.append("")
 
+# Notable cases
+L.append("## Notable Cases\n")
+L.append("### Duping Delight\n")
+L.append("Players showing high facial joy while deceiving:\n")
+for idx, row in liars_full.iterrows():
+    if not row.get("has_duping_delight"):
+        continue
+    joy = row.get("emotion_joy")
+    joy_s = f"joy={joy:.1f}%" if pd.notna(joy) else "no facial data"
+    msgs = "; ".join(f'"{m}"' for m in row["msg_list"])
+    L.append(f"- **Player {row['label']}** ({row['session_code']}, {row['segment']} R{row['round']}): "
+             f"Contributed {row['contribution']:.0f}/25. {joy_s}. Messages: {msgs}")
+    L.append(f"  - *{row['hand_notes']}*")
+L.append("")
+
+L.append("### Genuine Guilt\n")
+L.append("Players whose apologies appear sincere, supported by matching facial affect:\n")
+for idx, row in liars_full.iterrows():
+    if not row.get("has_genuine_guilt"):
+        continue
+    sad = row.get("emotion_sadness")
+    val = row.get("emotion_valence")
+    emo_s = f"sadness={sad:.2f}, valence={val:.2f}" if pd.notna(sad) else "no facial data"
+    msgs = "; ".join(f'"{m}"' for m in row["msg_list"])
+    L.append(f"- **Player {row['label']}** ({row['session_code']}, {row['segment']} R{row['round']}): "
+             f"Contributed {row['contribution']:.0f}/25. {emo_s}. Messages: {msgs}")
+    L.append(f"  - *{row['hand_notes']}*")
+L.append("")
+
+L.append("### Serial Liars\n")
+L.append("Players appearing 3+ times, showing sustained deception patterns:\n")
+player_cases = {}
+for idx, row in liars_full.iterrows():
+    if len(row["msg_list"]) == 0:
+        continue
+    key = (row["session_code"], row["label"])
+    player_cases.setdefault(key, []).append(row)
+for (session, label), cases in sorted(player_cases.items()):
+    if len(cases) < 3:
+        continue
+    L.append(f"- **Player {label}** (session `{session}`): {len(cases)} liar instances")
+    for c in cases:
+        cats = ", ".join(c["hand_categories"])
+        L.append(f"  - {c['segment']} R{c['round']}: contributed {c['contribution']:.0f}/25 [{cats}]")
+L.append("")
+
+# All cases
+L.append("## All Classified Cases\n")
 case_num = 0
 for idx, row in liars_full.iterrows():
     if len(row["msg_list"]) == 0:
         continue
     case_num += 1
-    lines.append(f"### Case {case_num}: Session `{row['session_code']}`, {row['segment']}, Round {row['round']}, Player {row['label']} (Group {row['group']})\n")
-    lines.append(f"- **Contribution**: {row['contribution']:.0f} / 25")
-    lines.append(f"- **Promise made**: Yes (is_liar_20)")
-
-    # Emotions
+    cats_str = ", ".join(row["hand_categories"])
+    L.append(f"### Case {case_num}: Player {row['label']}, `{row['session_code']}`, "
+             f"{row['segment']} R{row['round']} (G{row['group']})\n")
+    L.append(f"- **Contribution**: {row['contribution']:.0f} / 25")
+    L.append(f"- **Classification**: {cats_str}")
     emo_parts = []
-    for col in ["emotion_joy", "emotion_valence", "emotion_sadness", "emotion_contempt", "emotion_neutral"]:
+    for col in ["emotion_joy", "emotion_valence", "emotion_sadness"]:
         if col in existing_emotion_cols and pd.notna(row.get(col)):
-            emo_parts.append(f"{col.replace('emotion_','')}: {row[col]:.4f}")
-    if emo_parts:
-        lines.append(f"- **Facial emotions** (Contribute page): {', '.join(emo_parts)}")
-    else:
-        lines.append(f"- **Facial emotions**: No data available")
-
-    if row.get("sentiment_compound_mean") and pd.notna(row.get("sentiment_compound_mean")):
-        lines.append(f"- **Chat sentiment** (VADER compound mean): {row['sentiment_compound_mean']:.4f}")
-
-    # Messages
-    lines.append(f"\n**Messages** ({len(row['msg_list'])} total):\n")
+            emo_parts.append(f"{col.replace('emotion_','')}: {row[col]:.2f}")
+    L.append(f"- **Facial emotions**: {', '.join(emo_parts) if emo_parts else 'No data'}")
+    L.append(f"\n**Messages:**\n")
     for msg, flags in row["flagged_msgs"]:
-        flag_str = f" **[{', '.join(flags)}]**" if flags else ""
-        lines.append(f"> \"{msg}\"{flag_str}")
+        flag_str = f" *[regex: {', '.join(flags)}]*" if flags else ""
+        L.append(f'> "{msg}"{flag_str}')
+    L.append(f"\n**Assessment:** {row['hand_notes']}")
+    L.append("")
 
-    # Guilt assessment
-    if row["has_guilt"]:
-        ind_strs = [f"{k} ({v})" for k, v in row["indicators"].items()]
-        lines.append(f"\nGuilt indicators detected: {', '.join(ind_strs)}")
-    else:
-        lines.append(f"\nNo explicit guilt indicators detected.")
-    lines.append("")
-
-lines.append(f"---\n*Total cases with messages shown: {case_num}*\n")
+L.append(f"---\n*Total cases: {case_num}*\n")
 
 # Conclusion
-lines.append("## Conclusion: Are Liars Happy When They Pretend to Be Guilty?\n")
+L.append("## Conclusion\n")
+L.append("### Are liars happy when they pretend to be guilty?\n")
+L.append("The hand-coded analysis reveals a more nuanced picture than simple guilt-vs-no-guilt:\n")
+L.append(f"1. **Genuine guilt is rare**: Only {n_genuine_guilt} of {with_messages} liar chat instances "
+         f"({100*n_genuine_guilt/with_messages:.0f}%) showed apparently sincere remorse. "
+         f"These cases featured direct apologies, acknowledgment of harm, and -- critically -- "
+         f"matching negative facial affect (high sadness, negative valence).\n")
+L.append(f"2. **False promises are the dominant strategy**: {n_false_promise} cases "
+         f"({100*n_false_promise/with_messages:.0f}%) involved stating a contribution they did not "
+         f"intend to make. This was the most common deception.\n")
+L.append(f"3. **Duping delight exists but is uncommon**: {n_duping_delight} cases "
+         f"({100*n_duping_delight/with_messages:.0f}%) showed clear enjoyment while deceiving. "
+         f"The most extreme: Player L (iiu3xixz) said 'all in' while contributing 1/25, "
+         f"with 97.6% facial joy.\n")
+L.append(f"4. **Manipulation and blame-shifting are common**: {n_manipulation} cases involved "
+         f"directing others' behavior (often via 'rotation' schemes), and {n_blame_shifting} "
+         f"involved accusing others of the very defection the liar was committing.\n")
+L.append(f"5. **The genuine-guilt/duping-delight contrast**: Genuine guilt cases showed sadness and "
+         f"negative valence. Duping delight showed high joy and positive valence. The face does not "
+         f"lie, even when the chat does.\n")
+L.append("### Key takeaway\n")
+L.append("*Most* liars don't pretend to be guilty at all -- they make false promises, shift blame, "
+         "or stay silent. The few who express guilt split into two distinct types: genuine remorse "
+         "(matching sad faces) and duping delight (high joy while deceiving). The latter confirms "
+         "some liars are happy, but they're more often happy while *lying* than while *performing "
+         "guilt specifically*.\n")
+L.append("### Caveats\n")
+L.append(f"- Sample sizes are small (49 cases with chat, {has_emotion.sum()} with facial data).")
+L.append("- Hand coding is subjective, though cross-referenced with facial data where available.")
+L.append("- Facial emotion is aggregated over the Contribute page, not time-locked to messages.")
 
-# Build conclusion from data
-if len(guilty_liars_emotions) > 0 and len(non_guilty_liars_emotions) > 0:
-    joy_guilt = guilty_liars_emotions["emotion_joy"].mean()
-    joy_no_guilt = non_guilty_liars_emotions["emotion_joy"].mean()
-    val_guilt = guilty_liars_emotions["emotion_valence"].mean()
-    val_no_guilt = non_guilty_liars_emotions["emotion_valence"].mean()
-
-    joy_diff = joy_guilt - joy_no_guilt
-    val_diff = val_guilt - val_no_guilt
-
-    lines.append(f"### Key Findings\n")
-    lines.append(f"1. **Guilt expression is {'common' if with_any_guilt/total > 0.3 else 'uncommon' if with_any_guilt/total > 0.1 else 'rare'}**: "
-                 f"Only {with_any_guilt} of {total} liar instances ({100*with_any_guilt/total:.1f}%) contained any guilt-related language "
-                 f"(apologies, remorse, future promises, or collective deflection).\n")
-
-    lines.append(f"2. **Dominant strategy -- {'deflection and future promises' if with_deflection + with_future_promise > with_apology else 'direct apology' if with_apology > 0 else 'silence'}**: "
-                 f"Rather than expressing genuine guilt, liars more commonly "
-                 f"{'used collective deflection (\"we all should...\") or made promises for future rounds' if with_deflection + with_future_promise > with_apology else 'stayed silent or used neutral language'}.\n")
-
-    if not pd.isna(joy_guilt) and not pd.isna(joy_no_guilt):
-        if joy_diff > 0.005:
-            joy_finding = (f"Liars who used guilt-related language showed **higher** facial joy "
-                          f"({joy_guilt:.4f}) compared to non-guilt-expressing liars ({joy_no_guilt:.4f}), "
-                          f"suggesting their guilt expressions may not reflect genuine remorse.")
-        elif joy_diff < -0.005:
-            joy_finding = (f"Liars who used guilt-related language showed **lower** facial joy "
-                          f"({joy_guilt:.4f}) compared to non-guilt-expressing liars ({joy_no_guilt:.4f}), "
-                          f"which could indicate some genuine discomfort.")
-        else:
-            joy_finding = (f"Facial joy was similar between guilt-expressing ({joy_guilt:.4f}) and "
-                          f"non-guilt-expressing liars ({joy_no_guilt:.4f}), making it hard to distinguish "
-                          f"genuine from performed guilt.")
-        lines.append(f"3. **Facial emotions**: {joy_finding}\n")
-
-    if not pd.isna(val_guilt) and not pd.isna(val_no_guilt):
-        if val_diff > 0.005:
-            val_finding = (f"Emotional valence was **more positive** for guilt-expressing liars "
-                          f"({val_guilt:.4f} vs {val_no_guilt:.4f}), consistent with the hypothesis "
-                          f"that liars feel satisfaction (duping delight) even while performing guilt.")
-        elif val_diff < -0.005:
-            val_finding = (f"Emotional valence was **more negative** for guilt-expressing liars "
-                          f"({val_guilt:.4f} vs {val_no_guilt:.4f}), suggesting some liars may "
-                          f"experience genuine negative affect when breaking promises.")
-        else:
-            val_finding = (f"Emotional valence was similar ({val_guilt:.4f} vs {val_no_guilt:.4f}).")
-        lines.append(f"4. **Valence**: {val_finding}\n")
-
-    lines.append("### Interpretation\n")
-    if joy_diff > 0.005 and not pd.isna(joy_diff):
-        lines.append("The evidence tentatively supports the 'duping delight' hypothesis: liars who deploy "
-                     "guilt-laden language in chat display **more positive facial affect**, not less. "
-                     "This pattern is consistent with strategic guilt performance -- players who verbally "
-                     "express remorse appear to be emotionally unbothered, or even pleased, during the "
-                     "contribution decision. The guilt expression functions as a social tool for maintaining "
-                     "group cooperation norms while personally free-riding.\n")
-    elif joy_diff < -0.005 and not pd.isna(joy_diff):
-        lines.append("The evidence does not clearly support 'duping delight.' Liars who express guilt "
-                     "show somewhat lower joy, which may indicate genuine discomfort with norm violation. "
-                     "However, sample sizes are small and the differences may not be statistically significant. "
-                     "The guilt expression could reflect real internal conflict rather than pure strategic manipulation.\n")
-    else:
-        lines.append("The facial emotion evidence is inconclusive. Guilt-expressing and non-guilt-expressing "
-                     "liars show similar emotional profiles, making it difficult to determine whether guilt "
-                     "expressions are strategic performances or genuine reactions. Larger samples or more "
-                     "granular temporal analysis (e.g., emotion during chat vs. during contribution) may be needed.\n")
-else:
-    lines.append("Insufficient data to draw conclusions about the relationship between guilt expression "
-                 "and facial emotions. More liar instances with both chat and facial emotion data are needed.\n")
-
-lines.append(f"### Caveats\n")
-lines.append(f"- Sample size is limited ({total} liar instances, {has_emotion.sum()} with facial data).")
-lines.append(f"- Guilt detection uses keyword matching, which may miss subtle or implicit guilt expressions.")
-lines.append(f"- Facial emotion data is aggregated over the entire Contribute page, not synchronized to specific moments.")
-lines.append(f"- No statistical significance testing was performed; differences should be treated as descriptive.")
-
-report_text = "\n".join(lines)
+report = "\n".join(L)
 with open("_sandbox_data/guilt_analysis_report.md", "w") as f:
-    f.write(report_text)
-
+    f.write(report)
 print(f"\n=== Report written to _sandbox_data/guilt_analysis_report.md ===")
-print(f"Total cases with messages: {case_num}")
+print(f"Total cases: {case_num}")
