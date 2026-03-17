@@ -11,25 +11,25 @@
 
 | Indicator | Count | % of Liars |
 |-----------|-------|------------|
-| Any guilt indicator | 10 | 8.1% |
+| Any guilt indicator | 17 | 13.8% |
 | Apology/remorse | 3 | 2.4% |
-| Future promises ("I'll do better") | 1 | 0.8% |
+| Future promises ("I'll do better") | 6 | 4.9% |
 | Collective deflection ("we all should") | 3 | 2.4% |
 
 ## Facial Emotion Comparison
 
 Comparing facial emotions during the Contribute page for liars who expressed guilt-like language vs. those who did not.
 
-| Metric | Guilt-Expressing (n=6) | Non-Guilt (n=82) | All Liars (n=88) |
+| Metric | Guilt-Expressing (n=10) | Non-Guilt (n=78) | All Liars (n=88) |
 |--------|:---:|:---:|:---:|
-| emotion_joy | 13.1954 | 10.8489 | 11.0089 |
-| emotion_valence | 15.7522 | 10.5979 | 10.9493 |
-| emotion_sadness | 1.2347 | 0.4259 | 0.4810 |
-| emotion_anger | 0.3321 | 0.2823 | 0.2857 |
-| emotion_contempt | 2.5013 | 1.2116 | 1.2995 |
-| emotion_neutral | 68.3678 | 80.3099 | 79.4957 |
-| emotion_engagement | 33.4096 | 17.0791 | 18.1925 |
-| sentiment_compound_mean | 0.0476 | 0.0871 | 0.0841 |
+| emotion_joy | 17.6848 | 10.1530 | 11.0089 |
+| emotion_valence | 16.6486 | 10.2186 | 10.9493 |
+| emotion_sadness | 2.4720 | 0.2258 | 0.4810 |
+| emotion_anger | 0.4023 | 0.2708 | 0.2857 |
+| emotion_contempt | 1.5947 | 1.2617 | 1.2995 |
+| emotion_neutral | 67.8579 | 80.9877 | 79.4957 |
+| emotion_engagement | 35.6675 | 15.9521 | 18.1925 |
+| sentiment_compound_mean | 0.0889 | 0.0834 | 0.0841 |
 
 ## Detailed Liar Cases
 
@@ -173,13 +173,13 @@ No explicit guilt indicators detected.
 
 **Messages** (5 total):
 
-> "HEAR ME OUT"
+> "HEAR ME OUT" **[plea]**
 > "The earnings will add up more if we take turns all going 0"
 > "I promise we did it last time and it was way better" **[promise]**
 > "It's just you play with the odds of the segment ending and someone missing out"
 > "I'll go 25"
 
-Guilt indicators detected: promise (1)
+Guilt indicators detected: plea (1), promise (1)
 
 ### Case 11: Session `sa7mprty`, supergame5, Round 4, Player R (Group 2)
 
@@ -221,10 +221,10 @@ No explicit guilt indicators detected.
 
 > "J..."
 > "Idk you guys"
-> "It was just a cycle, so everyone gets the chance at the 55 if only one person goes 0"
+> "It was just a cycle, so everyone gets the chance at the 55 if only one person goes 0" **[regret]**
 > "B you can go and J will go next"
 
-No explicit guilt indicators detected.
+Guilt indicators detected: regret (1)
 
 ### Case 14: Session `irrzlgk2`, supergame2, Round 3, Player K (Group 4)
 
@@ -319,10 +319,10 @@ Guilt indicators detected: trust_appeal (1)
 **Messages** (3 total):
 
 > "ok im on the 25 train now"
-> "I'm not loyal but im honest haha"
+> "I'm not loyal but im honest haha" **[trust_appeal]**
 > "25"
 
-No explicit guilt indicators detected.
+Guilt indicators detected: trust_appeal (1)
 
 ### Case 21: Session `r5dj4yfl`, supergame5, Round 4, Player P (Group 4)
 
@@ -383,10 +383,10 @@ No explicit guilt indicators detected.
 
 **Messages** (2 total):
 
-> "yall who didn't put in"
+> "yall who didn't put in" **[blame_shifting]**
 > "same"
 
-No explicit guilt indicators detected.
+Guilt indicators detected: blame_shifting (1)
 
 ### Case 25: Session `sylq2syi`, supergame4, Round 5, Player C (Group 1)
 
@@ -411,10 +411,10 @@ No explicit guilt indicators detected.
 **Messages** (3 total):
 
 > "ok i feel like we need to reset"
-> "like if we all put in 25" **[deflection_collective]**
+> "like if we all put in 25" **[deflection_collective, deflection_collective]**
 > "same"
 
-Guilt indicators detected: deflection_collective (1)
+Guilt indicators detected: deflection_collective (2)
 
 ### Case 27: Session `sylq2syi`, supergame4, Round 7, Player C (Group 1)
 
@@ -477,10 +477,10 @@ No explicit guilt indicators detected.
 
 **Messages** (2 total):
 
-> "all in"
+> "all in" **[future_promise]**
 > "sounds great"
 
-No explicit guilt indicators detected.
+Guilt indicators detected: future_promise (1)
 
 ### Case 32: Session `iiu3xixz`, supergame2, Round 4, Player A (Group 1)
 
@@ -506,10 +506,10 @@ Guilt indicators detected: trust_appeal (1)
 
 **Messages** (2 total):
 
-> "all in this time"
+> "all in this time" **[future_promise]**
 > "yes"
 
-No explicit guilt indicators detected.
+Guilt indicators detected: future_promise (1)
 
 ### Case 34: Session `iiu3xixz`, supergame3, Round 3, Player L (Group 2)
 
@@ -594,10 +594,10 @@ No explicit guilt indicators detected.
 
 **Messages** (2 total):
 
-> "guys all in"
+> "guys all in" **[future_promise]**
 > "??"
 
-No explicit guilt indicators detected.
+Guilt indicators detected: future_promise (1)
 
 ### Case 40: Session `6ucza025`, supergame4, Round 5, Player G (Group 2)
 
@@ -653,10 +653,10 @@ No explicit guilt indicators detected.
 **Messages** (3 total):
 
 > "im putting 25 next round sorry yall" **[apology]**
-> "sorry i didn't know we were all in " **[apology]**
+> "sorry i didn't know we were all in " **[apology, future_promise]**
 > "yall dont have to since you put 25 in last time"
 
-Guilt indicators detected: apology (2)
+Guilt indicators detected: apology (2), future_promise (1)
 
 ### Case 44: Session `6sdkxl2q`, supergame2, Round 4, Player C (Group 3)
 
@@ -680,9 +680,9 @@ No explicit guilt indicators detected.
 
 **Messages** (1 total):
 
-> "if we all do 25 then we get 40 each " **[deflection_collective]**
+> "if we all do 25 then we get 40 each " **[deflection_collective, deflection_collective]**
 
-Guilt indicators detected: deflection_collective (1)
+Guilt indicators detected: deflection_collective (2)
 
 ### Case 46: Session `6sdkxl2q`, supergame2, Round 4, Player P (Group 3)
 
@@ -709,9 +709,9 @@ No explicit guilt indicators detected.
 > "lets all go 25"
 > "nah ur good "
 > "lets go 25 in and get paid "
-> "all in "
+> "all in " **[future_promise]**
 
-No explicit guilt indicators detected.
+Guilt indicators detected: future_promise (1)
 
 ### Case 48: Session `6sdkxl2q`, supergame4, Round 7, Player J (Group 3)
 
@@ -745,13 +745,13 @@ No explicit guilt indicators detected.
 
 ### Key Findings
 
-1. **Guilt expression is rare**: Only 10 of 123 liar instances (8.1%) contained any guilt-related language (apologies, remorse, future promises, or collective deflection).
+1. **Guilt expression is uncommon**: Only 17 of 123 liar instances (13.8%) contained any guilt-related language (apologies, remorse, future promises, or collective deflection).
 
 2. **Dominant strategy -- deflection and future promises**: Rather than expressing genuine guilt, liars more commonly used collective deflection ("we all should...") or made promises for future rounds.
 
-3. **Facial emotions**: Liars who used guilt-related language showed **higher** facial joy (13.1954) compared to non-guilt-expressing liars (10.8489), suggesting their guilt expressions may not reflect genuine remorse.
+3. **Facial emotions**: Liars who used guilt-related language showed **higher** facial joy (17.6848) compared to non-guilt-expressing liars (10.1530), suggesting their guilt expressions may not reflect genuine remorse.
 
-4. **Valence**: Emotional valence was **more positive** for guilt-expressing liars (15.7522 vs 10.5979), consistent with the hypothesis that liars feel satisfaction (duping delight) even while performing guilt.
+4. **Valence**: Emotional valence was **more positive** for guilt-expressing liars (16.6486 vs 10.2186), consistent with the hypothesis that liars feel satisfaction (duping delight) even while performing guilt.
 
 ### Interpretation
 
