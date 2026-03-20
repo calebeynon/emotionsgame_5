@@ -2,8 +2,8 @@
 Guilt classification script for liar chat messages.
 
 Classifies each liar's chat messages into behavioral categories using
-OpenAI GPT-5.4. A "liar" (is_liar_20) is a player who made a promise to
-contribute but contributed < 20 points.
+OpenAI GPT-5.4. A "liar" (lied_this_round_20) is a player who made a promise
+AND contributed < 20 points in THAT SPECIFIC round (not cumulatively flagged).
 
 Chat Pairing Semantics:
     Messages in promise_classifications.csv on round R are chat that
@@ -275,7 +275,7 @@ def parse_response(raw: str) -> dict:
 def load_liar_messages() -> pd.DataFrame:
     """Load liars and merge with their chat messages."""
     bc = pd.read_csv(BEHAVIOR_FILE)
-    liars = bc[bc["is_liar_20"] == True].copy()
+    liars = bc[bc["lied_this_round_20"] == True].copy()
 
     pc = pd.read_csv(PROMISE_FILE, engine="python", on_bad_lines="skip")
     merge_keys = ["session_code", "segment", "round", "group", "label"]

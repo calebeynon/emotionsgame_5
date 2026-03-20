@@ -23,6 +23,7 @@ from behavior_helpers import (
     compute_sucker_flags,
     classify_player_behavior,
 )
+from behavior_helpers_df import compute_lied_this_round_flags
 
 # =====
 # Constants
@@ -546,19 +547,134 @@ class TestNoPromiseNoLiar:
 
 
 # =====
+# Test lied_this_round_20 (non-cumulative flag)
+# =====
+class TestLiedThisRound20:
+    """Tests for the non-cumulative lied_this_round_20 flag."""
+
+    def test_lied_when_promise_and_low_contribution(self):
+        """made_promise=True and contribution=10 -> lied_this_round_20=True."""
+        df = pd.DataFrame({
+            'session_code': ['abc123'], 'treatment': [1],
+            'segment': ['supergame1'], 'round': [1], 'group': [1],
+            'label': ['A'], 'participant_id': [1],
+            'contribution': [10], 'made_promise': [True],
+        })
+        result = compute_lied_this_round_flags(df, threshold=20)
+        assert result['lied_this_round_20'].iloc[0] == True
+
+    def test_not_lied_when_no_promise(self):
+        """made_promise=False and contribution=10 -> lied_this_round_20=False."""
+        df = pd.DataFrame({
+            'session_code': ['abc123'], 'treatment': [1],
+            'segment': ['supergame1'], 'round': [1], 'group': [1],
+            'label': ['A'], 'participant_id': [1],
+            'contribution': [10], 'made_promise': [False],
+        })
+        result = compute_lied_this_round_flags(df, threshold=20)
+        assert result['lied_this_round_20'].iloc[0] == False
+
+    def test_not_lied_when_high_contribution(self):
+        """made_promise=True and contribution=25 -> lied_this_round_20=False."""
+        df = pd.DataFrame({
+            'session_code': ['abc123'], 'treatment': [1],
+            'segment': ['supergame1'], 'round': [1], 'group': [1],
+            'label': ['A'], 'participant_id': [1],
+            'contribution': [25], 'made_promise': [True],
+        })
+        result = compute_lied_this_round_flags(df, threshold=20)
+        assert result['lied_this_round_20'].iloc[0] == False
+
+    def test_not_lied_at_threshold(self):
+        """made_promise=True and contribution=20 -> lied_this_round_20=False."""
+        df = pd.DataFrame({
+            'session_code': ['abc123'], 'treatment': [1],
+            'segment': ['supergame1'], 'round': [1], 'group': [1],
+            'label': ['A'], 'participant_id': [1],
+            'contribution': [20], 'made_promise': [True],
+        })
+        result = compute_lied_this_round_flags(df, threshold=20)
+        assert result['lied_this_round_20'].iloc[0] == False
+
+    def test_not_sticky_across_rounds(self):
+        """KEY: lied in round 1 but contributes 25 in round 2 -> False in round 2."""
+        df = pd.DataFrame({
+            'session_code': ['abc123'] * 4,
+            'treatment': [1] * 4,
+            'segment': ['supergame1'] * 4,
+            'round': [1, 1, 2, 2],
+            'group': [1, 1, 1, 1],
+            'label': ['A', 'B', 'A', 'B'],
+            'participant_id': [1, 2, 1, 2],
+            # A lies in round 1 (promise + contrib 10), honors in round 2
+            'contribution': [10, 25, 25, 25],
+            'made_promise': [True, True, True, True],
+        })
+        result = compute_lied_this_round_flags(df, threshold=20)
+
+        a_r1 = result[(result['label'] == 'A') & (result['round'] == 1)]
+        a_r2 = result[(result['label'] == 'A') & (result['round'] == 2)]
+        assert a_r1['lied_this_round_20'].iloc[0] == True
+        assert a_r2['lied_this_round_20'].iloc[0] == False
+
+    def test_round_1_can_be_true(self):
+        """Unlike is_liar_20, lied_this_round_20 CAN be True in round 1."""
+        df = pd.DataFrame({
+            'session_code': ['abc123'] * 2,
+            'treatment': [1] * 2,
+            'segment': ['supergame1'] * 2,
+            'round': [1, 1],
+            'group': [1, 1],
+            'label': ['A', 'B'],
+            'participant_id': [1, 2],
+            'contribution': [10, 25],
+            'made_promise': [True, True],
+        })
+        result = compute_lied_this_round_flags(df, threshold=20)
+        a_r1 = result[(result['label'] == 'A') & (result['round'] == 1)]
+        assert a_r1['lied_this_round_20'].iloc[0] == True
+
+
+# =====
+# Invariant test: lied_this_round_20=True implies contribution < 20
+# =====
+class TestLiedThisRound20Invariant:
+    """Invariant: lied_this_round_20=True always implies contribution < 20."""
+
+    @pytest.mark.parametrize("contribution,made_promise", [
+        (0, True), (5, True), (10, True), (15, True), (19, True),
+        (20, True), (25, True), (0, False), (10, False), (25, False),
+    ])
+    def test_lied_implies_low_contribution(self, contribution, made_promise):
+        """If lied_this_round_20=True then contribution must be < 20."""
+        df = pd.DataFrame({
+            'session_code': ['abc123'], 'treatment': [1],
+            'segment': ['supergame1'], 'round': [1], 'group': [1],
+            'label': ['A'], 'participant_id': [1],
+            'contribution': [contribution], 'made_promise': [made_promise],
+        })
+        result = compute_lied_this_round_flags(df, threshold=20)
+        if result['lied_this_round_20'].iloc[0]:
+            assert contribution < 20, (
+                f"lied_this_round_20=True but contribution={contribution} >= 20"
+            )
+
+
+# =====
 # Test combined classification function
 # =====
 class TestClassifyPlayerBehavior:
     """Tests for the combined classification function."""
 
     def test_classify_adds_all_flags(self, base_promise_df):
-        """classify_player_behavior adds all four flag columns."""
+        """classify_player_behavior adds all five flag columns."""
         result = classify_player_behavior(base_promise_df)
 
         assert 'is_liar_20' in result.columns
         assert 'is_liar_5' in result.columns
         assert 'is_sucker_20' in result.columns
         assert 'is_sucker_5' in result.columns
+        assert 'lied_this_round_20' in result.columns
 
     def test_classify_preserves_original_columns(self, base_promise_df):
         """Original columns are preserved after classification."""

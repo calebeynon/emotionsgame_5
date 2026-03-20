@@ -79,7 +79,7 @@ save_plot <- function(plot, filename, subdir = PLOT_DIR,
 merge_behavior_classifications <- function(dt) {
     bc <- fread(BEHAVIOR_CSV)
     merge_keys <- c("session_code", "segment", "round", "group", "label")
-    merge_cols <- c(merge_keys, "is_liar_20", "is_sucker_20")
+    merge_cols <- c(merge_keys, "is_liar_20", "is_sucker_20", "lied_this_round_20")
     bc_subset <- bc[, ..merge_cols]
     merged <- merge(dt, bc_subset, by = merge_keys, all.x = TRUE)
     na_count <- sum(is.na(merged$is_liar_20))
@@ -104,5 +104,15 @@ compute_zscores <- function(dt) {
     dt[, valence_z := (emotion_valence - val_mean) / val_sd]
     dt[, compound_z := (sentiment_compound_mean - cmp_mean) / cmp_sd]
     dt[, zscore_gap := valence_z - compound_z]
+    return(dt)
+}
+
+# =====
+# Round-specific liar label
+# =====
+add_liar_round_label <- function(dt) {
+    dt[, liar_round_label := ifelse(
+        lied_this_round_20 == TRUE, "Lied This Round", "Did Not Lie"
+    )]
     return(dt)
 }

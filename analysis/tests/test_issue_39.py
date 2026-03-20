@@ -36,6 +36,8 @@ DOTPLOT_FILES = [
     "emotion_sentiment_gap_by_liar_status.png",
     "emotion_sentiment_gap_by_sucker_status.png",
     "emotion_sentiment_gap_by_liar_x_state.png",
+    "emotion_sentiment_gap_by_liar_round_status.png",
+    "emotion_sentiment_gap_by_liar_round_x_state.png",
 ]
 
 SANDBOX_DIR = Path(__file__).resolve().parent.parent / "_sandbox_data"
@@ -44,6 +46,8 @@ NEGATIVE_EMOTION_FILES = [
     "negative_emotion_by_liar_status.png",
     "negative_emotion_by_sucker_status.png",
     "negative_emotion_by_liar_x_state.png",
+    "negative_emotion_by_liar_round_status.png",
+    "negative_emotion_by_liar_round_x_state.png",
 ]
 
 DECOMPOSITION_TABLES = [
@@ -132,11 +136,13 @@ dt <- load_contribute_data()
 dt <- merge_behavior_classifications(dt)
 cat("HAS_LIAR:", "is_liar_20" %in% names(dt), "\\n")
 cat("HAS_SUCKER:", "is_sucker_20" %in% names(dt), "\\n")
+cat("HAS_LIED_ROUND:", "lied_this_round_20" %in% names(dt), "\\n")
 cat("ROWS:", nrow(dt), "\\n")
 """)
         assert result.returncode == 0, result.stderr
         assert "HAS_LIAR: TRUE" in result.stdout
         assert "HAS_SUCKER: TRUE" in result.stdout
+        assert "HAS_LIED_ROUND: TRUE" in result.stdout
         assert f"ROWS: {EXPECTED_CONTRIBUTE_ROWS}" in result.stdout
 
     def test_compute_zscores(self):

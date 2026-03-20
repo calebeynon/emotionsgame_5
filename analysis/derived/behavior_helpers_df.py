@@ -166,17 +166,34 @@ def _find_groups_with_liar(round_df, threshold_func) -> set:
 
 
 # =====
+# Non-cumulative lied-this-round flag
+# =====
+def compute_lied_this_round_flags(
+    df: pd.DataFrame, threshold: int = 20
+) -> pd.DataFrame:
+    """Flag rows where player made a promise and contributed below threshold.
+
+    Each row is independent — no cumulative logic.
+    """
+    result = df.copy()
+    col_name = f'lied_this_round_{threshold}'
+    result[col_name] = result['made_promise'] & (result['contribution'] < threshold)
+    return result
+
+
+# =====
 # Combined classification (DataFrame API)
 # =====
 def classify_player_behavior(df: pd.DataFrame) -> pd.DataFrame:
-    """Classify player behavior with all liar and sucker flags.
+    """Classify player behavior with all liar, sucker, and lied-this-round flags.
 
-    Adds: is_liar_20, is_liar_5, is_sucker_20, is_sucker_5.
+    Adds: is_liar_20, is_liar_5, is_sucker_20, is_sucker_5, lied_this_round_20.
     """
     result = compute_liar_flags(df, threshold='20')
     result = compute_liar_flags(result, threshold='5')
     result = compute_sucker_flags(result, threshold='20')
     result = compute_sucker_flags(result, threshold='5')
+    result = compute_lied_this_round_flags(result, threshold=20)
     return result
 
 

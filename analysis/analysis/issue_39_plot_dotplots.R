@@ -12,6 +12,8 @@ STATE_PLOT <- "emotion_sentiment_gap_by_cooperative_state.png"
 LIAR_PLOT <- "emotion_sentiment_gap_by_liar_status.png"
 SUCKER_PLOT <- "emotion_sentiment_gap_by_sucker_status.png"
 LIAR_STATE_PLOT <- "emotion_sentiment_gap_by_liar_x_state.png"
+LIAR_ROUND_PLOT <- "emotion_sentiment_gap_by_liar_round_status.png"
+LIAR_ROUND_STATE_PLOT <- "emotion_sentiment_gap_by_liar_round_x_state.png"
 
 # COLORS
 EMOTION_COLOR <- "#2166AC"
@@ -28,6 +30,12 @@ main <- function() {
     liar_state_dt <- dt[!is.na(is_liar_20)]
     liar_state_dt[, liar_state := paste(liar_label, state_label, sep = " / ")]
     save_plot(build_dotplot(liar_state_dt, "liar_state", "Emotion vs Sentiment by Liar Status x Cooperative State"), LIAR_STATE_PLOT)
+
+    # Round-specific liar plots
+    round_dt <- dt[!is.na(lied_this_round_20)]
+    save_plot(build_dotplot(round_dt, "liar_round_label", "Emotion vs Sentiment by Round Liar Status"), LIAR_ROUND_PLOT)
+    round_dt[, liar_round_state := paste(liar_round_label, state_label, sep = " / ")]
+    save_plot(build_dotplot(round_dt, "liar_round_state", "Emotion vs Sentiment by Round Liar Status x Cooperative State"), LIAR_ROUND_STATE_PLOT)
 }
 
 # =====
@@ -44,6 +52,7 @@ prepare_plot_data <- function() {
     )]
     dt[, liar_label := ifelse(is_liar_20 == TRUE, "Liar", "Honest")]
     dt[, sucker_label := ifelse(is_sucker_20 == TRUE, "Sucker", "Non-sucker")]
+    dt <- add_liar_round_label(dt)
     return(dt)
 }
 
