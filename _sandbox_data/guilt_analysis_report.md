@@ -1,6 +1,8 @@
-# Guilt Analysis: Do Liars Express Guilt, and What Do Their Faces Reveal?
+# Liar Communication Strategies: How Do Liars Communicate After Breaking Promises?
 
 *Classification method: Hand-coded reading of every liar chat message, cross-referenced with facial emotion data.*
+
+**Note:** This report uses the cumulative `is_liar_20` flag (123 instances, including rounds where liars contributed 25). The GPT classifier now uses the round-specific `lied_this_round_20` flag (94 instances, all with contribution < 20). The hand-coded cases where contribution=25 represent "reformed liars" communicating after a prior lie.
 
 ## Overview
 
@@ -9,13 +11,13 @@
 - **Instances with facial emotion data**: 88
 - A 'liar' is a player who made a promise to contribute but contributed < 20 points.
 
-## Hand-Coded Classification of Liar Chat Behavior
+## Hand-Coded Classification of Liar Communication Strategies
 
-Each of the 49 liar instances with chat messages was read individually and classified into behavioral categories. Cases can belong to multiple categories.
+Each of the 49 liar instances with chat messages was read individually and classified into communication strategy categories. Cases can belong to multiple categories.
 
 | Category | Count | % of Chat Cases | Description |
 |----------|-------|----------------|-------------|
-| Any guilt-related content | 35 | 71% | Any deceptive, guilt, or manipulative behavior |
+| Any strategy-related content | 35 | 71% | Any deceptive, emotional, or strategic communication |
 | False promise | 18 | 37% | Said '25' or 'all in' while contributing far less |
 | Manipulation | 9 | 18% | Directing others' behavior, rotation schemes, emotional pressure |
 | Blame-shifting | 6 | 12% | Accusing others of defection while defecting themselves |
@@ -24,7 +26,7 @@ Each of the 49 liar instances with chat messages was read individually and class
 | Genuine guilt/remorse | 3 | 6% | Apology that appears sincere (facial affect aligns) |
 | Duping delight | 4 | 8% | Visibly amused/happy while deceiving |
 | Performative frustration | 2 | 4% | Acting upset at defectors while being one |
-| No guilt-related content | 14 | 29% | Neutral or strategic chat only |
+| No strategy-related content | 14 | 29% | Neutral or strategic chat only |
 
 ## Facial Emotion by Behavioral Category
 
@@ -778,23 +780,23 @@ Players appearing 3+ times, showing sustained deception patterns:
 
 ## Conclusion
 
-### Are liars happy when they pretend to be guilty?
+### How do liars communicate after breaking promises?
 
-The hand-coded analysis reveals a more nuanced picture than simple guilt-vs-no-guilt:
+The hand-coded analysis reveals heterogeneous communication strategies rather than a simple guilt-vs-no-guilt dichotomy:
 
-1. **Genuine guilt is rare**: Only 3 of 49 liar chat instances (6%) showed apparently sincere remorse. These cases featured direct apologies, acknowledgment of harm, and -- critically -- matching negative facial affect (high sadness, negative valence).
+1. **False promises are the dominant strategy**: 18 cases (37%) involved stating a contribution they did not intend to make. This was the most common form of deception.
 
-2. **False promises are the dominant strategy**: 18 cases (37%) involved stating a contribution they did not intend to make. This was the most common deception.
+2. **Manipulation and blame-shifting are common**: 9 cases involved directing others' behavior (often via 'rotation' schemes), and 6 involved accusing others of the very defection the liar was committing.
 
-3. **Duping delight exists but is uncommon**: 4 cases (8%) showed clear enjoyment while deceiving. The most extreme: Player L (iiu3xixz) said 'all in' while contributing 1/25, with 97.6% facial joy.
+3. **Genuine remorse is rare**: Only 3 of 49 instances (6%) showed apparently sincere apology. These cases featured direct apologies, acknowledgment of harm, and -- critically -- matching negative facial affect (high sadness, negative valence). All 3 occurred in rounds where the player contributed 25 (making amends).
 
-4. **Manipulation and blame-shifting are common**: 9 cases involved directing others' behavior (often via 'rotation' schemes), and 6 involved accusing others of the very defection the liar was committing.
+4. **Duping delight exists but is uncommon**: 4 cases (8%) showed clear enjoyment while deceiving. The most extreme: Player L (iiu3xixz) said 'all in' while contributing 1/25, with 97.6% facial joy.
 
-5. **The genuine-guilt/duping-delight contrast**: Genuine guilt cases showed sadness and negative valence. Duping delight showed high joy and positive valence. The face does not lie, even when the chat does.
+5. **Facial affect aligns with strategy type**: Genuine remorse cases showed sadness and negative valence. Duping delight showed high joy and positive valence. The face reveals the underlying emotional state even when chat text is strategic.
 
 ### Key takeaway
 
-*Most* liars don't pretend to be guilty at all -- they make false promises, shift blame, or stay silent. The few who express guilt split into two distinct types: genuine remorse (matching sad faces) and duping delight (high joy while deceiving). The latter confirms some liars are happy, but they're more often happy while *lying* than while *performing guilt specifically*.
+Liars' communication strategies are heterogeneous -- false promises, manipulation, blame-shifting, collective deflection, and performative frustration each represent distinct approaches to managing the social consequences of defection. Genuine remorse is the exception, not the rule. The emotion-sentiment gap (high facial positivity, neutral/negative text) is a measurable signature of deceptive communication.
 
 ### Caveats
 

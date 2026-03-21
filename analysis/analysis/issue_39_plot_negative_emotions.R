@@ -13,8 +13,6 @@ SUCKER_PLOT <- "negative_emotion_by_sucker_status.png"
 LIAR_PLOT <- "negative_emotion_by_liar_status.png"
 STATE_PLOT <- "negative_emotion_by_cooperative_state.png"
 LIAR_STATE_PLOT <- "negative_emotion_by_liar_x_state.png"
-LIAR_ROUND_PLOT <- "negative_emotion_by_liar_round_status.png"
-LIAR_ROUND_STATE_PLOT <- "negative_emotion_by_liar_round_x_state.png"
 
 # COLORS
 ANGER_COLOR <- "#B2182B"
@@ -32,12 +30,6 @@ main <- function() {
     liar_state_dt <- dt[!is.na(is_liar_20)]
     liar_state_dt[, liar_state := paste(liar_label, state_label, sep = " / ")]
     save_plot(build_dotplot(liar_state_dt, "liar_state", "Anger, Fear & Sentiment by Liar Status x Cooperative State"), LIAR_STATE_PLOT, subdir = SANDBOX_DIR)
-
-    # Round-specific liar plots
-    round_dt <- dt[!is.na(lied_this_round_20)]
-    save_plot(build_dotplot(round_dt, "liar_round_label", "Anger, Fear & Sentiment by Round Liar Status"), LIAR_ROUND_PLOT, subdir = SANDBOX_DIR)
-    round_dt[, liar_round_state := paste(liar_round_label, state_label, sep = " / ")]
-    save_plot(build_dotplot(round_dt, "liar_round_state", "Anger, Fear & Sentiment by Round Liar x Cooperative State"), LIAR_ROUND_STATE_PLOT, subdir = SANDBOX_DIR)
 }
 
 # =====
@@ -52,7 +44,6 @@ prepare_plot_data <- function() {
     dt[, state_label := ifelse(player_state == "cooperative", "Cooperative", "Noncooperative")]
     dt[, liar_label := ifelse(is_liar_20 == TRUE, "Liar", "Honest")]
     dt[, sucker_label := ifelse(is_sucker_20 == TRUE, "Sucker", "Non-sucker")]
-    dt <- add_liar_round_label(dt)
     return(dt)
 }
 

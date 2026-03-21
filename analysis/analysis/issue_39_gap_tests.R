@@ -34,8 +34,6 @@ prepare_data <- function() {
     dt[, liar_label := ifelse(is_liar_20 == TRUE, "Liar", "Honest")]
     dt[, sucker_label := ifelse(is_sucker_20 == TRUE, "Sucker", "Non-sucker")]
     dt[, liar_state := paste(liar_label, state_label, sep = " / ")]
-    dt <- add_liar_round_label(dt)
-    dt[, liar_round_state := paste(liar_round_label, state_label, sep = " / ")]
     return(dt)
 }
 
@@ -68,16 +66,12 @@ gap_ttest <- function(dt, group_col, g1, g2, comparison) {
 # =====
 run_all_tests <- function(dt) {
     liar_dt <- dt[!is.na(is_liar_20)]
-    round_dt <- dt[!is.na(lied_this_round_20)]
     rbindlist(list(
         gap_ttest(dt, "state_label", "Cooperative", "Noncooperative", "Cooperative State"),
-        gap_ttest(dt[!is.na(is_liar_20)], "liar_label", "Honest", "Liar", "Liar Status (Cumul.)"),
+        gap_ttest(dt[!is.na(is_liar_20)], "liar_label", "Honest", "Liar", "Liar Status"),
         gap_ttest(dt[!is.na(is_sucker_20)], "sucker_label", "Non-sucker", "Sucker", "Sucker Status"),
-        gap_ttest(liar_dt, "liar_state", "Honest / Cooperative", "Liar / Cooperative", "Liar Cumul. (Coop.)"),
-        gap_ttest(liar_dt, "liar_state", "Honest / Noncooperative", "Liar / Noncooperative", "Liar Cumul. (Noncoop.)"),
-        gap_ttest(round_dt, "liar_round_label", "Did Not Lie", "Lied This Round", "Liar Round Status"),
-        gap_ttest(round_dt, "liar_round_state", "Did Not Lie / Cooperative", "Lied This Round / Cooperative", "Liar Round (Coop.)"),
-        gap_ttest(round_dt, "liar_round_state", "Did Not Lie / Noncooperative", "Lied This Round / Noncooperative", "Liar Round (Noncoop.)")
+        gap_ttest(liar_dt, "liar_state", "Honest / Cooperative", "Liar / Cooperative", "Liar (Coop.)"),
+        gap_ttest(liar_dt, "liar_state", "Honest / Noncooperative", "Liar / Noncooperative", "Liar (Noncoop.)")
     ))
 }
 

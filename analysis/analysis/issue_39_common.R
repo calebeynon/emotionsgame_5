@@ -106,13 +106,3 @@ compute_zscores <- function(dt) {
     dt[, zscore_gap := valence_z - compound_z]
     return(dt)
 }
-
-# =====
-# Round-specific liar label
-# =====
-add_liar_round_label <- function(dt) {
-    dt[, liar_round_label := ifelse(
-        lied_this_round_20 == TRUE, "Lied This Round", "Did Not Lie"
-    )]
-    return(dt)
-}

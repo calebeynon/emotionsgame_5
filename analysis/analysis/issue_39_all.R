@@ -76,18 +76,14 @@ get_output_plots <- function() {
     c("emotion_sentiment_gap_by_cooperative_state.png",
       "emotion_sentiment_gap_by_liar_status.png",
       "emotion_sentiment_gap_by_sucker_status.png",
-      "emotion_sentiment_gap_by_liar_x_state.png",
-      "emotion_sentiment_gap_by_liar_round_status.png",
-      "emotion_sentiment_gap_by_liar_round_x_state.png")
+      "emotion_sentiment_gap_by_liar_x_state.png")
 }
 
 get_sandbox_plots <- function() {
     c("negative_emotion_by_cooperative_state.png",
       "negative_emotion_by_liar_status.png",
       "negative_emotion_by_sucker_status.png",
-      "negative_emotion_by_liar_x_state.png",
-      "negative_emotion_by_liar_round_status.png",
-      "negative_emotion_by_liar_round_x_state.png")
+      "negative_emotion_by_liar_x_state.png")
 }
 
 get_output_tables <- function() {

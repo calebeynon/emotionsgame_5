@@ -1,16 +1,21 @@
 """
-Guilt classification script for liar chat messages.
+Liar communication strategy classifier for chat messages.
 
-Classifies each liar's chat messages into behavioral categories using
-OpenAI GPT-5.4. A "liar" (lied_this_round_20) is a player who made a promise
-AND contributed < 20 points in THAT SPECIFIC round (not cumulatively flagged).
+Classifies each liar's chat messages into communication strategy categories
+using OpenAI GPT-5.4. A "liar" (lied_this_round_20) is a player who made a
+promise AND contributed < 20 points in THAT SPECIFIC round (not cumulatively
+flagged).
+
+These categories capture the heterogeneous ways liars communicate after
+breaking promises — strategic, emotional, and rhetorical patterns — rather
+than measuring "guilt" per se.
 
 Chat Pairing Semantics:
     Messages in promise_classifications.csv on round R are chat that
     happened AFTER round R-1's contribution. The contribution column
     is the contribution for round R (the one influenced by the chat).
 
-Output columns per liar instance:
+Output columns per liar instance (column names preserved for compatibility):
     - genuine_guilt: Sincere apology/remorse
     - false_promise: Stated contribution they didn't intend to make
     - blame_shifting: Accused others while defecting themselves
@@ -19,7 +24,7 @@ Output columns per liar instance:
     - deflection_collective: "We all should..." diffusion of responsibility
     - duping_delight: Appeared amused/happy while deceiving (text-based only)
     - performative_frustration: Acted upset while being a defector
-    - no_guilt: No guilt-related content
+    - no_guilt: No strategy-related content detected
 
 Author: Claude Code
 Date: 2026-03-17
@@ -256,10 +261,12 @@ def parse_response(raw: str) -> dict:
     try:
         parsed = json.loads(text)
         categories = parsed.get("categories", [])
-        # Validate categories
+        # Validate categories and resolve contradictions
         valid = [c for c in categories if c in VALID_CATEGORIES]
         if not valid:
             valid = ["no_guilt"]
+        elif len(valid) > 1 and "no_guilt" in valid:
+            valid = [c for c in valid if c != "no_guilt"]
         return {
             "categories": valid,
             "reasoning": parsed.get("reasoning", ""),
@@ -379,7 +386,7 @@ def print_summary(df: pd.DataFrame):
     classified = df[has_msgs]
 
     log("\n" + "=" * 55)
-    log("GUILT CLASSIFICATION SUMMARY")
+    log("LIAR COMMUNICATION STRATEGY SUMMARY")
     log("=" * 55)
     log(f"Total liar instances: {len(df)}")
     log(f"Instances with chat (classified): {len(classified)}")

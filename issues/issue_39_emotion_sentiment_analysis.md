@@ -38,3 +38,20 @@ Players may present different emotional faces than what their chat text conveys.
 - The emotion-sentiment gap differs significantly by cooperative state (p=0.02), liar status (p=0.01), and sucker status (p=0.002)
 - The gap is a highly significant predictor of noncooperative behavior (logit coeff=1.84, p<0.001)
 - Liars show much higher facial valence (9.62) than honest players (3.95) but identical chat sentiment (0.128)
+
+## Liar Communication Strategies
+GPT-5.4 classified 94 liar chat instances (all with contribution < 20) into communication strategy categories. These capture the heterogeneous ways liars communicate after breaking promises — not just "guilt" but strategic, emotional, and rhetorical patterns:
+
+| Category | Count | % | Description |
+|----------|-------|---|-------------|
+| false_promise | 60 | 64% | Stated contribution they didn't make |
+| deflection_collective | 27 | 29% | "We all should..." diffusion of responsibility |
+| no_guilt | 22 | 23% | No strategy-related content detected |
+| manipulation | 12 | 13% | Directed others' behavior, rotation schemes |
+| blame_shifting | 11 | 12% | Accused others while defecting themselves |
+| performative_frustration | 9 | 10% | Acted upset while being a defector |
+| self_justification | 8 | 9% | Rationalized own defection |
+| duping_delight | 2 | 2% | Appeared amused while deceiving |
+| genuine_guilt | 0 | 0% | Sincere apology/remorse |
+
+False promises dominate (64%). Genuine guilt is absent — the 3 hand-coded cases had contribution=25 (cooperating to make amends) and are excluded by the round-specific `lied_this_round_20` flag.
