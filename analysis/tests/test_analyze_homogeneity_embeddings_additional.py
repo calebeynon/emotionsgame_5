@@ -22,7 +22,6 @@ sys.path.insert(0, str(Path(__file__).parent.parent / 'derived'))
 from analyze_homogeneity_embeddings import (
     _build_cross_level_output,
     _build_output,
-    _merge_projections,
     compute_homogeneity_centroids,
     probe_phrase_validation,
     GROUP_KEYS,
@@ -168,51 +167,6 @@ class TestBuildOutput:
         result = _build_output(meta, projections, 'small', PR_ID_COLS)
         assert 'combined_text' in result.columns
         assert 'message_index' not in result.columns
-
-
-# =====
-# _merge_projections
-# =====
-class TestMergeProjections:
-    """Tests for merging small and large projections."""
-
-    def test_produces_both_score_columns(self):
-        """Merged output should have both small and large projections."""
-        meta = _make_pr_metadata(3)
-        proj_s = np.array([1.0, 0.0, -1.0])
-        proj_l = np.array([2.0, 0.5, -2.0])
-        df_small = _build_output(meta, proj_s, 'small', PR_ID_COLS)
-        df_large = _build_output(meta, proj_l, 'large', PR_ID_COLS)
-
-        merged = _merge_projections(df_small, df_large, PR_ID_COLS)
-        assert 'proj_homog_pr_dir_small' in merged.columns
-        assert 'proj_homog_pr_dir_large' in merged.columns
-
-    def test_preserves_row_count(self):
-        """Merge should not add or remove rows."""
-        meta = _make_pr_metadata(5)
-        proj = np.zeros(5)
-        df_small = _build_output(meta, proj, 'small', PR_ID_COLS)
-        df_large = _build_output(meta, proj + 1, 'large', PR_ID_COLS)
-
-        merged = _merge_projections(df_small, df_large, PR_ID_COLS)
-        assert len(merged) == 5
-
-    def test_values_match_inputs(self):
-        """Merged values should match original projections."""
-        meta = _make_pr_metadata(3)
-        proj_s = np.array([1.5, 2.5, 3.5])
-        proj_l = np.array([-1.5, -2.5, -3.5])
-        df_small = _build_output(meta, proj_s, 'small', PR_ID_COLS)
-        df_large = _build_output(meta, proj_l, 'large', PR_ID_COLS)
-
-        merged = _merge_projections(df_small, df_large, PR_ID_COLS)
-        np.testing.assert_array_almost_equal(
-            merged['proj_homog_pr_dir_small'].values, proj_s,
-        )
-        np.testing.assert_array_almost_equal(
-            merged['proj_homog_pr_dir_large'].values, proj_l,
-        )
 
 
 # =====

@@ -18,7 +18,7 @@ from analyze_embeddings import (
     load_embeddings,
     compute_difference_vector,
     project_onto_direction,
-    _cosine_similarities,
+    cosine_similarities,
 )
 from llm_clients.embedding_client import embed_texts, MODEL_SMALL, MODEL_LARGE
 
@@ -268,7 +268,7 @@ def probe_phrase_validation(
 ) -> pd.DataFrame:
     """Embed probe phrases and compute cosine similarity with direction."""
     probe_embeddings = np.array(embed_texts(PROBE_PHRASES, model=model))
-    similarities = _cosine_similarities(probe_embeddings, direction)
+    similarities = cosine_similarities(probe_embeddings, direction)
 
     return pd.DataFrame({
         'phrase': PROBE_PHRASES,

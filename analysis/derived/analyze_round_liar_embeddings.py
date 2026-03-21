@@ -1,11 +1,11 @@
 """
-Analyze chat embeddings along the homogeneous vs heterogeneous contribution axis.
+Analyze chat embeddings along the round-liar vs non-liar axis.
 
-Computes homogeneity labels (contribution range <= 1 ECU per group-round),
-projects embeddings onto direction vector, and outputs projection scores.
+Loads behavior classifications (lied_this_round_20), computes liar labels,
+projects embeddings onto liar direction vector, and outputs projection scores.
 
 Author: Claude Code
-Date: 2026-03-20
+Date: 2026-03-21
 """
 
 from pathlib import Path
@@ -27,29 +27,30 @@ EMBEDDINGS_SMALL = DERIVED_DIR / 'embeddings_small.parquet'
 EMBEDDINGS_LARGE = DERIVED_DIR / 'embeddings_large.parquet'
 EMBEDDINGS_PR_SMALL = DERIVED_DIR / 'embeddings_player_round_small.parquet'
 EMBEDDINGS_PR_LARGE = DERIVED_DIR / 'embeddings_player_round_large.parquet'
-SENTIMENT_FILE = DERIVED_DIR / 'sentiment_scores.csv'
-PROJECTIONS_OUTPUT = DERIVED_DIR / 'homogeneity_embedding_projections.csv'
+BEHAVIOR_FILE = DERIVED_DIR / 'behavior_classifications.csv'
+PROJECTIONS_OUTPUT = DERIVED_DIR / 'round_liar_embedding_projections.csv'
 
 # ANALYSIS CONSTANTS
-HOMOG_COL = 'homogeneity_label'
-STATE_HOMOGENEOUS = 'homogeneous'
-STATE_HETEROGENEOUS = 'heterogeneous'
+LIAR_COL = 'round_liar_label'
+RLIAR_COL = LIAR_COL
+STATE_LIAR = 'liar'
+STATE_NON_LIAR = 'non_liar'
 
 PROBE_PHRASES = [
-    "let's all put in the same amount",
-    "I'll match whatever you do",
-    "I'm putting in zero",
-    "everyone do 25",
-    "we should all contribute equally",
-    "I'll do what the group does",
-    "I'm going my own way",
-    "some of us are free riding",
-    "we're all on the same page",
-    "I don't care what others do",
-    "let's coordinate our contributions",
+    "I promise to put in 25",
+    "I lied about my contribution",
+    "trust me",
+    "I kept my word",
+    "I always do what I say",
+    "I changed my mind",
+    "I never break a promise",
+    "someone is not being honest",
+    "they lied to us",
+    "I said I'd cooperate but I didn't",
+    "I'll put in everything",
 ]
 
-GROUP_KEYS = ['session_code', 'segment', 'round', 'group']
+JOIN_KEYS = ['session_code', 'segment', 'round', 'group', 'label']
 ID_COLS = [
     'session_code', 'treatment', 'segment', 'round',
     'group', 'label', 'message_index', 'message_text',
@@ -65,100 +66,99 @@ PR_ID_COLS = [
 # =====
 def main():
     """Main execution flow."""
-    homog_df = compute_homogeneity_labels()
-    pr_dir = _run_player_round_analysis(homog_df)
-    _run_message_analysis(pr_dir, homog_df)
+    liar_df = compute_round_liar_labels()
+    pr_dir = _run_player_round_analysis(liar_df)
+    _run_message_analysis(pr_dir, liar_df)
 
 
-def _run_player_round_analysis(homog_df: pd.DataFrame) -> dict:
+def _run_player_round_analysis(liar_df: pd.DataFrame) -> dict:
     """Compute player-round projections and save. Returns direction vectors."""
     print("=== Player-round level analysis ===")
     pr_dir = {}
     pr_small, pr_dir['small'] = _analyze_model_with_direction(
-        EMBEDDINGS_PR_SMALL, 'small', PR_ID_COLS, homog_df,
+        EMBEDDINGS_PR_SMALL, 'small', PR_ID_COLS, liar_df,
     )
     pr_large, pr_dir['large'] = _analyze_model_with_direction(
-        EMBEDDINGS_PR_LARGE, 'large', PR_ID_COLS, homog_df,
+        EMBEDDINGS_PR_LARGE, 'large', PR_ID_COLS, liar_df,
     )
     print(f"\nPlayer-round analysis complete: {len(pr_small)} rows")
     return pr_dir
 
 
-def _run_message_analysis(pr_dir: dict, homog_df: pd.DataFrame) -> None:
+def _run_message_analysis(pr_dir: dict, liar_df: pd.DataFrame) -> None:
     """Compute message-level cross-level projections and save CSV."""
     print("\n=== Message-level analysis ===")
-    combined = _analyze_messages_cross_level(pr_dir, homog_df)
+    combined = _analyze_messages_cross_level(pr_dir, liar_df)
     combined.to_csv(PROJECTIONS_OUTPUT, index=False)
     print(f"\nSaved {len(combined)} rows to {PROJECTIONS_OUTPUT.name}")
 
 
 # =====
-# Homogeneity label computation
+# Round-liar label computation
 # =====
-def compute_homogeneity_labels(
+def compute_round_liar_labels(
     df: pd.DataFrame | None = None,
 ) -> pd.DataFrame:
-    """Label each group-round as homogeneous (range <= 1) or heterogeneous."""
+    """Label each player-round as liar or non_liar from lied_this_round_20."""
     if df is None:
-        df = pd.read_csv(SENTIMENT_FILE)
-    group_range = _compute_contribution_range(df)
-    group_range[HOMOG_COL] = _assign_labels(group_range['contribution_range'])
-    _print_label_counts(group_range)
-    return group_range[GROUP_KEYS + [HOMOG_COL]]
+        df = pd.read_csv(BEHAVIOR_FILE)
+    df[LIAR_COL] = _assign_labels(df['lied_this_round_20'])
+    _print_label_counts(df)
+    return df[JOIN_KEYS + [LIAR_COL]]
 
 
-def _compute_contribution_range(df: pd.DataFrame) -> pd.DataFrame:
-    """Compute max - min contribution per group-round."""
-    agg = df.groupby(GROUP_KEYS)['contribution'].agg(['max', 'min'])
-    agg['contribution_range'] = agg['max'] - agg['min']
-    return agg.reset_index()
-
-
-def _assign_labels(contribution_range: pd.Series) -> pd.Series:
-    """Map contribution range to homogeneity labels."""
-    return contribution_range.map(
-        lambda r: STATE_HOMOGENEOUS if r <= 1 else STATE_HETEROGENEOUS
+def _assign_labels(lied_col: pd.Series) -> pd.Series:
+    """Map lied_this_round_20 boolean to liar labels."""
+    return lied_col.map(
+        lambda x: STATE_LIAR if x else STATE_NON_LIAR
     )
 
 
-def _print_label_counts(group_range: pd.DataFrame) -> None:
-    """Print distribution of homogeneity labels."""
-    counts = group_range[HOMOG_COL].value_counts()
-    print(f"Homogeneity labels: {dict(counts)}")
+def _print_label_counts(df: pd.DataFrame) -> None:
+    """Print distribution of round-liar labels."""
+    counts = df[LIAR_COL].value_counts()
+    print(f"Round-liar labels: {dict(counts)}")
 
 
-def merge_homogeneity_labels(
-    meta: pd.DataFrame, homog_df: pd.DataFrame,
+def merge_liar_labels(
+    meta: pd.DataFrame, liar_df: pd.DataFrame,
 ) -> pd.DataFrame:
-    """LEFT JOIN homogeneity labels onto embedding metadata."""
-    return meta.merge(homog_df, on=GROUP_KEYS, how='left')
+    """LEFT JOIN round-liar labels onto embedding metadata."""
+    return meta.merge(liar_df, on=JOIN_KEYS, how='left')
 
 
-def compute_homogeneity_centroids(
+merge_round_liar_labels = merge_liar_labels
+
+
+def compute_liar_centroids(
     embeddings: np.ndarray, labels: np.ndarray,
 ) -> tuple[np.ndarray, np.ndarray]:
-    """Compute mean embedding for homogeneous vs heterogeneous groups."""
-    homog_mask = labels == STATE_HOMOGENEOUS
-    heterog_mask = labels == STATE_HETEROGENEOUS
-    homog_centroid = embeddings[homog_mask].mean(axis=0)
-    heterog_centroid = embeddings[heterog_mask].mean(axis=0)
-    return homog_centroid, heterog_centroid
+    """Compute mean embedding for liar vs non-liar players."""
+    liar_mask = labels == STATE_LIAR
+    non_liar_mask = labels == STATE_NON_LIAR
+    liar_centroid = embeddings[liar_mask].mean(axis=0)
+    non_liar_centroid = embeddings[non_liar_mask].mean(axis=0)
+    return liar_centroid, non_liar_centroid
+
+
+# Aliases for test compatibility
+compute_round_liar_centroids = compute_liar_centroids
 
 
 # =====
 # Direction computation
 # =====
-def _compute_homogeneity_direction(
+def _compute_liar_direction(
     meta: pd.DataFrame, embeddings: np.ndarray,
 ) -> np.ndarray:
-    """Compute normalized homogeneity direction vector."""
-    labels = meta[HOMOG_COL].values
-    homog_c, heterog_c = compute_homogeneity_centroids(embeddings, labels)
-    direction = compute_difference_vector(homog_c, heterog_c)
+    """Compute normalized liar direction vector."""
+    labels = meta[LIAR_COL].values
+    liar_c, non_liar_c = compute_liar_centroids(embeddings, labels)
+    direction = compute_difference_vector(liar_c, non_liar_c)
 
-    n_homog = (labels == STATE_HOMOGENEOUS).sum()
-    n_heterog = (labels == STATE_HETEROGENEOUS).sum()
-    print(f"  Homogeneous: {n_homog}, Heterogeneous: {n_heterog}")
+    n_liar = (labels == STATE_LIAR).sum()
+    n_non_liar = (labels == STATE_NON_LIAR).sum()
+    print(f"  Liar: {n_liar}, Non-liar: {n_non_liar}")
     return direction
 
 
@@ -167,14 +167,14 @@ def _compute_homogeneity_direction(
 # =====
 def _analyze_model_with_direction(
     path: Path, suffix: str, id_cols: list[str],
-    homog_df: pd.DataFrame,
+    liar_df: pd.DataFrame,
 ) -> tuple[pd.DataFrame, np.ndarray]:
     """Run analysis pipeline, returning projections AND direction vector."""
     print(f"\n--- Analyzing {suffix} model ---")
     meta, embeddings = load_embeddings(path)
-    meta = merge_homogeneity_labels(meta, homog_df)
+    meta = merge_liar_labels(meta, liar_df)
 
-    direction = _compute_homogeneity_direction(meta, embeddings)
+    direction = _compute_liar_direction(meta, embeddings)
     projections = project_onto_direction(embeddings, direction)
 
     text_col = _get_text_col(meta)
@@ -197,16 +197,16 @@ def _get_text_col(meta: pd.DataFrame) -> str:
 # =====
 def _analyze_messages_cross_level(
     pr_directions: dict[str, np.ndarray],
-    homog_df: pd.DataFrame,
+    liar_df: pd.DataFrame,
 ) -> pd.DataFrame:
     """Project messages onto both message-level and player-round directions."""
     results = {}
     for suffix, msg_path in [('small', EMBEDDINGS_SMALL), ('large', EMBEDDINGS_LARGE)]:
         print(f"\n--- Analyzing {suffix} model ---")
         meta, embeddings = load_embeddings(msg_path)
-        meta = merge_homogeneity_labels(meta, homog_df)
+        meta = merge_liar_labels(meta, liar_df)
 
-        msg_dir = _compute_homogeneity_direction(meta, embeddings)
+        msg_dir = _compute_liar_direction(meta, embeddings)
         msg_proj = project_onto_direction(embeddings, msg_dir)
         pr_proj = project_onto_direction(embeddings, pr_directions[suffix])
         results[suffix] = (meta, msg_proj, pr_proj)
@@ -217,11 +217,11 @@ def _analyze_messages_cross_level(
 def _build_cross_level_output(results: dict) -> pd.DataFrame:
     """Build combined output with both projection types."""
     meta = results['small'][0]
-    out = meta[ID_COLS + ['player_state', HOMOG_COL]].copy()
-    out['proj_homog_msg_dir_small'] = results['small'][1]
-    out['proj_homog_pr_dir_small'] = results['small'][2]
-    out['proj_homog_msg_dir_large'] = results['large'][1]
-    out['proj_homog_pr_dir_large'] = results['large'][2]
+    out = meta[ID_COLS + ['player_state', LIAR_COL]].copy()
+    out['proj_rliar_msg_dir_small'] = results['small'][1]
+    out['proj_rliar_pr_dir_small'] = results['small'][2]
+    out['proj_rliar_msg_dir_large'] = results['large'][1]
+    out['proj_rliar_pr_dir_large'] = results['large'][2]
     return out
 
 
@@ -233,8 +233,8 @@ def _build_output(
     suffix: str, id_cols: list[str],
 ) -> pd.DataFrame:
     """Build output DataFrame with ID columns and projection score."""
-    out = meta[id_cols + ['player_state', HOMOG_COL]].copy()
-    out[f'proj_homog_pr_dir_{suffix}'] = projections
+    out = meta[id_cols + ['player_state', LIAR_COL]].copy()
+    out[f'proj_rliar_pr_dir_{suffix}'] = projections
     return out
 
 
@@ -245,16 +245,16 @@ def _print_rankings(
     meta: pd.DataFrame, projections: np.ndarray,
     text_col: str = 'message_text',
 ) -> None:
-    """Print top homogeneous and heterogeneous messages by projection."""
-    df = meta[[text_col, HOMOG_COL]].copy()
+    """Print top liar and non-liar messages by projection."""
+    df = meta[[text_col, LIAR_COL]].copy()
     df['projection'] = projections
     sorted_df = df.sort_values('projection', ascending=False)
 
-    print("\n  Top homogeneous-direction texts:")
+    print("\n  Top liar-direction texts:")
     for _, row in sorted_df.head(5).iterrows():
         print(f"    [{row['projection']:.4f}] {row[text_col][:60]}")
 
-    print("\n  Top heterogeneous-direction texts:")
+    print("\n  Top non-liar-direction texts:")
     for _, row in sorted_df.tail(5).iterrows():
         print(f"    [{row['projection']:.4f}] {row[text_col][:60]}")
 

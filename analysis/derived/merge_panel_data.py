@@ -24,6 +24,8 @@ SENTIMENT_FILE = DERIVED_DIR / 'sentiment_scores.csv'
 PROJECTION_FILE = DERIVED_DIR / 'embedding_projections.csv'
 PROMISE_PROJECTION_FILE = DERIVED_DIR / 'promise_embedding_projections.csv'
 HOMOGENEITY_PROJECTION_FILE = DERIVED_DIR / 'homogeneity_embedding_projections.csv'
+ROUND_LIAR_PROJECTION_FILE = DERIVED_DIR / 'round_liar_embedding_projections.csv'
+CUMULATIVE_LIAR_PROJECTION_FILE = DERIVED_DIR / 'cumulative_liar_embedding_projections.csv'
 OUTPUT_FILE = DERIVED_DIR / 'merged_panel.csv'
 
 # MERGE CONFIGURATION
@@ -54,6 +56,16 @@ HOMOGENEITY_EMBEDDING_COLS = [
     'proj_homog_msg_dir_large', 'proj_homog_pr_dir_large',
 ]
 
+ROUND_LIAR_EMBEDDING_COLS = [
+    'proj_rliar_msg_dir_small', 'proj_rliar_pr_dir_small',
+    'proj_rliar_msg_dir_large', 'proj_rliar_pr_dir_large',
+]
+
+CUMULATIVE_LIAR_EMBEDDING_COLS = [
+    'proj_cliar_msg_dir_small', 'proj_cliar_pr_dir_small',
+    'proj_cliar_msg_dir_large', 'proj_cliar_pr_dir_large',
+]
+
 OUTPUT_ORDER = [
     'session_code', 'treatment', 'segment', 'round', 'group', 'label',
     'page_type', 'contribution', 'others_total_contribution', 'player_state',
@@ -73,17 +85,27 @@ def main():
     panel = build_game_panel(state_df)
     panel = append_instruction_rows(panel, emotion_df)
     panel = merge_sentiment(panel, sentiment_df)
-    projection_df = load_projection_data()
-    panel = merge_projections(panel, projection_df)
-    promise_proj_df = load_promise_projection_data()
-    panel = merge_promise_projections(panel, promise_proj_df)
-    homog_proj_df = load_homogeneity_projection_data()
-    panel = merge_homogeneity_projections(panel, homog_proj_df)
+    panel = _merge_all_projections(panel)
     panel = merge_emotion(panel, emotion_df)
 
     validate_panel(panel)
     save_panel(panel)
     print_summary(panel)
+
+
+def _merge_all_projections(panel: pd.DataFrame) -> pd.DataFrame:
+    """Load and merge all embedding projection types onto panel."""
+    projection_specs = [
+        (PROJECTION_FILE, EMBEDDING_COLS, 'Cooperative'),
+        (PROMISE_PROJECTION_FILE, PROMISE_EMBEDDING_COLS, 'Promise'),
+        (HOMOGENEITY_PROJECTION_FILE, HOMOGENEITY_EMBEDDING_COLS, 'Homogeneity'),
+        (ROUND_LIAR_PROJECTION_FILE, ROUND_LIAR_EMBEDDING_COLS, 'Round-liar'),
+        (CUMULATIVE_LIAR_PROJECTION_FILE, CUMULATIVE_LIAR_EMBEDDING_COLS, 'Cumulative-liar'),
+    ]
+    for filepath, cols, name in projection_specs:
+        proj_df = _load_projection_data(filepath, cols)
+        panel = _merge_projection_data(panel, proj_df, cols, name)
+    return panel
 
 
 # =====
@@ -102,25 +124,10 @@ def load_sentiment_data() -> pd.DataFrame:
     return df[STATE_MERGE_KEYS + SENTIMENT_COLS]
 
 
-def load_projection_data() -> pd.DataFrame:
-    """Load projections, aggregate message-level to player-round means."""
-    df = pd.read_csv(PROJECTION_FILE)
-    grouped = df.groupby(STATE_MERGE_KEYS)[EMBEDDING_COLS].mean()
-    return grouped.reset_index()
-
-
-def load_promise_projection_data() -> pd.DataFrame:
-    """Load promise projections, aggregate message-level to player-round means."""
-    df = pd.read_csv(PROMISE_PROJECTION_FILE)
-    grouped = df.groupby(STATE_MERGE_KEYS)[PROMISE_EMBEDDING_COLS].mean()
-    return grouped.reset_index()
-
-
-def load_homogeneity_projection_data() -> pd.DataFrame:
-    """Load homogeneity projections, aggregate message-level to player-round means."""
-    df = pd.read_csv(HOMOGENEITY_PROJECTION_FILE)
-    grouped = df.groupby(STATE_MERGE_KEYS)[HOMOGENEITY_EMBEDDING_COLS].mean()
-    return grouped.reset_index()
+def _load_projection_data(filepath: Path, cols: list) -> pd.DataFrame:
+    """Load projection CSV and aggregate message-level to player-round means."""
+    df = pd.read_csv(filepath)
+    return df.groupby(STATE_MERGE_KEYS)[cols].mean().reset_index()
 
 
 # =====
@@ -155,31 +162,13 @@ def merge_sentiment(panel: pd.DataFrame, sentiment_df: pd.DataFrame) -> pd.DataF
     return merged
 
 
-def merge_projections(panel: pd.DataFrame, projection_df: pd.DataFrame) -> pd.DataFrame:
-    """LEFT JOIN embedding projection scores onto panel."""
-    merged = panel.merge(projection_df, on=STATE_MERGE_KEYS, how='left')
-    n_matched = merged[EMBEDDING_COLS[0]].notna().sum()
-    print(f"Projection merge: {n_matched} rows matched")
-    return merged
-
-
-def merge_promise_projections(
-    panel: pd.DataFrame, promise_df: pd.DataFrame
+def _merge_projection_data(
+    panel: pd.DataFrame, proj_df: pd.DataFrame, cols: list, name: str
 ) -> pd.DataFrame:
-    """LEFT JOIN promise embedding projection scores onto panel."""
-    merged = panel.merge(promise_df, on=STATE_MERGE_KEYS, how='left')
-    n_matched = merged[PROMISE_EMBEDDING_COLS[0]].notna().sum()
-    print(f"Promise projection merge: {n_matched} rows matched")
-    return merged
-
-
-def merge_homogeneity_projections(
-    panel: pd.DataFrame, homog_df: pd.DataFrame
-) -> pd.DataFrame:
-    """LEFT JOIN homogeneity embedding projection scores onto panel."""
-    merged = panel.merge(homog_df, on=STATE_MERGE_KEYS, how='left')
-    n_matched = merged[HOMOGENEITY_EMBEDDING_COLS[0]].notna().sum()
-    print(f"Homogeneity projection merge: {n_matched} rows matched")
+    """LEFT JOIN projection scores onto panel and print match count."""
+    merged = panel.merge(proj_df, on=STATE_MERGE_KEYS, how='left')
+    n_matched = merged[cols[0]].notna().sum()
+    print(f"{name} projection merge: {n_matched} rows matched")
     return merged
 
 
@@ -240,7 +229,10 @@ def _validate_round_1_sentiment(panel: pd.DataFrame):
 def _validate_round_1_embeddings(panel: pd.DataFrame):
     """Verify round 1 has NaN embedding projections (no prior chat)."""
     r1 = panel[panel['round'] == 1]
-    all_emb_cols = EMBEDDING_COLS + PROMISE_EMBEDDING_COLS + HOMOGENEITY_EMBEDDING_COLS
+    all_emb_cols = (
+        EMBEDDING_COLS + PROMISE_EMBEDDING_COLS + HOMOGENEITY_EMBEDDING_COLS
+        + ROUND_LIAR_EMBEDDING_COLS + CUMULATIVE_LIAR_EMBEDDING_COLS
+    )
     for col in all_emb_cols:
         if r1[col].notna().any():
             raise ValueError(f"Round 1 has non-NaN values in {col}")
@@ -261,7 +253,9 @@ def save_panel(panel: pd.DataFrame):
     """Save merged panel to CSV with enforced column order."""
     final_order = (
         OUTPUT_ORDER + SENTIMENT_COLS + EMBEDDING_COLS
-        + PROMISE_EMBEDDING_COLS + HOMOGENEITY_EMBEDDING_COLS + EMOTION_COLS
+        + PROMISE_EMBEDDING_COLS + HOMOGENEITY_EMBEDDING_COLS
+        + ROUND_LIAR_EMBEDDING_COLS + CUMULATIVE_LIAR_EMBEDDING_COLS
+        + EMOTION_COLS
     )
     panel = panel[final_order]
     OUTPUT_FILE.parent.mkdir(parents=True, exist_ok=True)

@@ -210,7 +210,7 @@ def probe_phrase_validation(
 ) -> pd.DataFrame:
     """Embed probe phrases and compute cosine similarity with direction."""
     probe_embeddings = np.array(embed_texts(PROBE_PHRASES, model=model))
-    similarities = _cosine_similarities(probe_embeddings, direction)
+    similarities = cosine_similarities(probe_embeddings, direction)
 
     return pd.DataFrame({
         'phrase': PROBE_PHRASES,
@@ -218,7 +218,7 @@ def probe_phrase_validation(
     }).sort_values('cosine_similarity', ascending=False)
 
 
-def _cosine_similarities(
+def cosine_similarities(
     embeddings: np.ndarray, direction: np.ndarray
 ) -> np.ndarray:
     """Cosine similarity between each embedding and direction vector."""

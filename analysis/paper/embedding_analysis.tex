@@ -26,7 +26,7 @@
 \maketitle
 
 \begin{abstract}
-We construct text embeddings for 4,700 chat messages from a repeated public goods game and use them to identify the linguistic dimensions that distinguish cooperative from non-cooperative states, promise-making from non-promise-making rounds, and homogeneous from heterogeneous contribution groups. Using OpenAI's \texttt{text-embedding-3-small} (1,536 dimensions) and \texttt{text-embedding-3-large} (3,072 dimensions), we compute centroid-based direction vectors, project messages onto these axes, and evaluate predictive power via logistic regression. We find that the promise direction validates strongly (AUC = 0.90), the homogeneity direction captures coordination language, while the cooperative direction captures settled-versus-negotiating communication rather than cooperative intent. This document records the methodology, critical data decisions, and results.
+We construct text embeddings for 4,700 chat messages from a repeated public goods game and use them to identify the linguistic dimensions that distinguish cooperative from non-cooperative states, promise-making from non-promise-making rounds, homogeneous from heterogeneous contribution groups, and liar from non-liar players. Using OpenAI's \texttt{text-embedding-3-small} (1,536 dimensions) and \texttt{text-embedding-3-large} (3,072 dimensions), we compute centroid-based direction vectors, project messages onto these axes, and evaluate predictive power via logistic regression. We find that the promise direction validates strongly (AUC = 0.90), the homogeneity direction captures coordination language, while the cooperative direction captures settled-versus-negotiating communication rather than cooperative intent. We additionally construct round-level and cumulative liar directions from behavior classification labels, testing whether embedding projections can distinguish the chat of players who lie about their contributions. This document records the methodology, critical data decisions, and results.
 \end{abstract}
 
 \tableofcontents
@@ -44,7 +44,7 @@ We embed chat at two granularities:
     \item \textbf{Player-round level} (2,298 texts): all messages from a single player within a single round concatenated into one string before embedding.
 \end{enumerate}
 
-We then compute direction vectors for three labeling schemes (cooperative state, promise-making, and contribution homogeneity), project embeddings onto these directions, and evaluate predictive power.
+We then compute direction vectors for five labeling schemes (cooperative state, promise-making, contribution homogeneity, round-level liar, and cumulative liar), project embeddings onto these directions, and evaluate predictive power.
 
 %% ============================================================
 \section{Embedding Models and API}
@@ -78,6 +78,10 @@ In the oTree experiment, chat occurs \emph{after} the contribution decision in e
 \paragraph{Promise-making.} Defined at the \textbf{player-round level} from \texttt{promise\_classifications.csv}: an LLM classifier (applied in a prior issue) labels whether a player's chat in a given round contains a promise to contribute. This yields 2,195 promise and 2,505 no-promise messages, or 931 promise and 1,367 no-promise player-rounds.
 
 \paragraph{Contribution homogeneity.} Defined at the \textbf{group-round level} from contribution data: a group-round is ``homogeneous'' if the range of contributions (max $-$ min) is $\leq 1$ ECU, and ``heterogeneous'' otherwise. This threshold captures groups where all members contributed (approximately) the same amount, regardless of the contribution level. The label is applied at the group level and merged onto individual player embeddings.
+
+\paragraph{Round-level liar.} Defined at the \textbf{player-round level} from \texttt{behavior\_classifications.csv}: a player ``lied this round'' (\texttt{lied\_this\_round\_20}) if they made a promise to contribute $\geq 20$ but actually contributed $< 20$. This is a round-specific label that can change from round to round. The dataset contains 94 round-liar observations, reflecting substantial class imbalance.
+
+\paragraph{Cumulative liar.} Defined at the \textbf{player-round level} from \texttt{behavior\_classifications.csv}: a player is a ``cumulative liar'' (\texttt{is\_liar\_20}) if they have \emph{ever} lied (by the round-level definition above) in any prior or current round. Once a player is classified as a liar, the label persists for all subsequent rounds. This yields 123 cumulative-liar observations, somewhat less imbalanced than the round-level label.
 
 \subsection{Embedding Granularity}
 
@@ -339,29 +343,68 @@ We evaluate whether the homogeneity direction can predict individual player cont
 \end{table}
 
 %% ============================================================
-\section{Comparing the Three Directions}
+\section{Results: Round-Level Liar Direction}
+\label{sec:rliar}
+%% ============================================================
+
+\subsection{Direction Vector Definition}
+
+The round-level liar direction separates players who lied about their contribution in a given round from those who did not. A player is labeled a ``round liar'' if they promised to contribute $\geq 20$ ECU but actually contributed $< 20$. Unlike the cooperative and promise labels, this label requires both a promise \emph{and} a subsequent deviation, capturing a specific form of strategic deception. With only 94 round-liar observations, the class imbalance is substantial.
+
+\subsection{Logistic Regression}
+
+We evaluate whether the round-liar direction can predict individual player contribution levels at the player-round level:
+
+\begin{table}[H]
+\caption{High contribution prediction from round-liar projections: 5-fold CV logistic regression (player-round level)}
+\label{tab:rliar_regression}
+\input{round_liar_embedding_regression_comparison}
+\end{table}
+
+%% ============================================================
+\section{Results: Cumulative Liar Direction}
+\label{sec:cliar}
+%% ============================================================
+
+\subsection{Direction Vector Definition}
+
+The cumulative liar direction separates players who have \emph{ever} lied (by the round-level definition) from those who have not. Once a player lies in any round, the ``cumulative liar'' label persists for all subsequent rounds. This captures a player-level trait rather than a round-specific event, and yields 123 cumulative-liar observations (less imbalanced than the round-level label).
+
+\subsection{Logistic Regression}
+
+We evaluate whether the cumulative-liar direction can predict individual player contribution levels at the player-round level:
+
+\begin{table}[H]
+\caption{High contribution prediction from cumulative-liar projections: 5-fold CV logistic regression (player-round level)}
+\label{tab:cliar_regression}
+\input{cumulative_liar_embedding_regression_comparison}
+\end{table}
+
+%% ============================================================
+\section{Comparing the Five Directions}
 %% ============================================================
 
 \begin{table}[H]
 \centering
 \caption{Summary comparison of direction vectors}
 \label{tab:comparison}
-\begin{tabular}{lccc}
+\footnotesize
+\begin{tabular}{lccccc}
 \toprule
-& Cooperative & Promise & Homogeneity \\
+& Cooperative & Promise & Homogeneity & Round Liar & Cum.\ Liar \\
 \midrule
-Label level & Player & Player-round & Group-round \\
-Probe validation & Inverted & Correct ordering & TBD \\
-Top positive texts & Affirmations & Explicit commitments & Coordination language \\
-Top negative texts & Cooperative appeals & Complaints / off-topic & Individual language \\
-Projection-only AUC & 0.76 & 0.90 & TBD \\
-VADER-only AUC & 0.62 & 0.67 & TBD \\
-What it captures & Settled vs.\ negotiating & Commitment vs.\ non-commitment & Coordinated vs.\ independent \\
+Label level & Player & Player-round & Group-round & Player-round & Player-round \\
+Label source & player\_state & promise\_class. & contributions & behavior\_class. & behavior\_class. \\
+Probe validation & Inverted & Correct & --- & --- & --- \\
+Positive class $n$ & 3,800 & 2,195 & --- & 94 & 123 \\
+Projection-only AUC & 0.76 & 0.90 & --- & --- & --- \\
+VADER-only AUC & 0.62 & 0.67 & --- & --- & --- \\
+What it captures & Settled vs.\ negot. & Commitment & Coordination & Deception & Liar trait \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-The cooperative direction's failure to capture cooperative intent---and the promise direction's success in capturing promise intent---likely stems from the nature of the labels. The cooperative state label reflects the \emph{environment} (others' behavior), which correlates with the \emph{absence} of cooperation talk. The promise label reflects the \emph{content} of the player's own speech, which the embedding naturally captures. The homogeneity direction captures a distinct group-level phenomenon: whether the group's communication reflects coordination on a common contribution level.
+The cooperative direction's failure to capture cooperative intent---and the promise direction's success in capturing promise intent---likely stems from the nature of the labels. The cooperative state label reflects the \emph{environment} (others' behavior), which correlates with the \emph{absence} of cooperation talk. The promise label reflects the \emph{content} of the player's own speech, which the embedding naturally captures. The homogeneity direction captures a distinct group-level phenomenon: whether the group's communication reflects coordination on a common contribution level. The two liar directions test whether the embedding space can detect deceptive behavior---either at the round level (did the player lie \emph{this round}?) or cumulatively (has the player \emph{ever} lied?). The substantial class imbalance in both liar labels (94 and 123 positive cases respectively) makes these directions more challenging to validate.
 
 %% ============================================================
 \section{Implementation Details}
@@ -374,14 +417,16 @@ The cooperative direction's failure to capture cooperative intent---and the prom
     \item \texttt{analyze\_embeddings.py}: Loads cached embeddings, computes cooperative centroids, direction vectors, projections, probe validation. Outputs \texttt{embedding\_projections.csv}.
     \item \texttt{analyze\_promise\_embeddings.py}: Same pipeline using promise labels. Outputs \texttt{promise\_embedding\_projections.csv}.
     \item \texttt{analyze\_homogeneity\_embeddings.py}: Same pipeline using contribution homogeneity labels. Outputs \texttt{homogeneity\_embedding\_projections.csv}.
+    \item \texttt{analyze\_round\_liar\_embeddings.py}: Same pipeline using round-level liar labels (\texttt{lied\_this\_round\_20}). Outputs \texttt{round\_liar\_embedding\_projections.csv}.
+    \item \texttt{analyze\_cumulative\_liar\_embeddings.py}: Same pipeline using cumulative liar labels (\texttt{is\_liar\_20}). Outputs \texttt{cumulative\_liar\_embedding\_projections.csv}.
     \item \texttt{embedding\_plots.py} / \texttt{promise\_embedding\_plots.py}: UMAP, t-SNE, projection distributions.
-    \item \texttt{embedding\_regression.py} / \texttt{promise\_embedding\_regression.py} / \texttt{homogeneity\_embedding\_regression.py}: Logistic regression model comparison.
-    \item \texttt{merge\_panel\_data.py}: Integrates 12 projection score columns (4 cooperative + 4 promise + 4 homogeneity) into the panel dataset.
+    \item \texttt{embedding\_regression.py} / \texttt{promise\_embedding\_regression.py} / \texttt{homogeneity\_embedding\_regression.py} / \texttt{round\_liar\_embedding\_regression.py} / \texttt{cumulative\_liar\_embedding\_regression.py}: Logistic regression model comparison.
+    \item \texttt{merge\_panel\_data.py}: Integrates 20 projection score columns (4 cooperative + 4 promise + 4 homogeneity + 4 round-liar + 4 cumulative-liar) into the panel dataset.
 \end{enumerate}
 
 \subsection{Panel Data Columns}
 
-The merged panel dataset contains 12 new embedding projection columns:
+The merged panel dataset contains 20 new embedding projection columns:
 
 \begin{center}
 \footnotesize
@@ -401,6 +446,14 @@ Column & Description \\
 \texttt{proj\_homog\_pr\_dir\_small} & Message $\rightarrow$ player-round homogeneity direction (small) \\
 \texttt{proj\_homog\_msg\_dir\_large} & Message $\rightarrow$ message-level homogeneity direction (large) \\
 \texttt{proj\_homog\_pr\_dir\_large} & Message $\rightarrow$ player-round homogeneity direction (large) \\
+\texttt{proj\_rliar\_msg\_dir\_small} & Message $\rightarrow$ message-level round-liar direction (small) \\
+\texttt{proj\_rliar\_pr\_dir\_small} & Message $\rightarrow$ player-round round-liar direction (small) \\
+\texttt{proj\_rliar\_msg\_dir\_large} & Message $\rightarrow$ message-level round-liar direction (large) \\
+\texttt{proj\_rliar\_pr\_dir\_large} & Message $\rightarrow$ player-round round-liar direction (large) \\
+\texttt{proj\_cliar\_msg\_dir\_small} & Message $\rightarrow$ message-level cumulative-liar direction (small) \\
+\texttt{proj\_cliar\_pr\_dir\_small} & Message $\rightarrow$ player-round cumulative-liar direction (small) \\
+\texttt{proj\_cliar\_msg\_dir\_large} & Message $\rightarrow$ message-level cumulative-liar direction (large) \\
+\texttt{proj\_cliar\_pr\_dir\_large} & Message $\rightarrow$ player-round cumulative-liar direction (large) \\
 \bottomrule
 \end{tabular}
 \end{center}
