@@ -59,6 +59,27 @@ EXPECTED_LABELS = 16
 MIN_TEX_SIZE = 200
 
 
+# R code for z-score computation test
+R_ZSCORE_CODE = """
+source("analysis/issue_39_common.R")
+dt <- load_contribute_data()
+dt <- compute_zscores(dt)
+complete <- dt[!is.na(emotion_anger) & !is.na(emotion_fear)]
+anger_mean <- mean(complete$emotion_anger)
+anger_sd <- sd(complete$emotion_anger)
+fear_mean <- mean(complete$emotion_fear)
+fear_sd <- sd(complete$emotion_fear)
+dt[, anger_z := (emotion_anger - anger_mean) / anger_sd]
+dt[, fear_z := (emotion_fear - fear_mean) / fear_sd]
+complete_z <- dt[!is.na(anger_z) & !is.na(fear_z)]
+cat("ANGER_MEAN_Z:", round(mean(complete_z$anger_z), 4), "\\n")
+cat("FEAR_MEAN_Z:", round(mean(complete_z$fear_z), 4), "\\n")
+cat("ANGER_SD:", round(anger_sd, 6), "\\n")
+cat("FEAR_SD:", round(fear_sd, 6), "\\n")
+cat("N:", nrow(complete_z), "\\n")
+"""
+
+
 # =====
 # Helpers
 # =====
@@ -78,6 +99,16 @@ def run_r_code(code, timeout=30):
         capture_output=True, text=True,
         cwd=str(WORKING_DIR), timeout=timeout,
     )
+
+
+def _assert_zscore_centered(result, label):
+    """Assert a named z-score is near zero and its SD is positive."""
+    mean_match = re.search(rf"{label}_MEAN_Z:\s+([-\d.]+)", result.stdout)
+    sd_match = re.search(rf"{label}_SD:\s+([-\d.]+)", result.stdout)
+    assert mean_match is not None, f"{label}_MEAN_Z not found: {result.stdout}"
+    assert sd_match is not None, f"{label}_SD not found: {result.stdout}"
+    assert abs(float(mean_match.group(1))) < 0.01
+    assert float(sd_match.group(1)) > 0
 
 
 # =====
@@ -246,37 +277,10 @@ class TestNegativeEmotionPlots:
 
     def test_anger_fear_zscores_computed(self):
         """Verify anger and fear z-scores are computed and centered near zero."""
-        result = run_r_code("""
-source("analysis/issue_39_common.R")
-dt <- load_contribute_data()
-dt <- compute_zscores(dt)
-complete <- dt[!is.na(emotion_anger) & !is.na(emotion_fear)]
-anger_mean <- mean(complete$emotion_anger)
-anger_sd <- sd(complete$emotion_anger)
-fear_mean <- mean(complete$emotion_fear)
-fear_sd <- sd(complete$emotion_fear)
-dt[, anger_z := (emotion_anger - anger_mean) / anger_sd]
-dt[, fear_z := (emotion_fear - fear_mean) / fear_sd]
-complete_z <- dt[!is.na(anger_z) & !is.na(fear_z)]
-cat("ANGER_MEAN_Z:", round(mean(complete_z$anger_z), 4), "\\n")
-cat("FEAR_MEAN_Z:", round(mean(complete_z$fear_z), 4), "\\n")
-cat("ANGER_SD:", round(anger_sd, 6), "\\n")
-cat("FEAR_SD:", round(fear_sd, 6), "\\n")
-cat("N:", nrow(complete_z), "\\n")
-""")
+        result = run_r_code(R_ZSCORE_CODE)
         assert result.returncode == 0, result.stderr
-        # Z-scores should be centered near zero
-        anger_match = re.search(r"ANGER_MEAN_Z:\s+([-\d.]+)", result.stdout)
-        fear_match = re.search(r"FEAR_MEAN_Z:\s+([-\d.]+)", result.stdout)
-        assert anger_match is not None, f"ANGER_MEAN_Z not found: {result.stdout}"
-        assert fear_match is not None, f"FEAR_MEAN_Z not found: {result.stdout}"
-        assert abs(float(anger_match.group(1))) < 0.01
-        assert abs(float(fear_match.group(1))) < 0.01
-        # Standard deviations must be positive (non-zero variance)
-        anger_sd_match = re.search(r"ANGER_SD:\s+([-\d.]+)", result.stdout)
-        fear_sd_match = re.search(r"FEAR_SD:\s+([-\d.]+)", result.stdout)
-        assert float(anger_sd_match.group(1)) > 0
-        assert float(fear_sd_match.group(1)) > 0
+        _assert_zscore_centered(result, "ANGER")
+        _assert_zscore_centered(result, "FEAR")
 
     def test_three_measures_in_summary(self):
         """Verify the script produces summaries with exactly 3 measures."""

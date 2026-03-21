@@ -131,27 +131,22 @@ def _compute_sucker_for_segment_df(
         )
 
 
+def _set_sucker_flag(result, idx, label, round_num, player_is_sucker, col_name) -> None:
+    """Write the current-round sucker flag for a single player row."""
+    if round_num == 1:
+        result.loc[idx, col_name] = False
+    else:
+        result.loc[idx, col_name] = player_is_sucker.get(label, False)
+
+
 def _process_round_sucker_df(
     result, round_df, round_num, threshold_func, player_is_sucker, col_name
 ):
     """Process a single round for sucker classification (DataFrame API)."""
-    # Find groups with promise-breakers in THIS round only
     groups_with_liar_this_round = _find_groups_with_liar(round_df, threshold_func)
-
-    # Set flags and check for new suckering events
     for _, row in round_df.iterrows():
-        idx = row.name
-        label = row['label']
-        group = row['group']
-
-        if round_num == 1:
-            result.loc[idx, col_name] = False
-        elif player_is_sucker.get(label, False):
-            result.loc[idx, col_name] = True
-        else:
-            result.loc[idx, col_name] = False
-
-        # Check if suckered THIS round (contribution 25 + groupmate broke promise)
+        idx, label, group = row.name, row['label'], row['group']
+        _set_sucker_flag(result, idx, label, round_num, player_is_sucker, col_name)
         if group in groups_with_liar_this_round and row['contribution'] == MAX_CONTRIBUTION:
             player_is_sucker[label] = True
 
