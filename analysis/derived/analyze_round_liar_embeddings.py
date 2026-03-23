@@ -110,7 +110,7 @@ def compute_round_liar_labels(
 def _assign_labels(lied_col: pd.Series) -> pd.Series:
     """Map lied_this_round_20 boolean to liar labels."""
     return lied_col.map(
-        lambda x: STATE_LIAR if x else STATE_NON_LIAR
+        lambda x: None if pd.isna(x) else (STATE_LIAR if x else STATE_NON_LIAR)
     )
 
 
@@ -136,6 +136,10 @@ def compute_liar_centroids(
     """Compute mean embedding for liar vs non-liar players."""
     liar_mask = labels == STATE_LIAR
     non_liar_mask = labels == STATE_NON_LIAR
+    if not liar_mask.any():
+        raise ValueError(f"No '{STATE_LIAR}' labels found. Labels: {set(labels)}")
+    if not non_liar_mask.any():
+        raise ValueError(f"No '{STATE_NON_LIAR}' labels found. Labels: {set(labels)}")
     liar_centroid = embeddings[liar_mask].mean(axis=0)
     non_liar_centroid = embeddings[non_liar_mask].mean(axis=0)
     return liar_centroid, non_liar_centroid

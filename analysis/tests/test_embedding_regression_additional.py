@@ -18,14 +18,13 @@ import pytest
 sys.path.insert(0, str(Path(__file__).parent.parent / 'analysis'))
 
 from embedding_regression import (
-    GROUP_KEYS,
     N_FOLDS,
     PCA_COMPONENTS,
+    PLAYER_KEYS,
     VADER_FEATURES,
     _average_metrics,
     _build_latex_table,
     _define_models,
-    _majority_vote,
     _preprocess,
     cross_validate_model,
     run_model_comparison,
@@ -47,13 +46,14 @@ def _make_dataset(n_groups=40, n_dims=10, seed=42):
             'segment': f'supergame{i % 5 + 1}',
             'round': i % 5 + 1,
             'group': i % 6 + 1,
-            'cooperative': is_coop,
+            'label': chr(65 + i % 16),
+            'high_contribution': is_coop,
             'sentiment_compound_mean': sign * 0.5 + rng.randn() * 0.1,
             'sentiment_positive_mean': max(0, sign * 0.3 + rng.randn() * 0.1),
             'sentiment_negative_mean': max(0, -sign * 0.3 + rng.randn() * 0.1),
             'sentiment_neutral_mean': 0.5 + rng.randn() * 0.1,
-            'projection_score_small': sign * 1.0 + rng.randn() * 0.2,
-            'projection_score_large': sign * 1.5 + rng.randn() * 0.3,
+            'proj_pr_dir_small': sign * 1.0 + rng.randn() * 0.2,
+            'proj_pr_dir_large': sign * 1.5 + rng.randn() * 0.3,
         }
         for d in range(n_dims):
             row[f'emb_{d}'] = sign * rng.rand() + rng.randn() * 0.1
@@ -75,36 +75,15 @@ class TestConstantsRegression:
         """PCA should reduce to 50 components."""
         assert PCA_COMPONENTS == 50
 
-    def test_group_keys(self):
-        """Group keys should match expected list."""
-        expected = ['session_code', 'segment', 'round', 'group']
-        assert GROUP_KEYS == expected
+    def test_player_keys(self):
+        """Player keys should match expected list."""
+        expected = ['session_code', 'segment', 'round', 'group', 'label']
+        assert PLAYER_KEYS == expected
 
     def test_vader_features(self):
         """VADER feature list should have 4 items."""
         assert len(VADER_FEATURES) == 4
         assert 'sentiment_compound_mean' in VADER_FEATURES
-
-
-# =====
-# Regression: _majority_vote edge cases
-# =====
-class TestMajorityVoteEdgeCases:
-    """Edge case tests for majority vote."""
-
-    def test_single_state(self):
-        """Single state should return that state."""
-        assert _majority_vote(pd.Series(['cooperative'])) == 'cooperative'
-
-    def test_all_same(self):
-        """All same state should return that state."""
-        states = pd.Series(['noncooperative'] * 4)
-        assert _majority_vote(states) == 'noncooperative'
-
-    def test_all_cooperative(self):
-        """All cooperative should return cooperative."""
-        states = pd.Series(['cooperative'] * 4)
-        assert _majority_vote(states) == 'cooperative'
 
 
 # =====

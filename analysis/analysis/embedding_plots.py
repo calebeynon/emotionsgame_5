@@ -114,7 +114,7 @@ def plot_projection_distribution(
     projections: pd.DataFrame, suffix: str, output_path: Path
 ) -> None:
     """Histogram/KDE of projection scores split by state."""
-    col = f'projection_score_{suffix}'
+    col = f'proj_pr_dir_{suffix}'
     labeled = projections.dropna(subset=['player_state', col])
 
     fig, ax = plt.subplots(figsize=FIGSIZE)

@@ -38,7 +38,7 @@ from analyze_promise_embeddings import (
 from analyze_embeddings import (
     compute_difference_vector,
     project_onto_direction,
-    _cosine_similarities,
+    cosine_similarities,
 )
 
 
@@ -613,5 +613,5 @@ class TestEdgeCases:
         """Zero-norm embedding should have zero cosine similarity."""
         direction = np.array([1.0, 0.0])
         emb = np.array([[0.0, 0.0]])
-        result = _cosine_similarities(emb, direction)
+        result = cosine_similarities(emb, direction)
         assert result[0] == pytest.approx(0.0)

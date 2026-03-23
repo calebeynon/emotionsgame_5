@@ -117,7 +117,7 @@ def _compute_contribution_range(df: pd.DataFrame) -> pd.DataFrame:
 def _assign_labels(contribution_range: pd.Series) -> pd.Series:
     """Map contribution range to homogeneity labels."""
     return contribution_range.map(
-        lambda r: STATE_HOMOGENEOUS if r <= 1 else STATE_HETEROGENEOUS
+        lambda r: None if pd.isna(r) else (STATE_HOMOGENEOUS if r <= 1 else STATE_HETEROGENEOUS)
     )
 
 
@@ -140,6 +140,10 @@ def compute_homogeneity_centroids(
     """Compute mean embedding for homogeneous vs heterogeneous groups."""
     homog_mask = labels == STATE_HOMOGENEOUS
     heterog_mask = labels == STATE_HETEROGENEOUS
+    if not homog_mask.any():
+        raise ValueError(f"No '{STATE_HOMOGENEOUS}' labels found. Labels: {set(labels)}")
+    if not heterog_mask.any():
+        raise ValueError(f"No '{STATE_HETEROGENEOUS}' labels found. Labels: {set(labels)}")
     homog_centroid = embeddings[homog_mask].mean(axis=0)
     heterog_centroid = embeddings[heterog_mask].mean(axis=0)
     return homog_centroid, heterog_centroid

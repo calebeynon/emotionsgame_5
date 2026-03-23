@@ -147,6 +147,10 @@ def compute_centroids(
     """Compute mean embedding for cooperative vs non-cooperative groups."""
     coop_mask = labels == STATE_COOPERATIVE
     noncoop_mask = labels == STATE_NONCOOPERATIVE
+    if not coop_mask.any():
+        raise ValueError(f"No '{STATE_COOPERATIVE}' labels found. Labels: {set(labels)}")
+    if not noncoop_mask.any():
+        raise ValueError(f"No '{STATE_NONCOOPERATIVE}' labels found. Labels: {set(labels)}")
     coop_centroid = embeddings[coop_mask].mean(axis=0)
     noncoop_centroid = embeddings[noncoop_mask].mean(axis=0)
     return coop_centroid, noncoop_centroid
@@ -159,7 +163,10 @@ def compute_difference_vector(
     diff = coop_centroid - noncoop_centroid
     norm = np.linalg.norm(diff)
     if norm == 0:
-        return diff
+        raise ValueError(
+            "Direction vector has zero norm (centroids identical). "
+            "Check that labeling produced distinct groups."
+        )
     return diff / norm
 
 

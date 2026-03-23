@@ -13,7 +13,7 @@ import time
 from pathlib import Path
 
 from dotenv import load_dotenv
-from openai import OpenAI, RateLimitError, APIError
+from openai import OpenAI, RateLimitError, APIStatusError
 
 # Load .env from project root
 load_dotenv(Path(__file__).parent.parent.parent.parent / '.env')
@@ -72,7 +72,9 @@ def get_embedding_cost_estimate(
 ) -> dict:
     """Estimate API costs for embedding num_texts with avg_tokens each."""
     total_tokens = num_texts * avg_tokens
-    cost_rate = COST_PER_1K.get(model, COST_PER_1K[MODEL_SMALL])
+    if model not in COST_PER_1K:
+        raise ValueError(f"Unknown model '{model}'. Valid: {list(COST_PER_1K.keys())}")
+    cost_rate = COST_PER_1K[model]
     cost = (total_tokens / 1000) * cost_rate
 
     return {
@@ -115,10 +117,17 @@ def _embed_batch_with_retry(
     for attempt in range(MAX_RETRIES):
         try:
             return _make_embed_call(client, texts, model)
-        except (RateLimitError, APIError) as e:
+        except RateLimitError as e:
             last_error = e
             if attempt < MAX_RETRIES - 1:
                 _wait_with_backoff(attempt)
+        except APIStatusError as e:
+            if e.status_code in (500, 502, 503):
+                last_error = e
+                if attempt < MAX_RETRIES - 1:
+                    _wait_with_backoff(attempt)
+            else:
+                raise
     raise RuntimeError(
         f"Embedding failed after {MAX_RETRIES} retries: {last_error}"
     )

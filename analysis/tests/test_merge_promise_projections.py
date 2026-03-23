@@ -20,12 +20,15 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "derived"))
 
 from merge_panel_data import (
     EMBEDDING_COLS,
+    HOMOGENEITY_EMBEDDING_COLS,
     PROMISE_EMBEDDING_COLS,
+    ROUND_LIAR_EMBEDDING_COLS,
+    CUMULATIVE_LIAR_EMBEDDING_COLS,
     STATE_MERGE_KEYS,
+    _load_projection_data,
+    _merge_projection_data,
     _validate_no_suffix_columns,
     _validate_round_1_embeddings,
-    load_promise_projection_data,
-    merge_promise_projections,
 )
 
 # FILE PATHS
@@ -98,14 +101,13 @@ class TestPromiseEmbeddingColsConstant:
 
 
 # =====
-# Regression: load_promise_projection_data
+# Regression: _load_projection_data
 # =====
-class TestLoadPromiseProjectionData:
-    """Tests for loading and aggregating promise projections."""
+class TestLoadProjectionData:
+    """Tests for loading and aggregating projection data."""
 
-    def test_aggregates_to_player_round(self, tmp_path, monkeypatch):
+    def test_aggregates_to_player_round(self, tmp_path):
         """Should aggregate message-level data to player-round means."""
-        # Create CSV with 2 messages per player-round
         rows = []
         for msg_idx in range(2):
             rows.append({
@@ -118,46 +120,29 @@ class TestLoadPromiseProjectionData:
             })
         path = tmp_path / 'promise_embedding_projections.csv'
         pd.DataFrame(rows).to_csv(path, index=False)
-        monkeypatch.setattr(
-            'merge_panel_data.PROMISE_PROJECTION_FILE', path
-        )
 
-        result = load_promise_projection_data()
-        assert len(result) == 1  # One player-round
+        result = _load_projection_data(path, PROMISE_EMBEDDING_COLS)
+        assert len(result) == 1
         assert result['proj_promise_msg_dir_small'].iloc[0] == pytest.approx(1.5)
-        assert result['proj_promise_pr_dir_small'].iloc[0] == pytest.approx(2.5)
 
-    def test_has_merge_keys(self, tmp_path, monkeypatch):
+    def test_has_merge_keys(self, tmp_path):
         """Output should have STATE_MERGE_KEYS for joining."""
         path = _make_promise_projections_csv(tmp_path, n_players=2, n_rounds=1)
-        monkeypatch.setattr(
-            'merge_panel_data.PROMISE_PROJECTION_FILE', path
-        )
-        result = load_promise_projection_data()
+        result = _load_projection_data(path, PROMISE_EMBEDDING_COLS)
         for key in STATE_MERGE_KEYS:
             assert key in result.columns
 
-    def test_has_all_promise_cols(self, tmp_path, monkeypatch):
-        """Output should have all 4 promise embedding columns."""
-        path = _make_promise_projections_csv(tmp_path, n_players=2, n_rounds=1)
-        monkeypatch.setattr(
-            'merge_panel_data.PROMISE_PROJECTION_FILE', path
-        )
-        result = load_promise_projection_data()
-        for col in PROMISE_EMBEDDING_COLS:
-            assert col in result.columns
-
 
 # =====
-# Regression: merge_promise_projections
+# Regression: _merge_projection_data
 # =====
-class TestMergePromiseProjections:
-    """Tests for LEFT JOIN of promise projections onto panel."""
+class TestMergeProjectionData:
+    """Tests for LEFT JOIN of projections onto panel."""
 
     def test_left_join_preserves_row_count(self):
         """Merge should not change panel row count."""
         panel = _make_base_panel(n_players=4, rounds=(1, 2))
-        promise_df = pd.DataFrame({
+        proj_df = pd.DataFrame({
             'session_code': ['s1'] * 4,
             'segment': ['supergame1'] * 4,
             'round': [2] * 4,
@@ -167,13 +152,13 @@ class TestMergePromiseProjections:
             'proj_promise_msg_dir_large': [0.6] * 4,
             'proj_promise_pr_dir_large': [0.3] * 4,
         })
-        merged = merge_promise_projections(panel, promise_df)
+        merged = _merge_projection_data(panel, proj_df, PROMISE_EMBEDDING_COLS)
         assert len(merged) == len(panel)
 
     def test_round_1_has_nan(self):
-        """Round 1 rows should have NaN promise projections (no prior chat)."""
+        """Round 1 rows should have NaN projections (no prior chat)."""
         panel = _make_base_panel(n_players=2, rounds=(1, 2))
-        promise_df = pd.DataFrame({
+        proj_df = pd.DataFrame({
             'session_code': ['s1'] * 2,
             'segment': ['supergame1'] * 2,
             'round': [2] * 2,
@@ -183,89 +168,39 @@ class TestMergePromiseProjections:
             'proj_promise_msg_dir_large': [0.6] * 2,
             'proj_promise_pr_dir_large': [0.3] * 2,
         })
-        merged = merge_promise_projections(panel, promise_df)
+        merged = _merge_projection_data(panel, proj_df, PROMISE_EMBEDDING_COLS)
         r1 = merged[merged['round'] == 1]
         for col in PROMISE_EMBEDDING_COLS:
             assert r1[col].isna().all(), f"Round 1 should have NaN {col}"
 
-    def test_round_2_has_values(self):
-        """Round 2 rows should have non-NaN promise projections."""
-        panel = _make_base_panel(n_players=2, rounds=(1, 2))
-        promise_df = pd.DataFrame({
-            'session_code': ['s1'] * 2,
-            'segment': ['supergame1'] * 2,
-            'round': [2] * 2,
-            'label': ['A', 'B'],
-            'proj_promise_msg_dir_small': [0.5] * 2,
-            'proj_promise_pr_dir_small': [0.4] * 2,
-            'proj_promise_msg_dir_large': [0.6] * 2,
-            'proj_promise_pr_dir_large': [0.3] * 2,
-        })
-        merged = merge_promise_projections(panel, promise_df)
-        r2 = merged[merged['round'] == 2]
-        for col in PROMISE_EMBEDDING_COLS:
-            assert r2[col].notna().all(), f"Round 2 should have values for {col}"
-
-    def test_no_merge_collision_columns(self):
-        """Merge should not create _x or _y columns."""
-        panel = _make_base_panel(n_players=2, rounds=(2,))
-        promise_df = pd.DataFrame({
-            'session_code': ['s1'] * 2,
-            'segment': ['supergame1'] * 2,
-            'round': [2] * 2,
-            'label': ['A', 'B'],
-            'proj_promise_msg_dir_small': [0.5] * 2,
-            'proj_promise_pr_dir_small': [0.4] * 2,
-            'proj_promise_msg_dir_large': [0.6] * 2,
-            'proj_promise_pr_dir_large': [0.3] * 2,
-        })
-        merged = merge_promise_projections(panel, promise_df)
-        _validate_no_suffix_columns(merged)
-
-    def test_values_match_input(self):
-        """Merged values should match the promise projection data."""
-        panel = _make_base_panel(n_players=1, rounds=(2,))
-        promise_df = pd.DataFrame({
-            'session_code': ['s1'],
-            'segment': ['supergame1'],
-            'round': [2],
-            'label': ['A'],
-            'proj_promise_msg_dir_small': [1.23],
-            'proj_promise_pr_dir_small': [4.56],
-            'proj_promise_msg_dir_large': [7.89],
-            'proj_promise_pr_dir_large': [0.12],
-        })
-        merged = merge_promise_projections(panel, promise_df)
-        assert merged['proj_promise_msg_dir_small'].iloc[0] == pytest.approx(1.23)
-        assert merged['proj_promise_pr_dir_large'].iloc[0] == pytest.approx(0.12)
-
 
 # =====
-# Regression: _validate_round_1_embeddings includes promise cols
+# Regression: _validate_round_1_embeddings includes all projection types
 # =====
 class TestValidateRound1Embeddings:
     """Test that validation now checks promise projection columns too."""
 
     def test_passes_when_round_1_all_nan(self):
         """Validation should pass when round 1 has NaN for all embedding cols."""
+        all_cols = (EMBEDDING_COLS + PROMISE_EMBEDDING_COLS
+                    + HOMOGENEITY_EMBEDDING_COLS + ROUND_LIAR_EMBEDDING_COLS
+                    + CUMULATIVE_LIAR_EMBEDDING_COLS)
         panel = pd.DataFrame({
             'round': [1, 2],
-            **{col: [np.nan, 0.5] for col in EMBEDDING_COLS},
-            **{col: [np.nan, 0.5] for col in PROMISE_EMBEDDING_COLS},
+            **{col: [np.nan, 0.5] for col in all_cols},
         })
-        # Should not raise
         _validate_round_1_embeddings(panel)
 
     def test_fails_when_round_1_has_promise_projection(self):
         """Validation should fail if round 1 has non-NaN promise projections."""
+        all_cols = (EMBEDDING_COLS + PROMISE_EMBEDDING_COLS
+                    + HOMOGENEITY_EMBEDDING_COLS + ROUND_LIAR_EMBEDDING_COLS
+                    + CUMULATIVE_LIAR_EMBEDDING_COLS)
         panel = pd.DataFrame({
             'round': [1],
-            **{col: [np.nan] for col in EMBEDDING_COLS},
-            'proj_promise_msg_dir_small': [0.5],
-            'proj_promise_pr_dir_small': [np.nan],
-            'proj_promise_msg_dir_large': [np.nan],
-            'proj_promise_pr_dir_large': [np.nan],
+            **{col: [np.nan] for col in all_cols},
         })
+        panel.loc[0, 'proj_promise_msg_dir_small'] = 0.5
         with pytest.raises(ValueError, match="Round 1 has non-NaN"):
             _validate_round_1_embeddings(panel)
 

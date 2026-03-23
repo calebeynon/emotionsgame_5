@@ -129,6 +129,10 @@ def compute_promise_centroids(
     """Compute mean embedding for promise vs no-promise groups."""
     promise_mask = labels == STATE_PROMISE
     no_promise_mask = labels == STATE_NO_PROMISE
+    if not promise_mask.any():
+        raise ValueError(f"No '{STATE_PROMISE}' labels found. Labels: {set(labels)}")
+    if not no_promise_mask.any():
+        raise ValueError(f"No '{STATE_NO_PROMISE}' labels found. Labels: {set(labels)}")
     promise_centroid = embeddings[promise_mask].mean(axis=0)
     no_promise_centroid = embeddings[no_promise_mask].mean(axis=0)
     return promise_centroid, no_promise_centroid

@@ -18,209 +18,38 @@ import pytest
 sys.path.insert(0, str(Path(__file__).parent.parent / 'analysis'))
 
 from embedding_regression import (
-    _aggregate_projections,
-    _aggregate_sentiment,
-    _aggregate_state,
     _average_metrics,
     _build_latex_table,
     _compute_metrics,
     _define_models,
-    _majority_vote,
     _preprocess,
-    build_dataset,
     cross_validate_model,
     run_model_comparison,
 )
 
 
-# =====
-# Synthetic data builders
-# =====
-def _make_state_csv(tmp_path):
-    """Write synthetic state CSV and return path."""
-    rows = [
-        {'session_code': 's1', 'treatment': 1, 'segment': 'supergame1',
-         'round_num': 2, 'group_id': 1, 'label': 'A',
-         'player_state': 'cooperative'},
-        {'session_code': 's1', 'treatment': 1, 'segment': 'supergame1',
-         'round_num': 2, 'group_id': 1, 'label': 'E',
-         'player_state': 'cooperative'},
-        {'session_code': 's1', 'treatment': 1, 'segment': 'supergame1',
-         'round_num': 2, 'group_id': 1, 'label': 'J',
-         'player_state': 'noncooperative'},
-        {'session_code': 's1', 'treatment': 1, 'segment': 'supergame1',
-         'round_num': 2, 'group_id': 1, 'label': 'N',
-         'player_state': 'cooperative'},
-    ]
-    path = tmp_path / 'state.csv'
-    pd.DataFrame(rows).to_csv(path, index=False)
-    return path
 
-
-def _make_sentiment_csv(tmp_path):
-    """Write synthetic sentiment CSV and return path."""
-    rows = []
-    for label in ['A', 'E', 'J', 'N']:
-        rows.append({
-            'session_code': 's1', 'treatment': 1,
-            'segment': 'supergame1', 'round': 2, 'group': 1,
-            'label': label,
-            'sentiment_compound_mean': 0.5,
-            'sentiment_positive_mean': 0.3,
-            'sentiment_negative_mean': 0.1,
-            'sentiment_neutral_mean': 0.6,
-        })
-    path = tmp_path / 'sentiment.csv'
-    pd.DataFrame(rows).to_csv(path, index=False)
-    return path
-
-
-def _make_projections_csv(tmp_path):
-    """Write synthetic projections CSV and return path."""
-    rows = []
-    for label in ['A', 'E', 'J', 'N']:
-        rows.append({
-            'session_code': 's1', 'segment': 'supergame1',
-            'round': 2, 'group': 1, 'label': label,
-            'projection_score_small': 0.8,
-            'projection_score_large': 0.7,
-        })
-    path = tmp_path / 'projections.csv'
-    pd.DataFrame(rows).to_csv(path, index=False)
-    return path
-
-
-def _make_embeddings_parquet(tmp_path, n_dims=10):
-    """Write synthetic embeddings parquet and return path."""
-    rows = []
-    for label in ['A', 'E', 'J', 'N']:
-        row = {
-            'session_code': 's1', 'treatment': 1,
-            'segment': 'supergame1', 'round': 2, 'group': 1,
-            'label': label, 'player_state': 'cooperative',
-        }
-        for i in range(n_dims):
-            row[f'emb_{i}'] = np.random.rand()
-        rows.append(row)
-    path = tmp_path / 'embeddings.parquet'
-    pd.DataFrame(rows).to_parquet(path, index=False)
-    return path
-
-
-def _make_dataset(n_groups=30, n_dims=10):
+def _make_dataset(n_rows=30, n_dims=10):
     """Build a synthetic dataset DataFrame for model tests."""
     rng = np.random.RandomState(42)
     rows = []
-    for i in range(n_groups):
+    for i in range(n_rows):
         row = {
             'session_code': 's1', 'segment': 'supergame1',
             'round': i % 5 + 1, 'group': i % 6 + 1,
-            'cooperative': rng.randint(0, 2),
+            'label': chr(65 + i % 16),
+            'high_contribution': rng.randint(0, 2),
             'sentiment_compound_mean': rng.rand(),
             'sentiment_positive_mean': rng.rand(),
             'sentiment_negative_mean': rng.rand(),
             'sentiment_neutral_mean': rng.rand(),
-            'projection_score_small': rng.randn(),
-            'projection_score_large': rng.randn(),
+            'proj_pr_dir_small': rng.randn(),
+            'proj_pr_dir_large': rng.randn(),
         }
         for d in range(n_dims):
             row[f'emb_{d}'] = rng.randn()
         rows.append(row)
     return pd.DataFrame(rows)
-
-
-# =====
-# Tests for _majority_vote
-# =====
-class TestMajorityVote:
-    """Tests for majority vote aggregation."""
-
-    def test_clear_majority(self):
-        """Three cooperative, one non-cooperative -> cooperative."""
-        states = pd.Series(['cooperative', 'cooperative', 'cooperative', 'noncooperative'])
-        assert _majority_vote(states) == 'cooperative'
-
-    def test_tie_goes_cooperative(self):
-        """Two cooperative, two non-cooperative -> cooperative (tie rule)."""
-        states = pd.Series(['cooperative', 'noncooperative', 'cooperative', 'noncooperative'])
-        assert _majority_vote(states) == 'cooperative'
-
-    def test_noncooperative_majority(self):
-        """Three non-cooperative -> noncooperative."""
-        states = pd.Series(['noncooperative', 'noncooperative', 'noncooperative', 'cooperative'])
-        assert _majority_vote(states) == 'noncooperative'
-
-
-# =====
-# Tests for aggregation functions
-# =====
-class TestAggregation:
-    """Tests for data aggregation helpers."""
-
-    def test_aggregate_state_renames_columns(self, tmp_path):
-        """State aggregation should rename round_num/group_id."""
-        path = _make_state_csv(tmp_path)
-        result = _aggregate_state(path)
-        assert 'round' in result.columns
-        assert 'group' in result.columns
-        assert 'round_num' not in result.columns
-
-    def test_aggregate_state_produces_binary(self, tmp_path):
-        """Output should have binary cooperative column."""
-        path = _make_state_csv(tmp_path)
-        result = _aggregate_state(path)
-        assert set(result['cooperative'].unique()).issubset({0, 1})
-
-    def test_aggregate_state_one_row_per_group(self, tmp_path):
-        """4 players in one group should produce 1 row."""
-        path = _make_state_csv(tmp_path)
-        result = _aggregate_state(path)
-        assert len(result) == 1
-
-    def test_aggregate_sentiment_means(self, tmp_path):
-        """Sentiment should be averaged per group-round."""
-        path = _make_sentiment_csv(tmp_path)
-        result = _aggregate_sentiment(path)
-        assert len(result) == 1
-        assert result['sentiment_compound_mean'].iloc[0] == pytest.approx(0.5)
-
-    def test_aggregate_projections(self, tmp_path):
-        """Projections should be averaged per group-round."""
-        path = _make_projections_csv(tmp_path)
-        result = _aggregate_projections(path)
-        assert len(result) == 1
-        assert 'projection_score_small' in result.columns
-
-
-# =====
-# Tests for build_dataset
-# =====
-class TestBuildDataset:
-    """Tests for full dataset merge."""
-
-    def test_produces_all_required_columns(self, tmp_path):
-        """Merged dataset must have VADER, embedding, projection, and target."""
-        emb = _make_embeddings_parquet(tmp_path)
-        sent = _make_sentiment_csv(tmp_path)
-        state = _make_state_csv(tmp_path)
-        proj = _make_projections_csv(tmp_path)
-
-        result = build_dataset(emb, sent, state, proj)
-
-        assert 'cooperative' in result.columns
-        assert 'sentiment_compound_mean' in result.columns
-        assert 'projection_score_small' in result.columns
-        assert any(c.startswith('emb_') for c in result.columns)
-
-    def test_one_row_per_group_round(self, tmp_path):
-        """One group with 4 players -> 1 row."""
-        emb = _make_embeddings_parquet(tmp_path)
-        sent = _make_sentiment_csv(tmp_path)
-        state = _make_state_csv(tmp_path)
-        proj = _make_projections_csv(tmp_path)
-
-        result = build_dataset(emb, sent, state, proj)
-        assert len(result) == 1
 
 
 # =====

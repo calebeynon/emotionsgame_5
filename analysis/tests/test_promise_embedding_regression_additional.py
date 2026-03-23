@@ -19,16 +19,14 @@ import pytest
 sys.path.insert(0, str(Path(__file__).parent.parent / 'analysis'))
 
 from promise_embedding_regression import (
-    GROUP_KEYS,
     N_FOLDS,
     PCA_COMPONENTS,
+    PLAYER_KEYS,
     VADER_FEATURES,
-    _aggregate_promise_projections,
     _average_metrics,
     _build_latex_table,
     _define_models,
     _preprocess,
-    _promise_majority_vote,
     cross_validate_model,
     run_model_comparison,
 )
@@ -49,7 +47,8 @@ def _make_dataset(n_groups=40, n_dims=10, seed=42):
             'segment': f'supergame{i % 5 + 1}',
             'round': i % 5 + 1,
             'group': i % 6 + 1,
-            'made_promise': made_promise,
+            'label': chr(65 + i % 16),
+            'high_contribution': made_promise,
             'sentiment_compound_mean': sign * 0.5 + rng.randn() * 0.1,
             'sentiment_positive_mean': max(0, sign * 0.3 + rng.randn() * 0.1),
             'sentiment_negative_mean': max(0, -sign * 0.3 + rng.randn() * 0.1),
@@ -63,23 +62,6 @@ def _make_dataset(n_groups=40, n_dims=10, seed=42):
             row[f'emb_{d}'] = sign * rng.rand() + rng.randn() * 0.1
         rows.append(row)
     return pd.DataFrame(rows)
-
-
-def _make_promise_projections_csv(tmp_path):
-    """Write synthetic promise projections CSV and return path."""
-    rows = []
-    for label in ['A', 'E', 'J', 'N']:
-        rows.append({
-            'session_code': 's1', 'segment': 'supergame1',
-            'round': 2, 'group': 1, 'label': label,
-            'proj_promise_msg_dir_small': 0.5,
-            'proj_promise_pr_dir_small': 0.4,
-            'proj_promise_msg_dir_large': 0.6,
-            'proj_promise_pr_dir_large': 0.3,
-        })
-    path = tmp_path / 'promise_projections.csv'
-    pd.DataFrame(rows).to_csv(path, index=False)
-    return path
 
 
 # =====
@@ -96,79 +78,15 @@ class TestConstantsRegression:
         """PCA should reduce to 50 components."""
         assert PCA_COMPONENTS == 50
 
-    def test_group_keys(self):
-        """Group keys should match expected list."""
-        expected = ['session_code', 'segment', 'round', 'group']
-        assert GROUP_KEYS == expected
+    def test_player_keys(self):
+        """Player keys should match expected list."""
+        expected = ['session_code', 'segment', 'round', 'group', 'label']
+        assert PLAYER_KEYS == expected
 
     def test_vader_features_count(self):
         """VADER feature list should have 4 items."""
         assert len(VADER_FEATURES) == 4
         assert 'sentiment_compound_mean' in VADER_FEATURES
-
-
-# =====
-# Regression: _promise_majority_vote
-# =====
-class TestPromiseMajorityVote:
-    """Tests for promise-specific majority vote."""
-
-    def test_all_true(self):
-        """All True should return True."""
-        assert _promise_majority_vote(pd.Series([True, True, True, True])) is True
-
-    def test_all_false(self):
-        """All False should return False."""
-        assert _promise_majority_vote(pd.Series([False, False, False, False])) is False
-
-    def test_majority_true(self):
-        """Three True, one False should return True."""
-        assert _promise_majority_vote(pd.Series([True, True, True, False])) is True
-
-    def test_majority_false(self):
-        """Three False, one True should return False."""
-        assert _promise_majority_vote(pd.Series([False, False, False, True])) is False
-
-    def test_tie_goes_true(self):
-        """Two True, two False should return True (tie rule)."""
-        assert _promise_majority_vote(pd.Series([True, False, True, False])) is True
-
-    def test_single_true(self):
-        """Single True should return True."""
-        assert _promise_majority_vote(pd.Series([True])) is True
-
-    def test_single_false(self):
-        """Single False should return False."""
-        assert _promise_majority_vote(pd.Series([False])) is False
-
-
-# =====
-# Regression: _aggregate_promise_projections
-# =====
-class TestAggregatePromiseProjections:
-    """Tests for promise projection aggregation."""
-
-    def test_aggregates_to_group_round(self, tmp_path):
-        """Should produce one row per group-round."""
-        path = _make_promise_projections_csv(tmp_path)
-        result = _aggregate_promise_projections(path)
-        assert len(result) == 1
-
-    def test_has_all_projection_columns(self, tmp_path):
-        """Output should have all 4 promise projection columns."""
-        path = _make_promise_projections_csv(tmp_path)
-        result = _aggregate_promise_projections(path)
-        for col in [
-            'proj_promise_msg_dir_small', 'proj_promise_pr_dir_small',
-            'proj_promise_msg_dir_large', 'proj_promise_pr_dir_large',
-        ]:
-            assert col in result.columns
-
-    def test_values_are_mean(self, tmp_path):
-        """Aggregated values should be the mean of input values."""
-        path = _make_promise_projections_csv(tmp_path)
-        result = _aggregate_promise_projections(path)
-        assert result['proj_promise_msg_dir_small'].iloc[0] == pytest.approx(0.5)
 
 
 # =====
@@ -188,7 +106,7 @@ class TestDefineModels:
         dataset = _make_dataset()
         models = _define_models(dataset)
         expected_names = {
-            'VADER only', 'Promise projection only',
+            'VADER only', 'Promise proj. only',
             'Full embedding (PCA 50)', 'VADER + Promise proj.',
         }
         assert set(models.keys()) == expected_names
@@ -203,7 +121,7 @@ class TestDefineModels:
         """Promise projection model should have 4 features."""
         dataset = _make_dataset(n_groups=20)
         models = _define_models(dataset)
-        assert models['Promise projection only'].shape[1] == 4
+        assert models['Promise proj. only'].shape[1] == 4
 
     def test_combined_shape(self):
         """Combined model should have VADER(4) + promise proj(4) = 8."""

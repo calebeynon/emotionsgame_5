@@ -24,7 +24,7 @@ from analyze_embeddings import (
     PROBE_PHRASES,
     STATE_COOPERATIVE,
     STATE_NONCOOPERATIVE,
-    _cosine_similarities,
+    cosine_similarities,
     _merge_projections,
     build_projection_csv,
     compute_centroids,
@@ -196,7 +196,7 @@ class TestProjectOntoDirectionRegression:
 
 
 # =====
-# Regression: _cosine_similarities
+# Regression: cosine_similarities
 # =====
 class TestCosineSimilarities:
     """Tests for the cosine similarity helper."""
@@ -205,28 +205,28 @@ class TestCosineSimilarities:
         """Identical normalized vectors should have similarity 1."""
         direction = np.array([1.0, 0.0, 0.0])
         emb = np.array([[1.0, 0.0, 0.0]])
-        result = _cosine_similarities(emb, direction)
+        result = cosine_similarities(emb, direction)
         assert result[0] == pytest.approx(1.0)
 
     def test_opposite_vectors_similarity_negative_one(self):
         """Opposite vectors should have similarity -1."""
         direction = np.array([1.0, 0.0])
         emb = np.array([[-1.0, 0.0]])
-        result = _cosine_similarities(emb, direction)
+        result = cosine_similarities(emb, direction)
         assert result[0] == pytest.approx(-1.0)
 
     def test_orthogonal_similarity_zero(self):
         """Orthogonal vectors should have similarity 0."""
         direction = np.array([1.0, 0.0])
         emb = np.array([[0.0, 1.0]])
-        result = _cosine_similarities(emb, direction)
+        result = cosine_similarities(emb, direction)
         assert result[0] == pytest.approx(0.0)
 
     def test_handles_zero_embedding(self):
         """Zero-norm embedding should not cause division by zero."""
         direction = np.array([1.0, 0.0])
         emb = np.array([[0.0, 0.0]])
-        result = _cosine_similarities(emb, direction)
+        result = cosine_similarities(emb, direction)
         # Zero vector has cosine sim = 0 (due to zero-norm guard)
         assert result[0] == pytest.approx(0.0)
 
@@ -238,7 +238,7 @@ class TestCosineSimilarities:
             [0.0, 1.0],   # sim = 0
             [-1.0, 0.0],  # sim = -1
         ])
-        result = _cosine_similarities(emb, direction)
+        result = cosine_similarities(emb, direction)
         np.testing.assert_array_almost_equal(result, [1.0, 0.0, -1.0])
 
 
