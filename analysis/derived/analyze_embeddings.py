@@ -53,7 +53,12 @@ PR_ID_COLS = [
 # =====
 def main():
     """Main execution flow."""
-    # Player-round direction vectors (computed first, used for cross-level)
+    pr_dir = _run_player_round_analysis()
+    _run_message_level_analysis(pr_dir)
+
+
+def _run_player_round_analysis() -> dict[str, np.ndarray]:
+    """Analyze player-round embeddings and save projections. Returns direction vectors."""
     print("=== Player-round level analysis ===")
     pr_dir = {}
     pr_small, pr_dir['small'] = _analyze_model_with_direction(
@@ -62,12 +67,14 @@ def main():
     pr_large, pr_dir['large'] = _analyze_model_with_direction(
         EMBEDDINGS_PR_LARGE, 'large', PR_ID_COLS,
     )
-
     pr_combined = _merge_projections(pr_small, pr_large, PR_ID_COLS)
     pr_combined.to_csv(PROJECTIONS_PR_OUTPUT, index=False)
     print(f"\nSaved {len(pr_combined)} rows to {PROJECTIONS_PR_OUTPUT.name}")
+    return pr_dir
 
-    # Message-level: project onto BOTH message-level and player-round directions
+
+def _run_message_level_analysis(pr_dir: dict[str, np.ndarray]) -> None:
+    """Project messages onto both message-level and player-round directions."""
     print("\n=== Message-level analysis (own direction + player-round direction) ===")
     combined = _analyze_messages_cross_level(pr_dir)
     combined.to_csv(PROJECTIONS_OUTPUT, index=False)
@@ -100,12 +107,16 @@ def _analyze_messages_cross_level(
         print(f"\n--- Analyzing {suffix} model ---")
         meta, embeddings = load_embeddings(msg_path)
         msg_dir = _compute_direction(meta, embeddings)
-
         msg_proj = project_onto_direction(embeddings, msg_dir)
         pr_proj = project_onto_direction(embeddings, pr_directions[suffix])
         results[suffix] = (meta, msg_proj, pr_proj)
+    return _build_cross_level_output(results)
 
-    # Build combined output with both projection types
+
+def _build_cross_level_output(
+    results: dict[str, tuple[pd.DataFrame, np.ndarray, np.ndarray]],
+) -> pd.DataFrame:
+    """Combine small and large projection results into a single output DataFrame."""
     meta = results['small'][0]
     out = meta[ID_COLS + ['player_state']].copy()
     out['proj_msg_dir_small'] = results['small'][1]
