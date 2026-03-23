@@ -68,8 +68,9 @@ def extract_treatment(filename: str) -> int:
 def load_promise_data() -> pd.DataFrame:
     """Load promise classifications CSV."""
     if not PROMISE_FILE.exists():
-        print(f"Warning: Promise file not found at {PROMISE_FILE}")
-        return pd.DataFrame()
+        raise FileNotFoundError(
+            f"Promise file not found at {PROMISE_FILE}. Run classify_promises.py first."
+        )
     return pd.read_csv(PROMISE_FILE)
 
 
@@ -127,7 +128,7 @@ def build_player_record(session_code, treatment, segment_name, round_num,
     base_record = _build_base_record(
         session_code, treatment, segment_name, round_num, group_id, label, player
     )
-    contribution = player.contribution or 0
+    contribution = 0 if player.contribution is None else player.contribution
     flag_record = _build_flag_record(
         session_code, segment_name, round_num, label, contribution, segment, promise_lookup
     )
@@ -196,7 +197,7 @@ def _check_liar_in_prior_round(session_code, segment_name, prior_round, label, s
         return False, False
 
     made_promise = player_made_promise(promise_lookup, session_code, segment_name, prior_round, label)
-    contribution = prior_player.contribution or 0
+    contribution = 0 if prior_player.contribution is None else prior_player.contribution
     liar_20 = made_promise and contribution < THRESHOLD_20
     liar_5 = made_promise and contribution < THRESHOLD_5
     return liar_20, liar_5
@@ -251,7 +252,7 @@ def check_group_for_broken_promises(session_code, segment_name, round_num, label
             continue
 
         made_promise = player_made_promise(promise_lookup, session_code, segment_name, round_num, member_label)
-        contribution = member.contribution or 0
+        contribution = 0 if member.contribution is None else member.contribution
 
         if made_promise and contribution < THRESHOLD_20:
             is_sucker_20 = True

@@ -37,6 +37,7 @@ import time
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
+import httpx
 from dotenv import load_dotenv
 import pandas as pd
 from openai import OpenAI, RateLimitError, APIError
@@ -127,6 +128,7 @@ def classify_guilt(client: OpenAI, messages: list[str], contribution: int) -> di
         result = _attempt_classify(client, user_prompt, attempt)
         if result is not None:
             return result
+    log("ERROR: Max retries exceeded for classification request")
     return {"categories": ["error"], "reasoning": "Max retries exceeded", "raw": ""}
 
 
@@ -140,7 +142,14 @@ def _call_api(client: OpenAI, user_prompt: str) -> str:
         ],
         max_completion_tokens=300,
     )
-    return response.choices[0].message.content.strip()
+    content = response.choices[0].message.content
+    if content is None:
+        raise APIError(
+            "Content filtered: model returned None content",
+            request=httpx.Request("POST", "https://api.openai.com/v1/chat/completions"),
+            body=None,
+        )
+    return content.strip()
 
 
 def _attempt_classify(client: OpenAI, user_prompt: str, attempt: int) -> dict | None:
@@ -188,6 +197,7 @@ def parse_response(raw: str) -> dict:
         valid = _validate_categories(parsed.get("categories", []))
         return {"categories": valid, "reasoning": parsed.get("reasoning", ""), "raw": raw}
     except json.JSONDecodeError:
+        log(f"ERROR: JSON decode failed for response: {raw[:100]}")
         return {"categories": ["parse_error"], "reasoning": raw, "raw": raw}
 
 
@@ -200,7 +210,7 @@ def _parse_msgs(val) -> list:
         return []
     try:
         return json.loads(val)
-    except Exception:
+    except (json.JSONDecodeError, TypeError):
         return []
 
 
@@ -208,7 +218,7 @@ def load_liar_messages() -> pd.DataFrame:
     """Load liars and merge with their chat messages."""
     bc = pd.read_csv(BEHAVIOR_FILE)
     liars = bc[bc["lied_this_round_20"] == True].copy()
-    pc = pd.read_csv(PROMISE_FILE, engine="python", on_bad_lines="skip")
+    pc = pd.read_csv(PROMISE_FILE, engine="python", on_bad_lines="warn")
     merge_keys = ["session_code", "segment", "round", "group", "label"]
     merged = liars.merge(
         pc[merge_keys + ["messages", "message_count"]],
@@ -234,7 +244,11 @@ def _run_parallel(to_classify: pd.DataFrame, client, max_workers: int) -> dict:
         completed = 0
         for future in as_completed(futures):
             idx = futures[future]
-            results[idx] = future.result()
+            try:
+                results[idx] = future.result()
+            except Exception as exc:
+                log(f"ERROR: Classification failed for index {idx}: {exc}")
+                results[idx] = {"categories": ["error"], "reasoning": str(exc), "raw": ""}
             completed += 1
             if completed % 10 == 0 or completed == len(futures):
                 log(f"  Classified {completed}/{len(futures)}")

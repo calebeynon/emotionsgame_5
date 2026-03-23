@@ -2,7 +2,7 @@
 GPT system prompt for liar communication strategy classification.
 
 Defines the SYSTEM_PROMPT used by classify_guilt.py to instruct the model
-on identifying guilt-related behavioral strategies in liar chat messages.
+on identifying liar communication strategies in liar chat messages.
 
 Author: Claude Code
 Date: 2026-03-17
@@ -30,7 +30,7 @@ CLASSIFICATION CATEGORIES (assign ALL that apply):
    - Taking personal responsibility without deflecting: "i didn't know we were all in"
    - The apology should not be immediately followed by a self-serving request
    IMPORTANT: Distinguish genuine guilt from STRATEGIC apology. A player who says "sorry" then immediately makes another false promise is being strategic, not guilty. True guilt involves acknowledging harm to others, not just using apologetic language as social lubrication.
-   EXAMPLE — genuine_guilt: Player contributed 25 (after previously lying). Messages: "sorry yall" / "i thought q wasnt joining" / "ill do 25 next time" — Direct apology, excuse explaining their thinking, future commitment. The apology leads the message and acknowledges the group.
+   EXAMPLE — genuine_guilt: Player contributed 15/25 (after previously lying about contributing 25). Messages: "sorry yall" / "i thought q wasnt joining" / "ill do 25 next time" — Direct apology, excuse explaining their thinking, future commitment. The apology leads the message and acknowledges the group.
    EXAMPLE — genuine_guilt: "i forgot to press 5" / "my bad" / "yeah i agree" / "lets do it" — Claims a mistake, acknowledges fault with "my bad", then commits to doing better.
    EXAMPLE — NOT genuine_guilt: "sorry lol" — The "lol" undercuts sincerity. This is closer to duping_delight.
 
@@ -45,7 +45,7 @@ CLASSIFICATION CATEGORIES (assign ALL that apply):
    EXAMPLE — false_promise: Contributed 7/25. Messages: "all in this time" / "yes" — Repeating the same false promise after being caught lying before.
    EXAMPLE — false_promise: Contributed 10/25. Messages: "25" — Single word, but it's a stated commitment they didn't keep.
    EXAMPLE — false_promise: Contributed 0/25. Messages: "how about 15" / "can we do 15" / "thats reasonable" — Negotiating 15 while contributing 0. The proposed amount doesn't match the action.
-   EXAMPLE — NOT false_promise: Contributed 25/25. Messages: "lets all do 25" — They actually followed through, so this is not false.
+   EXAMPLE — NOT false_promise: Contributed 15/25. Messages: "how about 15?" / "yeah 15 sounds fair" — They proposed 15 and actually contributed 15, so the promise matches the action.
 
 3. blame_shifting — The player accuses, questions, or criticizes OTHER players for defecting, while THEY THEMSELVES are a defector. The hypocrisy is the key signal. Key signals:
    - "who did it" or "who didn't put in" — trying to identify defectors while being one
@@ -55,7 +55,7 @@ CLASSIFICATION CATEGORIES (assign ALL that apply):
    - "but Q has gone 0 multiple times" — pointing at others' defection history to deflect from own behavior
    - "lol you expect us to trust you?" — accusatory tone while also defecting
    EXAMPLE — blame_shifting: Contributed 0/25. Messages: "yall who didn't put in" / "same" — Accusing others of not contributing while contributing nothing themselves. Pure hypocrisy.
-   EXAMPLE — blame_shifting: Contributed 25/25. Messages: "who did it" — Trying to identify the defector, redirecting scrutiny away from themselves.
+   EXAMPLE — blame_shifting: Contributed 5/25. Messages: "who did it" / "someone's dragging us down" — Trying to identify the defector while only contributing 5 themselves. Redirecting scrutiny away from their own low contribution.
    EXAMPLE — blame_shifting: Contributed 5/25. Messages: "lol you expect us to trust you?" — Accusatory toward another defector while also contributing only 5.
 
 4. manipulation — The player actively DIRECTS others' behavior through social pressure, emotional coercion, or strategic schemes. Goes beyond just talking — they are trying to CONTROL what others do. Key signals:
