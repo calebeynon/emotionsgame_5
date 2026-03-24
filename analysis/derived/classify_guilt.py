@@ -157,12 +157,17 @@ def _attempt_classify(client: OpenAI, user_prompt: str, attempt: int) -> dict | 
     try:
         return parse_response(_call_api(client, user_prompt))
     except RateLimitError:
-        time.sleep(BASE_DELAY_SECONDS * (2 ** attempt))
+        delay = BASE_DELAY_SECONDS * (2 ** attempt)
+        log(f"WARNING: Rate limited (attempt {attempt + 1}/{MAX_RETRIES}), retrying in {delay:.0f}s")
+        time.sleep(delay)
         return None
     except APIError as e:
         if attempt == MAX_RETRIES - 1:
+            log(f"ERROR: API error after {MAX_RETRIES} attempts: {e}")
             return {"categories": ["error"], "reasoning": str(e), "raw": str(e)}
-        time.sleep(BASE_DELAY_SECONDS * (2 ** attempt))
+        delay = BASE_DELAY_SECONDS * (2 ** attempt)
+        log(f"WARNING: API error (attempt {attempt + 1}/{MAX_RETRIES}), retrying in {delay:.0f}s: {e}")
+        time.sleep(delay)
         return None
 
 
@@ -210,7 +215,8 @@ def _parse_msgs(val) -> list:
         return []
     try:
         return json.loads(val)
-    except (json.JSONDecodeError, TypeError):
+    except (json.JSONDecodeError, TypeError) as exc:
+        log(f"WARNING: Failed to parse message JSON: {exc} — value: {str(val)[:80]}")
         return []
 
 
@@ -279,6 +285,9 @@ def classify_all(df: pd.DataFrame, max_workers: int = 10) -> pd.DataFrame:
     to_classify = df[has_msgs].copy()
     log(f"Classifying {len(to_classify)} liar instances with chat messages...")
     results = _run_parallel(to_classify, client, max_workers)
+    error_count = sum(1 for r in results.values() if "error" in r.get("categories", []))
+    if error_count:
+        log(f"WARNING: {error_count}/{len(results)} classifications failed with errors")
     return _build_result_columns(df, results)
 
 
