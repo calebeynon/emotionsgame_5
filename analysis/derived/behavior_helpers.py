@@ -19,6 +19,7 @@ from behavior_helpers_df import (
     is_promise_broken_5,
     compute_liar_flags,
     compute_sucker_flags,
+    compute_lied_this_round_flags,
     classify_player_behavior,
     THRESHOLD_20,
     THRESHOLD_5,

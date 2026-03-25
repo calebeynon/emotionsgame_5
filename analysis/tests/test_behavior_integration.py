@@ -20,7 +20,7 @@ OUTPUT_FILE = DATA_DIR / 'derived' / 'behavior_classifications.csv'
 EXPECTED_COLUMNS = [
     'session_code', 'treatment', 'segment', 'round', 'group', 'label',
     'participant_id', 'contribution', 'payoff', 'made_promise',
-    'is_liar_20', 'is_liar_5', 'is_sucker_20', 'is_sucker_5'
+    'lied_this_round_20', 'is_liar_20', 'is_liar_5', 'is_sucker_20', 'is_sucker_5'
 ]
 EXPECTED_ROW_COUNT = 3520  # 10 sessions * 16 players * 22 rounds
 FLAG_COLUMNS = ['is_liar_20', 'is_liar_5', 'is_sucker_20', 'is_sucker_5']

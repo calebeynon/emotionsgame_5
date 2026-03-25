@@ -131,27 +131,22 @@ def _compute_sucker_for_segment_df(
         )
 
 
+def _set_sucker_flag(result, idx, label, round_num, player_is_sucker, col_name) -> None:
+    """Write the current-round sucker flag for a single player row."""
+    if round_num == 1:
+        result.loc[idx, col_name] = False
+    else:
+        result.loc[idx, col_name] = player_is_sucker.get(label, False)
+
+
 def _process_round_sucker_df(
     result, round_df, round_num, threshold_func, player_is_sucker, col_name
 ):
     """Process a single round for sucker classification (DataFrame API)."""
-    # Find groups with promise-breakers in THIS round only
     groups_with_liar_this_round = _find_groups_with_liar(round_df, threshold_func)
-
-    # Set flags and check for new suckering events
     for _, row in round_df.iterrows():
-        idx = row.name
-        label = row['label']
-        group = row['group']
-
-        if round_num == 1:
-            result.loc[idx, col_name] = False
-        elif player_is_sucker.get(label, False):
-            result.loc[idx, col_name] = True
-        else:
-            result.loc[idx, col_name] = False
-
-        # Check if suckered THIS round (contribution 25 + groupmate broke promise)
+        idx, label, group = row.name, row['label'], row['group']
+        _set_sucker_flag(result, idx, label, round_num, player_is_sucker, col_name)
         if group in groups_with_liar_this_round and row['contribution'] == MAX_CONTRIBUTION:
             player_is_sucker[label] = True
 
@@ -166,17 +161,34 @@ def _find_groups_with_liar(round_df, threshold_func) -> set:
 
 
 # =====
+# Non-cumulative lied-this-round flag
+# =====
+def compute_lied_this_round_flags(
+    df: pd.DataFrame, threshold: int = 20
+) -> pd.DataFrame:
+    """Flag rows where player made a promise and contributed below threshold.
+
+    Each row is independent — no cumulative logic.
+    """
+    result = df.copy()
+    col_name = f'lied_this_round_{threshold}'
+    result[col_name] = result['made_promise'] & (result['contribution'] < threshold)
+    return result
+
+
+# =====
 # Combined classification (DataFrame API)
 # =====
 def classify_player_behavior(df: pd.DataFrame) -> pd.DataFrame:
-    """Classify player behavior with all liar and sucker flags.
+    """Classify player behavior with all liar, sucker, and lied-this-round flags.
 
-    Adds: is_liar_20, is_liar_5, is_sucker_20, is_sucker_5.
+    Adds: is_liar_20, is_liar_5, is_sucker_20, is_sucker_5, lied_this_round_20.
     """
     result = compute_liar_flags(df, threshold='20')
     result = compute_liar_flags(result, threshold='5')
     result = compute_sucker_flags(result, threshold='20')
     result = compute_sucker_flags(result, threshold='5')
+    result = compute_lied_this_round_flags(result, threshold=20)
     return result
 
 

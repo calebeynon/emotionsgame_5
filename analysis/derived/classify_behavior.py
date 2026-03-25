@@ -68,8 +68,9 @@ def extract_treatment(filename: str) -> int:
 def load_promise_data() -> pd.DataFrame:
     """Load promise classifications CSV."""
     if not PROMISE_FILE.exists():
-        print(f"Warning: Promise file not found at {PROMISE_FILE}")
-        return pd.DataFrame()
+        raise FileNotFoundError(
+            f"Promise file not found at {PROMISE_FILE}. Run classify_promises.py first."
+        )
     return pd.read_csv(PROMISE_FILE)
 
 
@@ -127,8 +128,9 @@ def build_player_record(session_code, treatment, segment_name, round_num,
     base_record = _build_base_record(
         session_code, treatment, segment_name, round_num, group_id, label, player
     )
+    contribution = 0 if player.contribution is None else player.contribution
     flag_record = _build_flag_record(
-        session_code, segment_name, round_num, label, segment, promise_lookup
+        session_code, segment_name, round_num, label, contribution, segment, promise_lookup
     )
     return {**base_record, **flag_record}
 
@@ -146,9 +148,10 @@ def _build_base_record(session_code, treatment, segment_name, round_num,
 
 
 def _build_flag_record(session_code, segment_name, round_num, label,
-                       segment, promise_lookup) -> dict:
+                       contribution, segment, promise_lookup) -> dict:
     """Build behavioral flag record (made_promise, liar, sucker flags)."""
     made_promise = player_made_promise(promise_lookup, session_code, segment_name, round_num, label)
+    lied_this_round_20 = made_promise and contribution < THRESHOLD_20
     liar_20, liar_5 = compute_liar_flags(
         session_code, segment_name, round_num, label, segment, promise_lookup
     )
@@ -157,6 +160,7 @@ def _build_flag_record(session_code, segment_name, round_num, label,
     )
     return {
         'made_promise': made_promise,
+        'lied_this_round_20': lied_this_round_20,
         'is_liar_20': liar_20, 'is_liar_5': liar_5,
         'is_sucker_20': sucker_20, 'is_sucker_5': sucker_5,
     }
@@ -193,7 +197,7 @@ def _check_liar_in_prior_round(session_code, segment_name, prior_round, label, s
         return False, False
 
     made_promise = player_made_promise(promise_lookup, session_code, segment_name, prior_round, label)
-    contribution = prior_player.contribution or 0
+    contribution = 0 if prior_player.contribution is None else prior_player.contribution
     liar_20 = made_promise and contribution < THRESHOLD_20
     liar_5 = made_promise and contribution < THRESHOLD_5
     return liar_20, liar_5
@@ -248,7 +252,7 @@ def check_group_for_broken_promises(session_code, segment_name, round_num, label
             continue
 
         made_promise = player_made_promise(promise_lookup, session_code, segment_name, round_num, member_label)
-        contribution = member.contribution or 0
+        contribution = 0 if member.contribution is None else member.contribution
 
         if made_promise and contribution < THRESHOLD_20:
             is_sucker_20 = True
@@ -282,8 +286,8 @@ def _print_details(df: pd.DataFrame):
     """Print promise and flag summary details."""
     count, total, pct = df['made_promise'].sum(), len(df), df['made_promise'].mean() * 100
     print(f"\nPromise makers: {count} / {total} ({pct:.1f}%)")
-    for flag, thresh in [('is_liar_20', THRESHOLD_20), ('is_liar_5', THRESHOLD_5),
-                         ('is_sucker_20', THRESHOLD_20), ('is_sucker_5', THRESHOLD_5)]:
+    for flag in ['lied_this_round_20', 'is_liar_20', 'is_liar_5',
+                  'is_sucker_20', 'is_sucker_5']:
         series = df[flag]
         print(f"\n{flag}: {series.sum()} ({series.mean()*100:.1f}%)")
 

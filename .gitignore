@@ -49,6 +49,9 @@ staticfiles/
 *.swp
 *.swo
 
+# Sandbox / exploratory data
+_sandbox_data/
+
 # OS
 .DS_Store
 .DS_Store?
