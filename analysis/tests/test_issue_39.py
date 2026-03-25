@@ -1,8 +1,5 @@
 """
-Purpose: Tests for Issue #39 emotion-sentiment analysis R scripts.
-         Verifies that R scripts run without errors and produce valid outputs.
-         Covers issue_39_common.R, issue_39_plot_dotplots.R,
-         and issue_39_regression_decomposition.R.
+Purpose: Tests for Issue #39 emotion-sentiment R scripts and regression outputs.
 Author: Claude Code
 Date: 2026-03-14
 """
@@ -52,37 +49,23 @@ DECOMPOSITION_TABLES = [
     "emotion_sentiment_deception_descriptive.tex",
 ]
 
-# KNOWN DATA PROPERTIES
 EXPECTED_CONTRIBUTE_ROWS = 3520
-EXPECTED_SESSIONS = 10
-EXPECTED_LABELS = 16
 MIN_TEX_SIZE = 200
 
 
-# R code for z-score computation test
-R_ZSCORE_CODE = """
-source("analysis/issue_39_common.R")
-dt <- load_contribute_data()
-dt <- compute_zscores(dt)
-complete <- dt[!is.na(emotion_anger) & !is.na(emotion_fear)]
-anger_mean <- mean(complete$emotion_anger)
-anger_sd <- sd(complete$emotion_anger)
-fear_mean <- mean(complete$emotion_fear)
-fear_sd <- sd(complete$emotion_fear)
-dt[, anger_z := (emotion_anger - anger_mean) / anger_sd]
-dt[, fear_z := (emotion_fear - fear_mean) / fear_sd]
-complete_z <- dt[!is.na(anger_z) & !is.na(fear_z)]
-cat("ANGER_MEAN_Z:", round(mean(complete_z$anger_z), 4), "\\n")
-cat("FEAR_MEAN_Z:", round(mean(complete_z$fear_z), 4), "\\n")
-cat("ANGER_SD:", round(anger_sd, 6), "\\n")
-cat("FEAR_SD:", round(fear_sd, 6), "\\n")
-cat("N:", nrow(complete_z), "\\n")
-"""
+R_ZSCORE_CODE = ('source("analysis/issue_39_common.R")\n'
+    'dt <- load_contribute_data(); dt <- compute_zscores(dt)\n'
+    'cmp <- dt[!is.na(emotion_anger) & !is.na(emotion_fear)]\n'
+    'a_sd <- sd(cmp$emotion_anger); f_sd <- sd(cmp$emotion_fear)\n'
+    'dt[, anger_z := (emotion_anger - mean(cmp$emotion_anger)) / a_sd]\n'
+    'dt[, fear_z := (emotion_fear - mean(cmp$emotion_fear)) / f_sd]\n'
+    'cz <- dt[!is.na(anger_z) & !is.na(fear_z)]\n'
+    'cat("ANGER_MEAN_Z:", round(mean(cz$anger_z), 4), "\\n")\n'
+    'cat("FEAR_MEAN_Z:", round(mean(cz$fear_z), 4), "\\n")\n'
+    'cat("ANGER_SD:", round(a_sd, 6), "\\n")\n'
+    'cat("FEAR_SD:", round(f_sd, 6), "\\n")')
 
 
-# =====
-# Helpers
-# =====
 def run_r_script(script_path, timeout=120):
     """Run an R script and return the completed process."""
     return subprocess.run(
@@ -101,6 +84,27 @@ def run_r_code(code, timeout=30):
     )
 
 
+def _build_gap_regression_check() -> str:
+    """R code to verify gap computation and logit regression on own-contribution outcome."""
+    return """
+library(fixest)
+source("analysis/issue_39_common.R")
+dt <- load_contribute_data()
+dt <- dt[complete.cases(dt[, .(contribution, emotion_valence, sentiment_compound_mean)])]
+dt[, noncooperative := as.integer(contribution < 20)]
+val_rng <- max(dt$emotion_valence) - min(dt$emotion_valence)
+snt_rng <- max(dt$sentiment_compound_mean) - min(dt$sentiment_compound_mean)
+dt[, valence_norm := (emotion_valence - min(emotion_valence)) / val_rng]
+dt[, sentiment_norm := (sentiment_compound_mean - min(sentiment_compound_mean)) / snt_rng]
+dt[, emotion_sentiment_gap := valence_norm - sentiment_norm]
+m <- feglm(noncooperative ~ emotion_sentiment_gap + emotion_valence | round + segment,
+           data = dt, family = binomial(link = "logit"), cluster = ~cluster_id)
+cat("N:", m$nobs, "\\n")
+cat("NCOEFS:", length(coef(m)), "\\n")
+cat("GAP_POSITIVE:", coef(m)["emotion_sentiment_gap"] > 0, "\\n")
+"""
+
+
 def _assert_zscore_centered(result, label):
     """Assert a named z-score is near zero and its SD is positive."""
     mean_match = re.search(rf"{label}_MEAN_Z:\s+([-\d.]+)", result.stdout)
@@ -114,26 +118,16 @@ def _assert_zscore_centered(result, label):
 # =====
 # Precondition checks
 # =====
+REQUIRED_FILES = [DATA_FILE, BEHAVIOR_FILE, COMMON_SCRIPT,
+                  DOTPLOT_SCRIPT, GAP_TESTS_SCRIPT, NEGATIVE_EMOTIONS_SCRIPT]
+
+
 class TestPreconditions:
     """Verify data files and R scripts exist."""
 
-    def test_data_file_exists(self):
-        assert DATA_FILE.exists()
-
-    def test_behavior_file_exists(self):
-        assert BEHAVIOR_FILE.exists()
-
-    def test_common_script_exists(self):
-        assert COMMON_SCRIPT.exists()
-
-    def test_dotplot_script_exists(self):
-        assert DOTPLOT_SCRIPT.exists()
-
-    def test_gap_tests_script_exists(self):
-        assert GAP_TESTS_SCRIPT.exists()
-
-    def test_negative_emotions_script_exists(self):
-        assert NEGATIVE_EMOTIONS_SCRIPT.exists()
+    @pytest.mark.parametrize("path", REQUIRED_FILES, ids=lambda p: p.name)
+    def test_required_file_exists(self, path):
+        assert path.exists()
 
 
 # =====
@@ -200,17 +194,10 @@ class TestDotPlots:
 
     def test_script_runs_successfully(self):
         result = run_r_script(DOTPLOT_SCRIPT)
-        assert result.returncode == 0, (
-            f"Failed (exit {result.returncode}):\n"
-            f"stderr: {result.stderr}"
-        )
+        assert result.returncode == 0, f"stderr: {result.stderr}"
 
     @pytest.mark.parametrize("filename", DOTPLOT_FILES)
-    def test_plot_file_exists(self, filename):
-        assert (PLOT_DIR / filename).exists()
-
-    @pytest.mark.parametrize("filename", DOTPLOT_FILES)
-    def test_plot_file_nonempty(self, filename):
+    def test_plot_file_exists_and_nonempty(self, filename):
         path = PLOT_DIR / filename
         assert path.exists()
         assert path.stat().st_size > 10_000
@@ -260,17 +247,10 @@ class TestNegativeEmotionPlots:
 
     def test_script_runs_successfully(self):
         result = run_r_script(NEGATIVE_EMOTIONS_SCRIPT)
-        assert result.returncode == 0, (
-            f"Failed (exit {result.returncode}):\n"
-            f"stderr: {result.stderr}"
-        )
+        assert result.returncode == 0, f"stderr: {result.stderr}"
 
     @pytest.mark.parametrize("filename", NEGATIVE_EMOTION_FILES)
-    def test_plot_file_exists(self, filename):
-        assert (SANDBOX_DIR / filename).exists()
-
-    @pytest.mark.parametrize("filename", NEGATIVE_EMOTION_FILES)
-    def test_plot_file_nonempty(self, filename):
+    def test_plot_file_exists_and_nonempty(self, filename):
         path = SANDBOX_DIR / filename
         assert path.exists()
         assert path.stat().st_size > 10_000
@@ -301,23 +281,116 @@ cat("N_ROWS:", nrow(summary_dt), "\\n")
 # =====
 # Data integrity tests
 # =====
+@pytest.fixture()
+def contribute_df():
+    """Load Contribute rows from merged_panel.csv."""
+    return pd.read_csv(DATA_FILE).query("page_type == 'Contribute'")
+
+
 class TestDataIntegrity:
     """Verify input data assumptions."""
-
-    @pytest.fixture()
-    def contribute_df(self):
-        df = pd.read_csv(DATA_FILE)
-        return df[df["page_type"] == "Contribute"]
 
     def test_contribute_row_count(self, contribute_df):
         assert len(contribute_df) == EXPECTED_CONTRIBUTE_ROWS
 
     def test_contribution_range(self, contribute_df):
-        valid = contribute_df["contribution"].dropna()
-        assert valid.min() >= 0
-        assert valid.max() <= 25
+        assert contribute_df["contribution"].dropna().between(0, 25).all()
 
     def test_sentiment_compound_range(self, contribute_df):
-        valid = contribute_df["sentiment_compound_mean"].dropna()
-        assert valid.min() >= -1.0
-        assert valid.max() <= 1.0
+        assert contribute_df["sentiment_compound_mean"].dropna().between(-1, 1).all()
+
+
+# =====
+# Noncooperative outcome variable tests
+# =====
+class TestNoncooperativeOutcome:
+    """Verify the deception regression outcome variable (contribution < 20)."""
+
+    def test_noncooperative_count_matches_raw_data(self):
+        """R noncooperative count must match Python count from raw data."""
+        result = run_r_code("""
+source("analysis/issue_39_common.R")
+dt <- load_contribute_data()
+dt <- dt[complete.cases(dt[, .(contribution, emotion_valence, sentiment_compound_mean)])]
+dt[, noncooperative := as.integer(contribution < 20)]
+cat("NONCOOP:", sum(dt$noncooperative), "\\n")
+cat("COOP:", sum(dt$noncooperative == 0), "\\n")
+cat("TOTAL:", nrow(dt), "\\n")
+""")
+        assert result.returncode == 0, result.stderr
+        assert "NONCOOP: 200" in result.stdout
+        assert "COOP: 1591" in result.stdout
+        assert "TOTAL: 1791" in result.stdout
+
+    def test_noncooperative_matches_python_count(self):
+        """Cross-validate R counts against Python on the same raw CSV."""
+        df = pd.read_csv(DATA_FILE)
+        ct = df[df["page_type"] == "Contribute"]
+        complete = ct.dropna(subset=["contribution", "emotion_valence",
+                                      "sentiment_compound_mean"])
+        noncoop = (complete["contribution"] < 20).sum()
+        coop = (complete["contribution"] >= 20).sum()
+        assert noncoop == 200
+        assert coop == 1591
+
+    def test_threshold_boundary_contribution_20_is_cooperative(self):
+        """Contribution == 20 should be classified as cooperative (not < 20)."""
+        result = run_r_code("""
+source("analysis/issue_39_common.R")
+dt <- load_contribute_data()
+dt <- dt[complete.cases(dt[, .(contribution, emotion_valence, sentiment_compound_mean)])]
+dt[, noncooperative := as.integer(contribution < 20)]
+at_20 <- dt[contribution == 20]
+cat("N_AT_20:", nrow(at_20), "\\n")
+cat("NONCOOP_AT_20:", sum(at_20$noncooperative), "\\n")
+""")
+        assert result.returncode == 0, result.stderr
+        assert "N_AT_20: 34" in result.stdout
+        assert "NONCOOP_AT_20: 0" in result.stdout
+
+    def test_known_noncooperative_player(self):
+        """Player K, session irrzlgk2, supergame1 round 2: contribution=0 → noncooperative."""
+        result = run_r_code("""
+source("analysis/issue_39_common.R")
+dt <- load_contribute_data()
+dt[, noncooperative := as.integer(contribution < 20)]
+row <- dt[session_code == "irrzlgk2" & segment == "supergame1" & round == 2 & label == "K"]
+cat("CONTRIB:", row$contribution, "\\n")
+cat("NONCOOP:", row$noncooperative, "\\n")
+""")
+        assert result.returncode == 0, result.stderr
+        assert "CONTRIB: 0" in result.stdout
+        assert "NONCOOP: 1" in result.stdout
+
+    def test_known_cooperative_player(self):
+        """Player C, session irrzlgk2, supergame1 round 2: contribution=25 → cooperative."""
+        result = run_r_code("""
+source("analysis/issue_39_common.R")
+dt <- load_contribute_data()
+dt[, noncooperative := as.integer(contribution < 20)]
+row <- dt[session_code == "irrzlgk2" & segment == "supergame1" & round == 2 & label == "C"]
+cat("CONTRIB:", row$contribution, "\\n")
+cat("NONCOOP:", row$noncooperative, "\\n")
+""")
+        assert result.returncode == 0, result.stderr
+        assert "CONTRIB: 25" in result.stdout
+        assert "NONCOOP: 0" in result.stdout
+
+    def test_deception_table_uses_own_contribution(self):
+        """The deception descriptive table should show N=200 noncooperative (own contribution)."""
+        path = TABLE_DIR / "emotion_sentiment_deception_descriptive.tex"
+        assert path.exists()
+        content = path.read_text()
+        # Noncooperative row should have N=200
+        assert "200" in content, "Expected 200 noncooperative obs in descriptive table"
+        # Cooperative row should have N=1591
+        assert "1591" in content, "Expected 1591 cooperative obs in descriptive table"
+
+    def test_gap_flows_into_regression(self):
+        """Verify gap is computed correctly and logit runs on the right sample."""
+        r_code = _build_gap_regression_check()
+        result = run_r_code(r_code, timeout=60)
+        assert result.returncode == 0, result.stderr
+        assert "N: 1791" in result.stdout
+        assert "NCOEFS: 2" in result.stdout
+        assert "GAP_POSITIVE: TRUE" in result.stdout

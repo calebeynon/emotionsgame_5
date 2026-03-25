@@ -41,13 +41,13 @@ load_and_filter_data <- function() {
     n_before <- nrow(dt)
 
     key_vars <- c("contribution", "emotion_valence",
-                  "sentiment_compound_mean", "player_state")
+                  "sentiment_compound_mean")
     dt <- dt[complete.cases(dt[, ..key_vars])]
     cat(sprintf("Complete-case filter: %d -> %d rows (%d dropped)\n",
                 n_before, nrow(dt), n_before - nrow(dt)))
 
     dt[, player_id := paste(label, session_code, sep = "_")]
-    dt[, noncooperative := as.integer(player_state != "cooperative")]
+    dt[, noncooperative := as.integer(contribution < 20)]
 
     return(dt)
 }
@@ -164,7 +164,7 @@ prepare_promise_data <- function(dt) {
 estimate_deception_models <- function(dt) {
     noncoop_formula <- paste(
         "noncooperative ~ emotion_sentiment_gap +",
-        "emotion_valence + sentiment_compound_mean | round + segment"
+        "emotion_valence | round + segment"
     )
     m_noncoop <- run_logit_model(dt, noncoop_formula)
     m_liar <- run_liar_model(prepare_promise_data(dt))
@@ -214,7 +214,6 @@ export_deception_table <- function(models, filepath) {
         dict = c(
             emotion_sentiment_gap = "Emotion--Sentiment Gap",
             emotion_valence = "Emotion Valence",
-            sentiment_compound_mean = "Sentiment (Compound)",
             noncooperative = "Noncooperative",
             lied = "Lied"
         ),
@@ -255,7 +254,7 @@ write_descriptive_tex <- function(desc_coop, desc_liar, filepath) {
         "  \\toprule",
         "  Group & N & Mean Valence & Mean Sentiment & Mean Contribution \\\\",
         "  \\midrule",
-        "  \\emph{By cooperative state} \\\\",
+        "  \\emph{By own contribution ($\\geq$20 vs $<$20)} \\\\",
         format_desc_row(desc_coop[1]),
         format_desc_row(desc_coop[2]),
         "  \\midrule",
