@@ -358,15 +358,13 @@ class TestEdgeCases:
     """Edge case tests for homogeneity embedding analysis."""
 
     def test_all_same_label_centroids(self):
-        """All homogeneous labels should produce one valid centroid."""
+        """All homogeneous labels should raise ValueError (empty heterogeneous mask)."""
         emb = np.array([[1.0, 0.0], [2.0, 0.0], [3.0, 0.0]])
         labels = np.array([
             STATE_HOMOGENEOUS, STATE_HOMOGENEOUS, STATE_HOMOGENEOUS,
         ])
-        h_c, het_c = compute_homogeneity_centroids(emb, labels)
-
-        np.testing.assert_array_equal(h_c, [2.0, 0.0])
-        assert np.isnan(het_c).all()
+        with pytest.raises(ValueError, match="No"):
+            compute_homogeneity_centroids(emb, labels)
 
     def test_single_point_per_class(self):
         """Single point should be its own centroid."""

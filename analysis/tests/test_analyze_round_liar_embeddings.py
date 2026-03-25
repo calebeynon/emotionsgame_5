@@ -214,13 +214,12 @@ class TestCentroidComputation:
         np.testing.assert_array_equal(l_c, [1.0, 2.0, 3.0])
         np.testing.assert_array_equal(nl_c, [-1.0, -2.0, -3.0])
 
-    def test_all_same_label_produces_nan(self):
-        """All liar labels -> valid liar centroid, NaN non-liar centroid."""
+    def test_all_same_label_raises_error(self):
+        """All liar labels should raise ValueError (empty non-liar mask)."""
         emb = np.array([[1.0, 0.0], [2.0, 0.0], [3.0, 0.0]])
         labels = np.array([STATE_LIAR, STATE_LIAR, STATE_LIAR])
-        l_c, nl_c = compute_round_liar_centroids(emb, labels)
-        np.testing.assert_array_equal(l_c, [2.0, 0.0])
-        assert np.isnan(nl_c).all()
+        with pytest.raises(ValueError, match="No"):
+            compute_round_liar_centroids(emb, labels)
 
 
 # =====

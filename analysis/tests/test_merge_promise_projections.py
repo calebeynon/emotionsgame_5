@@ -152,7 +152,7 @@ class TestMergeProjectionData:
             'proj_promise_msg_dir_large': [0.6] * 4,
             'proj_promise_pr_dir_large': [0.3] * 4,
         })
-        merged = _merge_projection_data(panel, proj_df, PROMISE_EMBEDDING_COLS)
+        merged = _merge_projection_data(panel, proj_df, PROMISE_EMBEDDING_COLS, 'promise')
         assert len(merged) == len(panel)
 
     def test_round_1_has_nan(self):
@@ -168,7 +168,7 @@ class TestMergeProjectionData:
             'proj_promise_msg_dir_large': [0.6] * 2,
             'proj_promise_pr_dir_large': [0.3] * 2,
         })
-        merged = _merge_projection_data(panel, proj_df, PROMISE_EMBEDDING_COLS)
+        merged = _merge_projection_data(panel, proj_df, PROMISE_EMBEDDING_COLS, 'promise')
         r1 = merged[merged['round'] == 1]
         for col in PROMISE_EMBEDDING_COLS:
             assert r1[col].isna().all(), f"Round 1 should have NaN {col}"

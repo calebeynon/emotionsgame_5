@@ -293,4 +293,4 @@ class TestLatexOutputRegression:
             'precision': 0.7, 'recall': 0.6, 'f1': 0.65,
         }])
         latex = _build_latex_table(results)
-        assert 'cross-validation' in latex
+        assert '5-fold stratified CV' in latex

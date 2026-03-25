@@ -48,9 +48,7 @@ PR_ID_COLS = [
 ]
 
 
-# =====
-# Main function
-# =====
+# ===== Main function =====
 def main():
     """Main execution flow."""
     pr_dir = _run_player_round_analysis()
@@ -126,9 +124,7 @@ def _build_cross_level_output(
     return out
 
 
-# =====
-# Data loading
-# =====
+# ===== Data loading =====
 def load_embeddings(path: Path) -> tuple[pd.DataFrame, np.ndarray]:
     """Load parquet, separating metadata from embedding columns."""
     df = pd.read_parquet(path)
@@ -138,9 +134,7 @@ def load_embeddings(path: Path) -> tuple[pd.DataFrame, np.ndarray]:
     return meta, embeddings
 
 
-# =====
-# Centroid computation
-# =====
+# ===== Centroid computation =====
 def compute_centroids(
     embeddings: np.ndarray, labels: np.ndarray
 ) -> tuple[np.ndarray, np.ndarray]:
@@ -170,9 +164,7 @@ def compute_difference_vector(
     return diff / norm
 
 
-# =====
-# Projection
-# =====
+# ===== Projection =====
 def project_onto_direction(
     embeddings: np.ndarray, direction: np.ndarray
 ) -> np.ndarray:
@@ -180,9 +172,7 @@ def project_onto_direction(
     return embeddings @ direction
 
 
-# =====
-# Group-round aggregation
-# =====
+# ===== Group-round aggregation =====
 def compute_group_round_embeddings(
     metadata: pd.DataFrame, embeddings: np.ndarray
 ) -> tuple[pd.DataFrame, np.ndarray]:
@@ -203,9 +193,7 @@ def compute_group_round_embeddings(
     return group_meta, np.array(group_embs)
 
 
-# =====
-# Ranking
-# =====
+# ===== Ranking =====
 def rank_messages(
     metadata: pd.DataFrame, projections: np.ndarray, n: int = 20,
     text_col: str = 'message_text',
@@ -220,9 +208,7 @@ def rank_messages(
     return top_coop, top_noncoop
 
 
-# =====
-# Probe phrase validation
-# =====
+# ===== Probe phrase validation =====
 def probe_phrase_validation(
     direction: np.ndarray, model: str
 ) -> pd.DataFrame:
@@ -246,9 +232,7 @@ def cosine_similarities(
     return (embeddings @ direction) / norms
 
 
-# =====
-# Output construction
-# =====
+# ===== Output construction =====
 def build_projection_csv(
     metadata: pd.DataFrame, projections: np.ndarray, suffix: str,
     id_cols: list[str] | None = None, col_name: str | None = None,
@@ -261,9 +245,7 @@ def build_projection_csv(
     return out
 
 
-# =====
-# Internal helpers
-# =====
+# ===== Internal helpers =====
 def _compute_direction(
     meta: pd.DataFrame, embeddings: np.ndarray
 ) -> np.ndarray:

@@ -1,14 +1,12 @@
 """
 Analyze chat embeddings along the promise vs no-promise axis.
-
-Computes promise/no-promise direction vectors from embeddings,
-projects all messages onto this axis, validates with probe phrases,
-and outputs projection scores for downstream analysis.
+Computes direction vectors, projects messages, validates with probes.
 
 Author: Claude Code
 Date: 2026-03-15
 """
 
+import json
 from pathlib import Path
 
 import numpy as np
@@ -29,6 +27,7 @@ EMBEDDINGS_LARGE = DERIVED_DIR / 'embeddings_large.parquet'
 EMBEDDINGS_PR_SMALL = DERIVED_DIR / 'embeddings_player_round_small.parquet'
 EMBEDDINGS_PR_LARGE = DERIVED_DIR / 'embeddings_player_round_large.parquet'
 STATE_FILE = DERIVED_DIR / 'player_state_classification.csv'
+PROMISE_CLASSIFICATIONS_FILE = DERIVED_DIR / 'promise_classifications.csv'
 PROJECTIONS_OUTPUT = DERIVED_DIR / 'promise_embedding_projections.csv'
 PROJECTIONS_PR_OUTPUT = (
     DERIVED_DIR / 'promise_embedding_projections_player_round.csv'
@@ -40,40 +39,29 @@ STATE_NO_PROMISE = 'no_promise'
 PROMISE_COL = 'promise_label'
 
 PROBE_PHRASES = [
-    "I promise to put in 25",
-    "I'll contribute the full amount",
-    "I'm not making any promises",
-    "I'll do whatever I want",
-    "we all agreed to cooperate",
-    "I said I would contribute",
-    "I never said I'd do anything",
-    "let's all commit to the max",
-    "I swear I'll put in everything",
-    "no guarantees from me",
-    "trust me I'll do my part",
-    "I might change my mind",
+    "I promise to put in 25", "I'll contribute the full amount",
+    "I'm not making any promises", "I'll do whatever I want",
+    "we all agreed to cooperate", "I said I would contribute",
+    "I never said I'd do anything", "let's all commit to the max",
+    "I swear I'll put in everything", "no guarantees from me",
+    "trust me I'll do my part", "I might change my mind",
 ]
-
-ID_COLS = [
-    'session_code', 'treatment', 'segment', 'round',
-    'group', 'label', 'message_index', 'message_text',
-]
-PR_ID_COLS = [
-    'session_code', 'treatment', 'segment', 'round',
-    'group', 'label', 'combined_text',
-]
-
+ID_COLS = ['session_code', 'treatment', 'segment', 'round',
+           'group', 'label', 'message_index', 'message_text']
+PR_ID_COLS = ['session_code', 'treatment', 'segment', 'round',
+              'group', 'label', 'combined_text']
 JOIN_KEYS = ['session_code', 'segment', 'round', 'group', 'label']
+MSG_JOIN_KEYS = JOIN_KEYS + ['message_index']
 
 
 # =====
-# Main function
-# =====
+# Main function (shows high-level flow)
 def main():
     """Main execution flow."""
     promise_df = load_promise_labels()
+    msg_promise_df = load_message_promise_labels()
     pr_dir = _run_player_round_analysis(promise_df)
-    _run_message_analysis(pr_dir, promise_df)
+    _run_message_analysis(pr_dir, msg_promise_df)
 
 
 def _run_player_round_analysis(promise_df: pd.DataFrame) -> dict:
@@ -92,17 +80,16 @@ def _run_player_round_analysis(promise_df: pd.DataFrame) -> dict:
     return pr_dir
 
 
-def _run_message_analysis(pr_dir: dict, promise_df: pd.DataFrame) -> None:
+def _run_message_analysis(pr_dir: dict, msg_promise_df: pd.DataFrame) -> None:
     """Compute message-level cross-level projections and save CSV."""
     print("\n=== Message-level analysis ===")
-    combined = _analyze_messages_cross_level(pr_dir, promise_df)
+    combined = _analyze_messages_cross_level(pr_dir, msg_promise_df)
     combined.to_csv(PROJECTIONS_OUTPUT, index=False)
     print(f"\nSaved {len(combined)} rows to {PROJECTIONS_OUTPUT.name}")
 
 
 # =====
 # Promise label loading
-# =====
 def load_promise_labels() -> pd.DataFrame:
     """Load made_promise from player_state_classification.csv."""
     df = pd.read_csv(STATE_FILE)
@@ -120,9 +107,35 @@ def merge_promise_labels(
     return meta.merge(promise_df, on=JOIN_KEYS, how='left')
 
 
+def load_message_promise_labels() -> pd.DataFrame:
+    """Load per-message promise labels from promise_classifications.csv."""
+    df = pd.read_csv(PROMISE_CLASSIFICATIONS_FILE)
+    records = []
+    for _, row in df.iterrows():
+        records.extend(_explode_message_labels(row))
+    return pd.DataFrame.from_records(records)
+
+
+def _explode_message_labels(row: pd.Series) -> list[dict]:
+    """Explode one player-round row into per-message label records."""
+    classifications = json.loads(row['classifications'])
+    base = {k: row[k] for k in JOIN_KEYS}
+    return [
+        {**base, 'message_index': idx,
+         PROMISE_COL: STATE_PROMISE if cls == 1 else STATE_NO_PROMISE}
+        for idx, cls in enumerate(classifications)
+    ]
+
+
+def merge_message_promise_labels(
+    meta: pd.DataFrame, msg_promise_df: pd.DataFrame
+) -> pd.DataFrame:
+    """LEFT JOIN per-message promise labels onto message metadata."""
+    return meta.merge(msg_promise_df, on=MSG_JOIN_KEYS, how='left')
+
+
 # =====
 # Centroid computation (promise-based)
-# =====
 def compute_promise_centroids(
     embeddings: np.ndarray, labels: np.ndarray
 ) -> tuple[np.ndarray, np.ndarray]:
@@ -140,7 +153,6 @@ def compute_promise_centroids(
 
 # =====
 # Direction computation
-# =====
 def _compute_promise_direction(
     meta: pd.DataFrame, embeddings: np.ndarray
 ) -> np.ndarray:
@@ -157,7 +169,6 @@ def _compute_promise_direction(
 
 # =====
 # Model-level analysis
-# =====
 def _analyze_model_with_direction(
     path: Path, suffix: str, id_cols: list[str],
     promise_df: pd.DataFrame,
@@ -187,17 +198,16 @@ def _get_text_col(meta: pd.DataFrame) -> str:
 
 # =====
 # Cross-level message analysis
-# =====
 def _analyze_messages_cross_level(
     pr_directions: dict[str, np.ndarray],
-    promise_df: pd.DataFrame,
+    msg_promise_df: pd.DataFrame,
 ) -> pd.DataFrame:
     """Project messages onto both message-level and player-round directions."""
     results = {}
     for suffix, msg_path in [('small', EMBEDDINGS_SMALL), ('large', EMBEDDINGS_LARGE)]:
         print(f"\n--- Analyzing {suffix} model ---")
         meta, embeddings = load_embeddings(msg_path)
-        meta = merge_promise_labels(meta, promise_df)
+        meta = merge_message_promise_labels(meta, msg_promise_df)
 
         msg_dir = _compute_promise_direction(meta, embeddings)
         msg_proj = project_onto_direction(embeddings, msg_dir)
@@ -222,7 +232,6 @@ def _build_cross_level_output(
 
 # =====
 # Output construction
-# =====
 def _build_output(
     meta: pd.DataFrame, projections: np.ndarray,
     suffix: str, id_cols: list[str],
@@ -245,7 +254,6 @@ def _merge_projections(
 
 # =====
 # Ranking
-# =====
 def _print_rankings(
     meta: pd.DataFrame, projections: np.ndarray,
     text_col: str = 'message_text',
@@ -266,7 +274,6 @@ def _print_rankings(
 
 # =====
 # Probe phrase validation
-# =====
 def probe_phrase_validation(
     direction: np.ndarray, model: str
 ) -> pd.DataFrame:
@@ -287,7 +294,6 @@ def _run_probe_validation(direction: np.ndarray, suffix: str) -> None:
     print(f"\n  Probe phrase validation ({suffix}):")
     for _, row in probe_df.iterrows():
         print(f"    [{row['cosine_similarity']:.4f}] {row['phrase']}")
-
 
 # %%
 if __name__ == "__main__":

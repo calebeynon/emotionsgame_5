@@ -111,13 +111,10 @@ class TestCostEstimateRegression:
         assert result['total_tokens'] == 94000
         assert result['estimated_cost_usd'] < 1.0
 
-    def test_unknown_model_uses_small_rate(self):
-        """Unknown model should fall back to small model cost rate."""
-        result = get_embedding_cost_estimate(100, 50, model="unknown-model")
-        expected = get_embedding_cost_estimate(100, 50, model=MODEL_SMALL)
-
-        assert result['estimated_cost_usd'] == expected['estimated_cost_usd']
-        assert result['model'] == "unknown-model"
+    def test_unknown_model_raises_error(self):
+        """Unknown model should raise ValueError."""
+        with pytest.raises(ValueError, match="Unknown model"):
+            get_embedding_cost_estimate(100, 50, model="unknown-model")
 
 
 # =====
@@ -213,18 +210,20 @@ class TestEmbedTextsIntegration:
 class TestErrorHandlingEdgeCases:
     """Tests for error handling in edge cases."""
 
-    def test_api_error_retries_then_raises(self):
-        """APIError should retry and raise RuntimeError on exhaustion."""
+    def test_api_status_error_retries_then_raises(self):
+        """Transient 5xx APIStatusError should retry and raise RuntimeError."""
         with patch.dict(os.environ, {"OPENAI_API_KEY": "test-key"}):
             with patch("llm_clients.embedding_client.OpenAI") as mock_openai:
                 with patch("llm_clients.embedding_client.time.sleep"):
                     mock_client = MagicMock()
                     mock_openai.return_value = mock_client
 
-                    from openai import APIError
-                    mock_client.embeddings.create.side_effect = APIError(
+                    from openai import APIStatusError
+                    mock_response = MagicMock()
+                    mock_response.status_code = 500
+                    mock_client.embeddings.create.side_effect = APIStatusError(
                         "Server error",
-                        request=MagicMock(),
+                        response=mock_response,
                         body=None,
                     )
 

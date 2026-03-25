@@ -600,14 +600,11 @@ class TestEdgeCases:
     """Edge case tests for promise embedding analysis."""
 
     def test_all_same_label_centroids(self):
-        """All promise labels should produce one valid centroid."""
+        """All promise labels should raise ValueError (empty no-promise mask)."""
         emb = np.array([[1.0, 0.0], [2.0, 0.0], [3.0, 0.0]])
         labels = np.array([STATE_PROMISE, STATE_PROMISE, STATE_PROMISE])
-        p_c, np_c = compute_promise_centroids(emb, labels)
-
-        np.testing.assert_array_equal(p_c, [2.0, 0.0])
-        # np_c will be NaN due to empty slice
-        assert np.isnan(np_c).all()
+        with pytest.raises(ValueError, match="No"):
+            compute_promise_centroids(emb, labels)
 
     def test_cosine_with_zero_embedding(self):
         """Zero-norm embedding should have zero cosine similarity."""

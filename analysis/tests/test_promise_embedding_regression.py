@@ -104,7 +104,7 @@ class TestModelPipeline:
 
     def test_run_model_comparison_shape(self):
         """Comparison should return 4 rows with model and metric cols."""
-        dataset = _make_dataset(n_groups=40)
+        dataset = _make_dataset(n_rows=40)
         results = run_model_comparison(dataset)
 
         assert len(results) == 4
@@ -165,4 +165,4 @@ class TestLatexOutput:
             'precision': 0.7, 'recall': 0.6, 'f1': 0.65,
         }])
         latex = _build_latex_table(results)
-        assert '5-fold stratified cross-validation' in latex
+        assert '5-fold stratified CV' in latex

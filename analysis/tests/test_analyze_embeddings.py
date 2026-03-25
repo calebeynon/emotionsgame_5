@@ -115,10 +115,10 @@ class TestComputeDifferenceVector:
         assert direction[0] > 0
 
     def test_handles_identical_centroids(self):
-        """Should return zero vector if centroids are identical."""
+        """Should raise ValueError if centroids are identical (zero-norm)."""
         c = np.array([1.0, 2.0])
-        direction = compute_difference_vector(c, c)
-        np.testing.assert_array_equal(direction, np.zeros(2))
+        with pytest.raises(ValueError, match="zero norm"):
+            compute_difference_vector(c, c)
 
 
 # =====

@@ -77,12 +77,26 @@ def load_messages() -> pd.DataFrame:
     df = pd.read_csv(INPUT_FILE)
     records = []
 
-    for _, row in df.iterrows():
-        messages = json.loads(row['messages'])
+    for row_idx, row in df.iterrows():
+        messages = _parse_messages_json(row, row_idx)
         for idx, text in enumerate(messages):
             records.append(_build_message_record(row, idx, text))
 
     return pd.DataFrame.from_records(records)
+
+
+def _parse_messages_json(row: pd.Series, row_idx: int) -> list:
+    """Parse JSON messages column, re-raising with row context on failure."""
+    try:
+        return json.loads(row['messages'])
+    except json.JSONDecodeError as exc:
+        raise json.JSONDecodeError(
+            f"Malformed JSON at row {row_idx} "
+            f"(label={row.get('label')}, segment={row.get('segment')}, "
+            f"round={row.get('round')}): {exc.msg}",
+            exc.doc,
+            exc.pos,
+        ) from exc
 
 
 def _build_message_record(row: pd.Series, idx: int, text: str) -> dict:
