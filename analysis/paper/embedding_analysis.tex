@@ -396,16 +396,16 @@ We evaluate whether the cumulative-liar direction can predict individual player 
 \midrule
 Label level & Player & Player-round & Group-round & Player-round & Player-round \\
 Label source & player\_state & promise\_class. & contributions & behavior\_class. & behavior\_class. \\
-Probe validation & Inverted & Correct & --- & --- & --- \\
-Positive class $n$ & 3,800 & 2,195 & --- & 94 & 123 \\
-Projection-only AUC & 0.76 & 0.90 & --- & --- & --- \\
-VADER-only AUC & 0.62 & 0.67 & --- & --- & --- \\
+Probe validation & Inverted & Correct & Inverted & Mixed & Partial \\
+Positive class $n$ & 3,800 & 2,195 & 520 & 94 & 113 \\
+Projection-only AUC & 0.76 & 0.90 & 0.67 & 0.61 & 0.63 \\
+VADER-only AUC & 0.62 & 0.67 & 0.58 & 0.58 & 0.58 \\
 What it captures & Settled vs.\ negot. & Commitment & Coordination & Deception & Liar trait \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-The cooperative direction's failure to capture cooperative intent---and the promise direction's success in capturing promise intent---likely stems from the nature of the labels. The cooperative state label reflects the \emph{environment} (others' behavior), which correlates with the \emph{absence} of cooperation talk. The promise label reflects the \emph{content} of the player's own speech, which the embedding naturally captures. The homogeneity direction captures a distinct group-level phenomenon: whether the group's communication reflects coordination on a common contribution level. The two liar directions test whether the embedding space can detect deceptive behavior---either at the round level (did the player lie \emph{this round}?) or cumulatively (has the player \emph{ever} lied?). The substantial class imbalance in both liar labels (94 and 123 positive cases respectively) makes these directions more challenging to validate.
+The cooperative direction's failure to capture cooperative intent---and the promise direction's success in capturing promise intent---likely stems from the nature of the labels. The cooperative state label reflects the \emph{environment} (others' behavior), which correlates with the \emph{absence} of cooperation talk. The promise label reflects the \emph{content} of the player's own speech, which the embedding naturally captures. The homogeneity direction captures a distinct group-level phenomenon: whether the group's communication reflects coordination on a common contribution level. The two liar directions test whether the embedding space can detect deceptive behavior---either at the round level (did the player lie \emph{this round}?) or cumulatively (has the player \emph{ever} lied?). The substantial class imbalance in both liar labels (94 and 113 positive cases respectively) makes these directions more challenging to validate.
 
 %% ============================================================
 \section{Implementation Details}
