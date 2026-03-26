@@ -7,7 +7,6 @@
 \usepackage{subcaption}
 \usepackage[font=footnotesize,labelfont=bf]{caption}
 \usepackage{setspace}
-\usepackage[authoryear]{natbib}
 \usepackage[colorlinks=true,allcolors=blue]{hyperref}
 
 %%%%%%%%% Path resolution (Overleaf: tables/, plots/; Local: ../output/) %%%%%%%%%
@@ -18,7 +17,7 @@
 
 \linespread{1.3}
 
-\title{Chat Embedding Analysis for Cooperative and Promise-Making Behavior\\
+\title{Chat Embedding Analysis\\
 \large Technical Report --- Issue \#42}
 \author{Caleb Eynon}
 \date{March 2026}
@@ -26,149 +25,153 @@
 \begin{document}
 \maketitle
 
-\begin{abstract}
-We construct text embeddings for 4,700 chat messages from a repeated public goods game and use them to identify the linguistic dimensions that distinguish cooperative from non-cooperative states, promise-making from non-promise-making rounds, homogeneous from heterogeneous contribution groups, and liar from non-liar players. Using OpenAI's \texttt{text-embedding-3-small} (1,536 dimensions) and \texttt{text-embedding-3-large} (3,072 dimensions), we compute centroid-based direction vectors, project messages onto these axes, and evaluate predictive power via logistic regression. We find that the promise direction validates strongly (AUC = 0.90), the homogeneity direction captures coordination language, while the cooperative direction captures settled-versus-negotiating communication rather than cooperative intent. We additionally construct round-level and cumulative liar directions from behavior classification labels, testing whether embedding projections can distinguish the chat of players who lie about their contributions. This document records the methodology, critical data decisions, and results.
-\end{abstract}
-
 \tableofcontents
 \newpage
 
 %% ============================================================
-\section{Overview}
+\section{Methods}
 %% ============================================================
 
-The experiment is a repeated public goods game with 16 participants per session, grouped into teams of 4. Players have a 25-point endowment and choose how much to contribute to a group fund (multiplier = 0.4). Before each contribution decision, players communicate via free-form text chat. The analysis here asks: \emph{what do embeddings of chat content reveal about the cooperative and promise-making dimensions of player communication?}
+\subsection{Embedding Models}
 
-We embed chat at two granularities:
+We embed chat messages using two OpenAI models:
+\begin{itemize}
+    \item \texttt{text-embedding-3-small} (1,536 dimensions)
+    \item \texttt{text-embedding-3-large} (3,072 dimensions)
+\end{itemize}
+
+Embeddings are computed at two granularities:
 \begin{enumerate}
-    \item \textbf{Individual message level} (4,700 messages): each chat message embedded separately.
-    \item \textbf{Player-round level} (2,298 texts): all messages from a single player within a single round concatenated into one string before embedding.
+    \item \textbf{Message level}: each chat message embedded individually (4,700 messages).
+    \item \textbf{Player-round level}: all messages from one player in one round concatenated before embedding (2,298 texts).
 \end{enumerate}
 
-We then compute direction vectors for five labeling schemes (cooperative state, promise-making, contribution homogeneity, round-level liar, and cumulative liar), project embeddings onto these directions, and evaluate predictive power.
+Chat messages are paired with the contribution they influenced (the next round's decision). Round 1 of each supergame has no associated chat.
 
-%% ============================================================
-\section{Embedding Models and API}
-%% ============================================================
+\subsection{Direction Vectors}
 
-We use two OpenAI embedding models:
-\begin{itemize}
-    \item \texttt{text-embedding-3-small}: 1,536 dimensions. Cost: \$0.002 per 4,700 messages.
-    \item \texttt{text-embedding-3-large}: 3,072 dimensions. Cost: \$0.012 per 4,700 messages.
-\end{itemize}
-
-Embeddings are computed once and cached as Parquet files. All downstream analysis reads from cache, so the total API cost for the entire pipeline (both models, both granularity levels) was approximately \$0.03.
-
-%% ============================================================
-\section{Data Decisions}
-%% ============================================================
-
-\subsection{Chat-Round Pairing Semantics}
-
-In the oTree experiment, chat occurs \emph{after} the contribution decision in each round. In the analysis module, however, chat messages are paired with the contribution they \emph{influenced}---the next round's decision. This means:
-\begin{itemize}
-    \item Round 1 of each supergame has no associated chat (no prior discussion).
-    \item The last round's chat influenced no subsequent contribution and is stored separately as ``orphan chats.''
-    \item Embedding projection scores are \texttt{NaN} for round 1 in the panel dataset.
-\end{itemize}
-
-\subsection{Label Sources}
-
-\paragraph{Cooperative state.} Defined at the \textbf{player level} from \texttt{player\_state\_classification.csv}: a player is ``cooperative'' if others' total contribution in their group is $\geq 60$ (i.e., the other three players contributed $\geq 20$ on average). This yields 3,800 cooperative and 900 non-cooperative message-level observations, or 1,853 cooperative and 445 non-cooperative player-round observations.
-
-\paragraph{Promise-making.} Defined at the \textbf{player-round level} from \texttt{promise\_classifications.csv}: an LLM classifier (applied in a prior issue) labels whether a player's chat in a given round contains a promise to contribute. This yields 2,195 promise and 2,505 no-promise messages, or 931 promise and 1,367 no-promise player-rounds.
-
-\paragraph{Contribution homogeneity.} Defined at the \textbf{group-round level} from contribution data: a group-round is ``homogeneous'' if the range of contributions (max $-$ min) is $\leq 1$ ECU, and ``heterogeneous'' otherwise. This threshold captures groups where all members contributed (approximately) the same amount, regardless of the contribution level. The label is applied at the group level and merged onto individual player embeddings.
-
-\paragraph{Round-level liar.} Defined at the \textbf{player-round level} from \texttt{behavior\_classifications.csv}: a player ``lied this round'' (\texttt{lied\_this\_round\_20}) if they made a promise to contribute $\geq 20$ but actually contributed $< 20$. This is a round-specific label that can change from round to round. The dataset contains 94 round-liar observations, reflecting substantial class imbalance.
-
-\paragraph{Cumulative liar.} Defined at the \textbf{player-round level} from \texttt{behavior\_classifications.csv}: a player is a ``cumulative liar'' (\texttt{is\_liar\_20}) if they have \emph{ever} lied (by the round-level definition above) in any prior or current round. Once a player is classified as a liar, the label persists for all subsequent rounds. This yields 123 cumulative-liar observations, somewhat less imbalanced than the round-level label.
-
-\subsection{Embedding Granularity}
-
-Two levels were chosen to balance competing needs:
-\begin{itemize}
-    \item \textbf{Individual messages} preserve fine-grained variation (a player may send multiple messages per round, some containing promises and others not), enabling message-level ranking by projection score.
-    \item \textbf{Player-round concatenation} captures the full conversational context of a player's round-level communication, producing one embedding per player-round that aligns naturally with the player-round-level labels.
-\end{itemize}
-
-\subsection{Cross-Level Projections}
-
-For the message-level output, we compute \emph{four} projection scores per message:
-\begin{enumerate}
-    \item Message projected onto the \textbf{message-level direction vector} (centroid difference computed from individual message embeddings).
-    \item Message projected onto the \textbf{player-round direction vector} (centroid difference computed from player-round embeddings).
-\end{enumerate}
-This is done for both the small and large models, yielding four columns. The rationale is that the player-round direction may be a better axis (since labels are defined at the player-round level), but we want to see both projections at the message level for comparison.
-
-%% ============================================================
-\section{Methodology}
-%% ============================================================
-
-\subsection{Centroid Direction Vector}
-
-For a given label scheme (cooperative/non-cooperative or promise/no-promise), we compute:
+For a binary label (positive/negative), we compute:
 \begin{align}
     \mathbf{c}_+ &= \frac{1}{n_+} \sum_{i \in \text{positive}} \mathbf{e}_i \\
     \mathbf{c}_- &= \frac{1}{n_-} \sum_{i \in \text{negative}} \mathbf{e}_i \\
     \mathbf{d} &= \frac{\mathbf{c}_+ - \mathbf{c}_-}{\|\mathbf{c}_+ - \mathbf{c}_-\|}
 \end{align}
-where $\mathbf{e}_i$ is the embedding vector for observation $i$, and $\mathbf{d}$ is the unit-length direction vector pointing from the negative class centroid toward the positive class centroid.
+Each embedding is then projected onto the direction: $s_i = \mathbf{e}_i \cdot \mathbf{d}$.
 
-\subsection{Projection Score}
+\subsection{Five Direction Axes}
 
-Each embedding is projected onto the direction vector:
-\begin{equation}
-    s_i = \mathbf{e}_i \cdot \mathbf{d}
-\end{equation}
-Higher values indicate the embedding is more aligned with the positive class direction.
+\begin{table}[H]
+\centering
+\caption{Direction vector definitions}
+\label{tab:directions}
+\footnotesize
+\begin{tabular}{llllr}
+\toprule
+Direction & Positive class & Label level & Source file & Positive $n$ \\
+\midrule
+Cooperative & \texttt{player\_state == cooperative} & Player & \texttt{player\_state\_classification.csv} & 3,800 \\
+Promise & \texttt{classification == 1} & Message & \texttt{promise\_classifications.csv} & 2,195 \\
+Homogeneity & contribution range $\leq 1$ ECU & Group-round & computed from contributions & 520 \\
+Round liar & \texttt{lied\_this\_round\_20 == True} & Player-round & \texttt{behavior\_classifications.csv} & 94 \\
+Cumulative liar & \texttt{is\_liar\_20 == True} & Player-round & \texttt{behavior\_classifications.csv} & 113 \\
+\bottomrule
+\end{tabular}
+\end{table}
 
 \subsection{Probe Phrase Validation}
 
-To validate that the direction vector captures the intended construct, we embed a set of predefined probe phrases and compute their cosine similarity with $\mathbf{d}$:
+For each direction, we embed predefined probe phrases and compute cosine similarity with $\mathbf{d}$:
 \begin{equation}
     \text{sim}(\mathbf{p}, \mathbf{d}) = \frac{\mathbf{p} \cdot \mathbf{d}}{\|\mathbf{p}\|}
 \end{equation}
-where $\mathbf{p}$ is the probe phrase embedding (note that $\|\mathbf{d}\| = 1$ by construction, cf.\ Equation~3). If the direction is meaningful, cooperative/promise-related probes should score higher than non-cooperative/non-promise probes.
 
-\subsection{Logistic Regression Baseline}
+\subsection{Logistic Regression}
 
-We run 5-fold stratified cross-validated logistic regression at the \textbf{player-round level}, comparing four feature sets:
+5-fold stratified cross-validated logistic regression at the player-round level. Dependent variable: \texttt{high\_contribution} ($\geq 20$ out of 25 ECU). Four feature sets per direction:
 \begin{enumerate}
-    \item \textbf{VADER only}: 4 sentiment features (compound, positive, negative, neutral means).
-    \item \textbf{Projection only}: the 1-dimensional projection score from the direction vector.
-    \item \textbf{Full embedding (PCA 50)}: the raw embedding reduced to 50 principal components.
-    \item \textbf{VADER + Projection}: sentiment features combined with the projection score.
+    \item VADER only (4 sentiment features)
+    \item Projection only (1-dimensional projection score)
+    \item Full embedding (PCA reduced to 50 components)
+    \item VADER + Projection
 \end{enumerate}
 
-The dependent variable is \texttt{high\_contribution} ($\geq 20$ ECU) at the player-round level.
+\subsection{Panel Regression}
+
+Fixed-effects panel regressions using \texttt{fixest::feols()} in R. Fixed effects: round + segment. Clustering: session $\times$ segment $\times$ group. Two dependent variables: group contribution (0--100) and others' contribution (0--75). Each projection type enters as a separate specification.
 
 %% ============================================================
-\section{Results: Cooperative Direction}
-\label{sec:coop}
+\section{Scripts}
 %% ============================================================
 
-\subsection{Direction Vector Problem}
+\subsection{Embedding Pipeline}
 
-The cooperative direction vector does \emph{not} capture cooperative intent. Instead, it separates \textbf{short affirmations} (characteristic of already-cooperative states) from \textbf{negotiation and persuasion language} (characteristic of non-cooperative states where players are trying to convince free-riders).
-
-\paragraph{Rankings.} The top ``cooperative-direction'' messages are:
-\begin{quote}
-    \emph{``awesome''}, \emph{``Perfect''}, \emph{``great''}
-\end{quote}
-The top ``non-cooperative-direction'' messages are:
-\begin{quote}
-    \emph{``guys if we all put in 25 we all make more money than keeping''} \\
-    \emph{``well someone is being greedy\ldots\ maybe we all lower down to 2''}
-\end{quote}
-The non-cooperative-direction messages are actually \emph{cooperative appeals}---players trying to convince others to contribute.
-
-\paragraph{Probe phrase validation.} The probe phrases confirm the problem:
-
-\begin{center}
-\begin{tabular}{lc}
+\begin{tabular}{ll}
 \toprule
-Probe Phrase & Cosine Similarity \\
+Script & Purpose \\
+\midrule
+\texttt{compute\_embeddings.py} & Call OpenAI API, cache as Parquet \\
+\texttt{merge\_panel\_data.py} & Integrate 20 projection columns into panel \\
+\bottomrule
+\end{tabular}
+
+\subsection{Analysis Drivers}
+
+\begin{tabular}{ll}
+\toprule
+Script & Direction \\
+\midrule
+\texttt{analyze\_embeddings.py} & Cooperative \\
+\texttt{analyze\_promise\_embeddings.py} & Promise \\
+\texttt{analyze\_homogeneity\_embeddings.py} & Homogeneity \\
+\texttt{analyze\_round\_liar\_embeddings.py} & Round liar \\
+\texttt{analyze\_cumulative\_liar\_embeddings.py} & Cumulative liar \\
+\bottomrule
+\end{tabular}
+
+\medskip
+Each driver: loads cached embeddings $\rightarrow$ computes centroids and direction vector $\rightarrow$ projects all messages $\rightarrow$ runs probe validation $\rightarrow$ saves projection CSV.
+
+\subsection{Regression Scripts}
+
+\begin{tabular}{ll}
+\toprule
+Script & Output table \\
+\midrule
+\texttt{embedding\_regression.py} & \texttt{embedding\_regression\_comparison.tex} \\
+\texttt{promise\_embedding\_regression.py} & \texttt{promise\_embedding\_regression\_comparison.tex} \\
+\texttt{homogeneity\_embedding\_regression.py} & \texttt{homogeneity\_embedding\_regression\_comparison.tex} \\
+\texttt{round\_liar\_embedding\_regression.py} & \texttt{round\_liar\_embedding\_regression\_comparison.tex} \\
+\texttt{cumulative\_liar\_embedding\_regression.py} & \texttt{cumulative\_liar\_embedding\_regression\_comparison.tex} \\
+\texttt{group\_contribution\_embedding\_regression.R} & \texttt{group\_contribution\_embedding\_regression.tex} \\
+ & \texttt{others\_contribution\_embedding\_regression.tex} \\
+\bottomrule
+\end{tabular}
+
+\subsection{Visualization Scripts}
+
+\begin{tabular}{ll}
+\toprule
+Script & Plots \\
+\midrule
+\texttt{embedding\_plots.py} & UMAP, t-SNE, projection distributions (cooperative) \\
+\texttt{promise\_embedding\_plots.py} & UMAP, t-SNE, projection distributions (promise) \\
+\bottomrule
+\end{tabular}
+
+%% ============================================================
+\section{Outputs}
+%% ============================================================
+
+\subsection{Probe Phrase Validation}
+
+\begin{table}[H]
+\centering
+\caption{Cooperative direction --- probe phrases (small model)}
+\label{tab:probe_coop}
+\footnotesize
+\begin{tabular}{lr}
+\toprule
+Phrase & Cosine sim. \\
 \midrule
 ``I'm going to free ride'' & $+0.04$ \\
 ``put in everything'' & $-0.02$ \\
@@ -178,69 +181,16 @@ Probe Phrase & Cosine Similarity \\
 ``I'll put in zero'' & $-0.19$ \\
 \bottomrule
 \end{tabular}
-\end{center}
-
-``I'm going to free ride'' scores as the \emph{most} cooperative-direction probe, while ``let's all contribute 25'' scores non-cooperative. This inversion occurs because the player-level cooperative state label reflects the \emph{situation} (are others cooperating?), not the \emph{content} of the message. In cooperative states, players affirm; in non-cooperative states, they negotiate.
-
-\paragraph{Interpretation.} The cooperative direction vector captures a real and meaningful axis---\textbf{settled cooperation versus active negotiation}---but it is not the axis we intended. This finding itself is informative: it reveals that the linguistic signature of cooperative states is \emph{absence of explicit cooperation talk}, while non-cooperative states are marked by \emph{more} cooperation-related language as players attempt to restore cooperation.
-
-\subsection{Logistic Regression}
-
-Despite the direction problem, embeddings still outperform VADER for predicting cooperative state:
-
-\begin{table}[H]
-\caption{Cooperative state prediction: 5-fold CV logistic regression (player-round level)}
-\label{tab:coop_regression}
-\input{embedding_regression_comparison}
 \end{table}
 
-The projection-only model achieves AUC = 0.76, while VADER achieves only 0.62. This suggests the embedding captures meaningful variation in chat content that correlates with the cooperative environment, even if the direction doesn't align with cooperative \emph{intent}.
-
-\subsection{Dimensionality Reduction}
-
-\begin{figure}[H]
+\begin{table}[H]
 \centering
-\begin{subfigure}[b]{0.48\textwidth}
-    \includegraphics[width=\textwidth]{embedding_umap_large}
-    \caption{UMAP (large model)}
-\end{subfigure}
-\hfill
-\begin{subfigure}[b]{0.48\textwidth}
-    \includegraphics[width=\textwidth]{embedding_tsne_large}
-    \caption{t-SNE (large model)}
-\end{subfigure}
-\caption{Message embeddings colored by cooperative state (green = cooperative, red = non-cooperative). No clean separation is visible, consistent with the direction vector capturing situation rather than intent.}
-\label{fig:coop_dimreduce}
-\end{figure}
-
-\begin{figure}[H]
-\centering
-\begin{subfigure}[b]{0.48\textwidth}
-    \includegraphics[width=\textwidth]{embedding_projection_dist_small}
-    \caption{Small model}
-\end{subfigure}
-\hfill
-\begin{subfigure}[b]{0.48\textwidth}
-    \includegraphics[width=\textwidth]{embedding_projection_dist_large}
-    \caption{Large model}
-\end{subfigure}
-\caption{Distribution of projection scores onto the cooperative direction vector, split by cooperative state. Distributions overlap substantially, with modest rightward shift for cooperative messages.}
-\label{fig:coop_projdist}
-\end{figure}
-
-%% ============================================================
-\section{Results: Promise Direction}
-\label{sec:promise}
-%% ============================================================
-
-\subsection{Direction Vector Validation}
-
-In contrast to the cooperative direction, the promise direction captures the intended construct. The probe phrases rank in the expected order:
-
-\begin{center}
-\begin{tabular}{lcc}
+\caption{Promise direction --- probe phrases (small / large model)}
+\label{tab:probe_promise}
+\footnotesize
+\begin{tabular}{lrr}
 \toprule
-Probe Phrase & Small & Large \\
+Phrase & Small & Large \\
 \midrule
 ``I promise to put in 25'' & $+0.47$ & $+0.40$ \\
 ``let's all commit to the max'' & $+0.25$ & $+0.29$ \\
@@ -256,56 +206,190 @@ Probe Phrase & Small & Large \\
 ``I'm not making any promises'' & $+0.08$ & $+0.11$ \\
 \bottomrule
 \end{tabular}
-\end{center}
-
-The strongest probe (``I promise to put in 25'') scores +0.47, while the weakest (``I'm not making any promises'') scores +0.08. This monotonic ordering from explicit commitment language to non-commitment language confirms the direction vector captures promise-making intent.
-
-\subsection{Rankings}
-
-\paragraph{Top promise-direction texts (player-round level):}
-\begin{quote}
-    \emph{``lets do 25 yes i will''} \\
-    \emph{``yeah lets do 25 all''} \\
-    \emph{``can we all do 25 yes same lets do it''}
-\end{quote}
-
-\paragraph{Top no-promise-direction texts:}
-\begin{quote}
-    \emph{``A had to ruin it''} \\
-    \emph{``like fr one selfish person got to ruin it''} \\
-    \emph{``why did the balloon animal skip class he was scared of a pop quiz''}
-\end{quote}
-
-The promise direction successfully surfaces explicit commitment language at one end and off-topic or complaint-driven language at the other.
-
-\subsection{Logistic Regression}
-
-Embeddings dramatically outperform VADER for predicting promise-making:
+\end{table}
 
 \begin{table}[H]
-\caption{Promise-making prediction: 5-fold CV logistic regression (player-round level)}
-\label{tab:promise_regression}
+\centering
+\caption{Homogeneity direction --- probe phrases (small / large model)}
+\label{tab:probe_homog}
+\footnotesize
+\begin{tabular}{lrr}
+\toprule
+Phrase & Small & Large \\
+\midrule
+``we're all on the same page'' & $-0.01$ & $-0.01$ \\
+``I'll match whatever you do'' & $-0.01$ & $-0.06$ \\
+``I'm going my own way'' & $-0.02$ & $+0.01$ \\
+``I'll do what the group does'' & $-0.03$ & $-0.06$ \\
+``let's coordinate our contributions'' & $-0.12$ & $-0.15$ \\
+``I don't care what others do'' & $-0.12$ & $-0.09$ \\
+``everyone do 25'' & $-0.14$ & $-0.11$ \\
+``some of us are free riding'' & $-0.16$ & $-0.07$ \\
+``I'm putting in zero'' & $-0.24$ & $-0.24$ \\
+``we should all contribute equally'' & $-0.25$ & $-0.27$ \\
+``let's all put in the same amount'' & $-0.27$ & $-0.29$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\centering
+\caption{Round-liar direction --- probe phrases (small / large model)}
+\label{tab:probe_rliar}
+\footnotesize
+\begin{tabular}{lrr}
+\toprule
+Phrase & Small & Large \\
+\midrule
+``I changed my mind'' & $+0.19$ & $+0.16$ \\
+``I promise to put in 25'' & $+0.15$ & $+0.11$ \\
+``I'll put in everything'' & $+0.14$ & $+0.12$ \\
+``I said I'd cooperate but I didn't'' & $+0.12$ & $+0.12$ \\
+``I always do what I say'' & $+0.11$ & $+0.12$ \\
+``trust me'' & $+0.09$ & $+0.10$ \\
+``I kept my word'' & $+0.04$ & $+0.03$ \\
+``someone is not being honest'' & $+0.01$ & $+0.01$ \\
+``I lied about my contribution'' & $-0.01$ & $-0.01$ \\
+``I never break a promise'' & $-0.01$ & $+0.01$ \\
+``they lied to us'' & $-0.08$ & $-0.03$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\centering
+\caption{Cumulative-liar direction --- probe phrases (small / large model)}
+\label{tab:probe_cliar}
+\footnotesize
+\begin{tabular}{lrr}
+\toprule
+Phrase & Small & Large \\
+\midrule
+``I promise to put in 25'' & $+0.26$ & $+0.25$ \\
+``I lied about my contribution'' & $+0.21$ & $+0.20$ \\
+``I changed my mind'' & $+0.18$ & $+0.12$ \\
+``I said I would but I didn't'' & $+0.17$ & $+0.15$ \\
+``I kept my word'' & $+0.10$ & $+0.04$ \\
+``I'm going to free ride'' & $+0.06$ & $+0.02$ \\
+``trust me'' & $+0.06$ & $+0.04$ \\
+``I'll contribute everything'' & $+0.01$ & $+0.02$ \\
+``we should cooperate'' & $-0.02$ & $-0.01$ \\
+``let's all be honest'' & $-0.03$ & $-0.01$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Logistic Regression Tables}
+
+\begin{table}[H]
+\caption{Cooperative direction: 5-fold CV logistic regression}
+\label{tab:reg_coop}
+\input{embedding_regression_comparison}
+\end{table}
+
+\begin{table}[H]
+\caption{Promise direction: 5-fold CV logistic regression}
+\label{tab:reg_promise}
 \input{promise_embedding_regression_comparison}
 \end{table}
 
-The 1-dimensional promise projection score alone achieves AUC = 0.90, compared to VADER's 0.67. The full embedding (PCA 50) provides marginal additional benefit (AUC = 0.89). Adding VADER to the projection score yields the highest AUC (0.90), suggesting VADER contributes minimal information beyond what the projection captures.
+\begin{table}[H]
+\caption{Homogeneity direction: 5-fold CV logistic regression}
+\label{tab:reg_homog}
+\input{homogeneity_embedding_regression_comparison}
+\end{table}
 
-This is the strongest result: a single scalar projection onto the promise direction is sufficient to predict whether a group's chat contained promises with 90\% discrimination ability.
+\begin{table}[H]
+\caption{Round-liar direction: 5-fold CV logistic regression}
+\label{tab:reg_rliar}
+\input{round_liar_embedding_regression_comparison}
+\end{table}
 
-\subsection{Dimensionality Reduction}
+\begin{table}[H]
+\caption{Cumulative-liar direction: 5-fold CV logistic regression}
+\label{tab:reg_cliar}
+\input{cumulative_liar_embedding_regression_comparison}
+\end{table}
+
+\subsection{Panel Regression Tables}
+
+\begin{table}[H]
+\caption{Group contribution on embedding projections (fixest, FE: round + segment)}
+\label{tab:panel_group}
+\input{group_contribution_embedding_regression}
+\end{table}
+
+\begin{table}[H]
+\caption{Others' contribution on embedding projections (fixest, FE: round + segment)}
+\label{tab:panel_others}
+\input{others_contribution_embedding_regression}
+\end{table}
+
+\subsection{Summary Comparison}
+
+\begin{table}[H]
+\centering
+\caption{Summary comparison of direction vectors}
+\label{tab:comparison}
+\footnotesize
+\begin{tabular}{lccccc}
+\toprule
+& Cooperative & Promise & Homogeneity & Round Liar & Cum.\ Liar \\
+\midrule
+Label level & Player & Message & Group-round & Player-round & Player-round \\
+Label source & player\_state & promise\_class. & contributions & behavior\_class. & behavior\_class. \\
+Probe validation & Inverted & Correct & Inverted & Mixed & Partial \\
+Positive class $n$ & 3,800 & 2,195 & 520 & 94 & 113 \\
+Projection-only AUC & 0.76 & 0.90 & 0.67 & 0.61 & 0.63 \\
+VADER-only AUC & 0.62 & 0.67 & 0.58 & 0.58 & 0.58 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Visualizations}
+
+\begin{figure}[H]
+\centering
+\begin{subfigure}[b]{0.48\textwidth}
+    \includegraphics[width=\textwidth]{embedding_umap_large}
+    \caption{UMAP --- cooperative}
+\end{subfigure}
+\hfill
+\begin{subfigure}[b]{0.48\textwidth}
+    \includegraphics[width=\textwidth]{embedding_tsne_large}
+    \caption{t-SNE --- cooperative}
+\end{subfigure}
+\caption{Message embeddings colored by cooperative state (large model).}
+\label{fig:coop_dimreduce}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\begin{subfigure}[b]{0.48\textwidth}
+    \includegraphics[width=\textwidth]{embedding_projection_dist_small}
+    \caption{Small model}
+\end{subfigure}
+\hfill
+\begin{subfigure}[b]{0.48\textwidth}
+    \includegraphics[width=\textwidth]{embedding_projection_dist_large}
+    \caption{Large model}
+\end{subfigure}
+\caption{Cooperative direction projection score distributions by state.}
+\label{fig:coop_projdist}
+\end{figure}
 
 \begin{figure}[H]
 \centering
 \begin{subfigure}[b]{0.48\textwidth}
     \includegraphics[width=\textwidth]{promise_umap_large}
-    \caption{UMAP (large model)}
+    \caption{UMAP --- promise}
 \end{subfigure}
 \hfill
 \begin{subfigure}[b]{0.48\textwidth}
     \includegraphics[width=\textwidth]{promise_tsne_large}
-    \caption{t-SNE (large model)}
+    \caption{t-SNE --- promise}
 \end{subfigure}
-\caption{Message embeddings colored by promise state (blue = promise, orange = no promise).}
+\caption{Message embeddings colored by promise state (large model).}
 \label{fig:promise_dimreduce}
 \end{figure}
 
@@ -320,114 +404,101 @@ This is the strongest result: a single scalar projection onto the promise direct
     \includegraphics[width=\textwidth]{promise_projection_dist_large}
     \caption{Large model}
 \end{subfigure}
-\caption{Distribution of projection scores onto the promise direction vector. Promise messages (blue) are shifted rightward relative to no-promise messages (orange), with clearer separation than the cooperative direction.}
+\caption{Promise direction projection score distributions by state.}
 \label{fig:promise_projdist}
 \end{figure}
 
-%% ============================================================
-\section{Results: Homogeneity Direction}
-\label{sec:homog}
-%% ============================================================
-
-\subsection{Direction Vector Definition}
-
-The homogeneity direction separates groups where all members contributed approximately the same amount from those with heterogeneous contributions. A group-round is labeled ``homogeneous'' if the contribution range (max $-$ min) is $\leq 1$ ECU, and ``heterogeneous'' otherwise. Unlike the cooperative and promise labels which reflect individual player states, homogeneity is a \textbf{group-level} property that captures the degree of contribution coordination.
-
-\subsection{Logistic Regression}
-
-We evaluate whether the homogeneity direction can predict individual player contribution levels. Following the same methodology as Sections~\ref{sec:coop} and~\ref{sec:promise}, we run 5-fold stratified cross-validated logistic regression at the player-round level, predicting high contribution ($\geq 20$ out of 25 ECU):
-
-\begin{table}[H]
-\caption{High contribution prediction: 5-fold CV logistic regression (player-round level)}
-\label{tab:homog_regression}
-\input{homogeneity_embedding_regression_comparison}
-\end{table}
-
-%% ============================================================
-\section{Results: Round-Level Liar Direction}
-\label{sec:rliar}
-%% ============================================================
-
-\subsection{Direction Vector Definition}
-
-The round-level liar direction separates players who lied about their contribution in a given round from those who did not. A player is labeled a ``round liar'' if they promised to contribute $\geq 20$ ECU but actually contributed $< 20$. Unlike the cooperative and promise labels, this label requires both a promise \emph{and} a subsequent deviation, capturing a specific form of strategic deception. With only 94 round-liar observations, the class imbalance is substantial.
-
-\subsection{Logistic Regression}
-
-We evaluate whether the round-liar direction can predict individual player contribution levels at the player-round level:
-
-\begin{table}[H]
-\caption{High contribution prediction from round-liar projections: 5-fold CV logistic regression (player-round level)}
-\label{tab:rliar_regression}
-\input{round_liar_embedding_regression_comparison}
-\end{table}
-
-%% ============================================================
-\section{Results: Cumulative Liar Direction}
-\label{sec:cliar}
-%% ============================================================
-
-\subsection{Direction Vector Definition}
-
-The cumulative liar direction separates players who have \emph{ever} lied (by the round-level definition) from those who have not. Once a player lies in any round, the ``cumulative liar'' label persists for all subsequent rounds. This captures a player-level trait rather than a round-specific event, and yields 123 cumulative-liar observations (less imbalanced than the round-level label).
-
-\subsection{Logistic Regression}
-
-We evaluate whether the cumulative-liar direction can predict individual player contribution levels at the player-round level:
-
-\begin{table}[H]
-\caption{High contribution prediction from cumulative-liar projections: 5-fold CV logistic regression (player-round level)}
-\label{tab:cliar_regression}
-\input{cumulative_liar_embedding_regression_comparison}
-\end{table}
-
-%% ============================================================
-\section{Comparing the Five Directions}
-%% ============================================================
-
-\begin{table}[H]
+\begin{figure}[H]
 \centering
-\caption{Summary comparison of direction vectors}
-\label{tab:comparison}
-\footnotesize
-\begin{tabular}{lccccc}
-\toprule
-& Cooperative & Promise & Homogeneity & Round Liar & Cum.\ Liar \\
-\midrule
-Label level & Player & Player-round & Group-round & Player-round & Player-round \\
-Label source & player\_state & promise\_class. & contributions & behavior\_class. & behavior\_class. \\
-Probe validation & Inverted & Correct & Inverted & Mixed & Partial \\
-Positive class $n$ & 3,800 & 2,195 & 520 & 94 & 113 \\
-Projection-only AUC & 0.76 & 0.90 & 0.67 & 0.61 & 0.63 \\
-VADER-only AUC & 0.62 & 0.67 & 0.58 & 0.58 & 0.58 \\
-What it captures & Settled vs.\ negot. & Commitment & Coordination & Deception & Liar trait \\
-\bottomrule
-\end{tabular}
-\end{table}
+\begin{subfigure}[b]{0.48\textwidth}
+    \includegraphics[width=\textwidth]{homogeneity_umap_large}
+    \caption{UMAP --- homogeneity}
+\end{subfigure}
+\hfill
+\begin{subfigure}[b]{0.48\textwidth}
+    \includegraphics[width=\textwidth]{homogeneity_tsne_large}
+    \caption{t-SNE --- homogeneity}
+\end{subfigure}
+\caption{Message embeddings colored by contribution homogeneity (large model).}
+\label{fig:homog_dimreduce}
+\end{figure}
 
-The cooperative direction's failure to capture cooperative intent---and the promise direction's success in capturing promise intent---likely stems from the nature of the labels. The cooperative state label reflects the \emph{environment} (others' behavior), which correlates with the \emph{absence} of cooperation talk. The promise label reflects the \emph{content} of the player's own speech, which the embedding naturally captures. The homogeneity direction captures a distinct group-level phenomenon: whether the group's communication reflects coordination on a common contribution level. The two liar directions test whether the embedding space can detect deceptive behavior---either at the round level (did the player lie \emph{this round}?) or cumulatively (has the player \emph{ever} lied?). The substantial class imbalance in both liar labels (94 and 113 positive cases respectively) makes these directions more challenging to validate.
+\begin{figure}[H]
+\centering
+\begin{subfigure}[b]{0.48\textwidth}
+    \includegraphics[width=\textwidth]{homogeneity_projection_dist_small}
+    \caption{Small model}
+\end{subfigure}
+\hfill
+\begin{subfigure}[b]{0.48\textwidth}
+    \includegraphics[width=\textwidth]{homogeneity_projection_dist_large}
+    \caption{Large model}
+\end{subfigure}
+\caption{Homogeneity direction projection score distributions by state.}
+\label{fig:homog_projdist}
+\end{figure}
 
-%% ============================================================
-\section{Implementation Details}
-%% ============================================================
+\begin{figure}[H]
+\centering
+\begin{subfigure}[b]{0.48\textwidth}
+    \includegraphics[width=\textwidth]{round_liar_umap_large}
+    \caption{UMAP --- round liar}
+\end{subfigure}
+\hfill
+\begin{subfigure}[b]{0.48\textwidth}
+    \includegraphics[width=\textwidth]{round_liar_tsne_large}
+    \caption{t-SNE --- round liar}
+\end{subfigure}
+\caption{Message embeddings colored by round-liar status (large model).}
+\label{fig:rliar_dimreduce}
+\end{figure}
 
-\subsection{Pipeline Architecture}
+\begin{figure}[H]
+\centering
+\begin{subfigure}[b]{0.48\textwidth}
+    \includegraphics[width=\textwidth]{round_liar_projection_dist_small}
+    \caption{Small model}
+\end{subfigure}
+\hfill
+\begin{subfigure}[b]{0.48\textwidth}
+    \includegraphics[width=\textwidth]{round_liar_projection_dist_large}
+    \caption{Large model}
+\end{subfigure}
+\caption{Round-liar direction projection score distributions by state.}
+\label{fig:rliar_projdist}
+\end{figure}
 
-\begin{enumerate}
-    \item \texttt{compute\_embeddings.py}: Calls OpenAI API, caches Parquet files (run once).
-    \item \texttt{analyze\_embeddings.py}: Loads cached embeddings, computes cooperative centroids, direction vectors, projections, probe validation. Outputs \texttt{embedding\_projections.csv}.
-    \item \texttt{analyze\_promise\_embeddings.py}: Same pipeline using promise labels. Outputs \texttt{promise\_embedding\_projections.csv}.
-    \item \texttt{analyze\_homogeneity\_embeddings.py}: Same pipeline using contribution homogeneity labels. Outputs \texttt{homogeneity\_embedding\_projections.csv}.
-    \item \texttt{analyze\_round\_liar\_embeddings.py}: Same pipeline using round-level liar labels (\texttt{lied\_this\_round\_20}). Outputs \texttt{round\_liar\_embedding\_projections.csv}.
-    \item \texttt{analyze\_cumulative\_liar\_embeddings.py}: Same pipeline using cumulative liar labels (\texttt{is\_liar\_20}). Outputs \texttt{cumulative\_liar\_embedding\_projections.csv}.
-    \item \texttt{embedding\_plots.py} / \texttt{promise\_embedding\_plots.py}: UMAP, t-SNE, projection distributions.
-    \item \texttt{embedding\_regression.py} / \texttt{promise\_embedding\_regression.py} / \texttt{homogeneity\_embedding\_regression.py} / \texttt{round\_liar\_embedding\_regression.py} / \texttt{cumulative\_liar\_embedding\_regression.py}: Logistic regression model comparison.
-    \item \texttt{merge\_panel\_data.py}: Integrates 20 projection score columns (4 cooperative + 4 promise + 4 homogeneity + 4 round-liar + 4 cumulative-liar) into the panel dataset.
-\end{enumerate}
+\begin{figure}[H]
+\centering
+\begin{subfigure}[b]{0.48\textwidth}
+    \includegraphics[width=\textwidth]{cumulative_liar_umap_large}
+    \caption{UMAP --- cumulative liar}
+\end{subfigure}
+\hfill
+\begin{subfigure}[b]{0.48\textwidth}
+    \includegraphics[width=\textwidth]{cumulative_liar_tsne_large}
+    \caption{t-SNE --- cumulative liar}
+\end{subfigure}
+\caption{Message embeddings colored by cumulative-liar status (large model).}
+\label{fig:cliar_dimreduce}
+\end{figure}
 
-\subsection{Panel Data Columns}
+\begin{figure}[H]
+\centering
+\begin{subfigure}[b]{0.48\textwidth}
+    \includegraphics[width=\textwidth]{cumulative_liar_projection_dist_small}
+    \caption{Small model}
+\end{subfigure}
+\hfill
+\begin{subfigure}[b]{0.48\textwidth}
+    \includegraphics[width=\textwidth]{cumulative_liar_projection_dist_large}
+    \caption{Large model}
+\end{subfigure}
+\caption{Cumulative-liar direction projection score distributions by state.}
+\label{fig:cliar_projdist}
+\end{figure}
 
-The merged panel dataset contains 20 new embedding projection columns:
+\subsection{Projection Columns in Panel Dataset}
 
 \begin{center}
 \footnotesize
@@ -435,45 +506,20 @@ The merged panel dataset contains 20 new embedding projection columns:
 \toprule
 Column & Description \\
 \midrule
-\texttt{proj\_msg\_dir\_small} & Message $\rightarrow$ message-level cooperative direction (small) \\
-\texttt{proj\_pr\_dir\_small} & Message $\rightarrow$ player-round cooperative direction (small) \\
-\texttt{proj\_msg\_dir\_large} & Message $\rightarrow$ message-level cooperative direction (large) \\
-\texttt{proj\_pr\_dir\_large} & Message $\rightarrow$ player-round cooperative direction (large) \\
-\texttt{proj\_promise\_msg\_dir\_small} & Message $\rightarrow$ message-level promise direction (small) \\
-\texttt{proj\_promise\_pr\_dir\_small} & Message $\rightarrow$ player-round promise direction (small) \\
-\texttt{proj\_promise\_msg\_dir\_large} & Message $\rightarrow$ message-level promise direction (large) \\
-\texttt{proj\_promise\_pr\_dir\_large} & Message $\rightarrow$ player-round promise direction (large) \\
-\texttt{proj\_homog\_msg\_dir\_small} & Message $\rightarrow$ message-level homogeneity direction (small) \\
-\texttt{proj\_homog\_pr\_dir\_small} & Message $\rightarrow$ player-round homogeneity direction (small) \\
-\texttt{proj\_homog\_msg\_dir\_large} & Message $\rightarrow$ message-level homogeneity direction (large) \\
-\texttt{proj\_homog\_pr\_dir\_large} & Message $\rightarrow$ player-round homogeneity direction (large) \\
-\texttt{proj\_rliar\_msg\_dir\_small} & Message $\rightarrow$ message-level round-liar direction (small) \\
-\texttt{proj\_rliar\_pr\_dir\_small} & Message $\rightarrow$ player-round round-liar direction (small) \\
-\texttt{proj\_rliar\_msg\_dir\_large} & Message $\rightarrow$ message-level round-liar direction (large) \\
-\texttt{proj\_rliar\_pr\_dir\_large} & Message $\rightarrow$ player-round round-liar direction (large) \\
-\texttt{proj\_cliar\_msg\_dir\_small} & Message $\rightarrow$ message-level cumulative-liar direction (small) \\
-\texttt{proj\_cliar\_pr\_dir\_small} & Message $\rightarrow$ player-round cumulative-liar direction (small) \\
-\texttt{proj\_cliar\_msg\_dir\_large} & Message $\rightarrow$ message-level cumulative-liar direction (large) \\
-\texttt{proj\_cliar\_pr\_dir\_large} & Message $\rightarrow$ player-round cumulative-liar direction (large) \\
+\texttt{proj\_msg\_dir\_\{small,large\}} & Cooperative direction, message-level \\
+\texttt{proj\_pr\_dir\_\{small,large\}} & Cooperative direction, player-round \\
+\texttt{proj\_promise\_msg\_dir\_\{small,large\}} & Promise direction, message-level \\
+\texttt{proj\_promise\_pr\_dir\_\{small,large\}} & Promise direction, player-round \\
+\texttt{proj\_homog\_msg\_dir\_\{small,large\}} & Homogeneity direction, message-level \\
+\texttt{proj\_homog\_pr\_dir\_\{small,large\}} & Homogeneity direction, player-round \\
+\texttt{proj\_rliar\_msg\_dir\_\{small,large\}} & Round-liar direction, message-level \\
+\texttt{proj\_rliar\_pr\_dir\_\{small,large\}} & Round-liar direction, player-round \\
+\texttt{proj\_cliar\_msg\_dir\_\{small,large\}} & Cumulative-liar direction, message-level \\
+\texttt{proj\_cliar\_pr\_dir\_\{small,large\}} & Cumulative-liar direction, player-round \\
 \bottomrule
 \end{tabular}
 \end{center}
 
-All columns are aggregated to the player-round level (mean across messages) for panel integration, and are \texttt{NaN} for round 1 (no prior chat).
-
-\subsection{Test Coverage}
-
-The pipeline includes over 800 automated tests covering mathematical correctness of centroid and projection computations, column name consistency across scripts, merge behavior (left joins, round 1 NaN validation), edge cases, cross-validation pipeline determinism, and LaTeX output formatting.
-
-%% ============================================================
-\section{Next Steps}
-%% ============================================================
-
-\begin{enumerate}
-    \item \textbf{Alternative cooperative labels.} Try labeling by the player's own contribution level (high vs.\ low contributor) rather than others' behavior. This would make the label reflect the player's own action, which may better align with their chat content.
-    \item \textbf{Panel regression.} Use the projection scores as independent variables in fixed-effects panel regressions predicting contribution.
-    \item \textbf{External validation.} Project text from external datasets (Diplomacy, CaSiNo, Persuasion for Good) onto the promise direction to test whether it generalizes beyond this experiment.
-    \item \textbf{Promise $\times$ cooperative interaction.} Examine how promise direction projections vary across cooperative and non-cooperative states---do promises carry different semantic content in different environments?
-\end{enumerate}
+All columns are aggregated to the player-round level (mean across messages) and are \texttt{NaN} for round 1.
 
 \end{document}
