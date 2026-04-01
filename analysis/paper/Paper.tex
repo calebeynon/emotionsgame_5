@@ -14,10 +14,13 @@
 \usepackage[authoryear]{natbib}
 \usepackage{array}
 \usepackage{xcolor}
-\usepackage{float}
-\usepackage{graphicx}
 \usepackage{subcaption}
-\usepackage{float}
+
+%%%%%%%%% Path resolution (Overleaf: tables/, plots/; Local: ../output/) %%%%%%%%%
+\graphicspath{{plots/}{../output/plots/}}
+\makeatletter
+\def\input@path{{tables/}{../output/tables/}}
+\makeatother
 
 \doublespacing
 \topmargin -0.5 cm
@@ -28,14 +31,14 @@
 \title{Facial emotions vs Verbal Sentiments in a public Goods game}
 
 \author{
-    Caleb Eynon^{1} \and 
-  Paan Jindapon^{1} \and 
-  Pawonee Khadka^{1} \and
-    Laura Razzolini^{1,2}
+    Caleb Eynon$^{1}$ \and
+  Paan Jindapon$^{1}$ \and
+  Pawonee Khadka$^{1}$ \and
+    Laura Razzolini$^{1,2}$
 }
 
 
-\date
+\date{}
 
 \begin{document}
 \begin{spacing}{1}
@@ -113,6 +116,53 @@ At the beginning of every period, each subject received 25 points in a private a
 After each period, subjects viewed the earnings from that period alongside the group account total (and individual contributions, when applicable). After completing all five segments, one segment was randomly selected to determine each participant’s final payoff.
 
 \section{Results}
+
+\subsection{Summary Statistics}
+\begin{figure}[htbp]
+    \centering
+    \begin{minipage}{0.48\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{median_contribution_by_round.png}
+        \caption{Median contribution by round}
+        \label{fig:median_contribution_by_round}
+    \end{minipage}
+    \hfill
+    \begin{minipage}{0.48\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{mean_contribution_by_round.png}
+        \caption{Mean contribution by round}
+        \label{fig:mean_contribution_by_round}
+    \end{minipage}
+\end{figure}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\linewidth]{contribution_cdf_by_treatment.png}
+    \caption{Contribution CDF by treatment}
+    \label{fig:contribution_cdf_by_treatment}
+\end{figure}
+
+
+\subsection{Classifying Behavior}
+
+Participants were able to communicate freely with very little restriction. This allows for text analysis across many dimensions.
+However, we must first present some classificiation of text and corresponding behavior that relates to our hypotheses.
+Historically, classifying text has been arduous . However, we utilize recent advancements in large language models,
+to perform this task. Specifically, we are interested in identifying whether a participants makes a promise to other group members.
+We use OpenAI's GPT-5-mini model to classify a player's message as promise or not promise. We use the same prompt for all players.
+The prompt includes the following elements: a brief explanation of the public goods game, a list of examples of promises, and the message to classify and the 
+preceding messages in the conversation. The model is explicitly told to take the player's message in the context of the whole conversation.
+
+With these promise classifications, we can then classify the behavior of the players. We create two separate classifications at the player-round level.
+First, we classify a player as a ``liar'' if they made a promise, but then failed to contribute more than 20 ECUs in the next contribution decision. Each player 
+begins each segment without the ``liar'' label, but the label persists for the rest of the segment once they first become a liar. We then classify a player as a 
+``sucker'' if they contributed the maximum (25 points) in a round where a groupmate lied. Similar to the liar label, the sucker label persists for the rest of the segment once they first become a sucker.
+Table \ref{table:behavior_summary_aggregate} presents the number of suckers and liars by treatment and segment. 
+
+\begin{table}
+\input{behavior_summary_aggregate.tex}
+\label{table:behavior_summary_aggregate}
+\end{table}
 
 \section{Conclusion}
 
