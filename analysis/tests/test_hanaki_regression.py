@@ -19,11 +19,12 @@ INV_TABLE = OUTPUT_DIR / "hanaki_external_validation_inv.tex"
 PAIR_TABLE = OUTPUT_DIR / "hanaki_external_validation_pair.tex"
 
 # Expected sample size from projections CSV
-EXPECTED_N = "7,748"
+EXPECTED_N = "7,846"
 
 # Expected variable labels in output
 EXPECTED_VARS = [
     "Cooperative", "Promise", "Homogeneity", "Round Liar", "Cumulative Liar",
+    "Log(Word Count)",
 ]
 
 
@@ -166,13 +167,13 @@ class TestRegressionCoefficients:
         assert any("***" in l or "**" in l for l in liar_lines)
 
     def test_inv_r2_reasonable(self, inv_tex):
-        """R-squared should be between 0.3 and 0.4 for Inv models."""
+        """R-squared should be between 0.05 and 0.25 for Inv models."""
         r2_line = [l for l in inv_tex.splitlines() if "R$^2$" in l]
         assert len(r2_line) >= 1
         r2_values = re.findall(r"0\.\d{4,5}", r2_line[0])
         for val in r2_values:
             r2 = float(val)
-            assert 0.2 < r2 < 0.5, f"Unusual R2: {r2}"
+            assert 0.05 < r2 < 0.25, f"Unusual R2: {r2}"
 
     def test_pair_promise_significant(self, pair_tex):
         """Promise should be significant in Pair univariate model."""

@@ -48,7 +48,11 @@ main <- function() {
 # =====
 load_and_prepare_data <- function(filepath) {
     dt <- as.data.table(read.csv(filepath))
+    # Period 0 is a practice round (Inv=2 for ~99.5% of obs)
+    dt <- dt[period > 0]
     dt[, pair_id := paste(session_file, group, sep = "_")]
+    dt[, word_count := lengths(strsplit(chat_text, "\\s+"))]
+    dt[, log_word_count := log(1 + word_count)]
     dt[, period := as.factor(period)]
     return(dt)
 }
@@ -75,12 +79,13 @@ run_all_specs <- function(dt, dv) {
 }
 
 run_univariate <- function(dt, dv, proj_var) {
-    fml <- as.formula(paste(dv, "~", proj_var, "| session_file + period"))
+    rhs <- paste(proj_var, "+ log_word_count")
+    fml <- as.formula(paste(dv, "~", rhs, "| session_file + period"))
     feols(fml, data = dt, cluster = ~pair_id)
 }
 
 run_multivariate <- function(dt, dv) {
-    rhs <- paste(PROJ_VARS, collapse = " + ")
+    rhs <- paste(c(PROJ_VARS, "log_word_count"), collapse = " + ")
     fml <- as.formula(paste(dv, "~", rhs, "| session_file + period"))
     feols(fml, data = dt, cluster = ~pair_id)
 }
@@ -118,7 +123,8 @@ build_var_dict <- function() {
         proj_promise = "Promise",
         proj_homogeneity = "Homogeneity",
         proj_round_liar = "Round Liar",
-        proj_cumulative_liar = "Cumulative Liar"
+        proj_cumulative_liar = "Cumulative Liar",
+        log_word_count = "Log(Word Count)"
     )
 }
 

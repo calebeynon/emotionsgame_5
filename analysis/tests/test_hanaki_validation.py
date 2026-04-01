@@ -28,8 +28,8 @@ EXPECTED_COLUMNS = [
     "session_file", "period", "player_id", "group",
     "Inv", "OtherInv", "Profit", "Chat", "Comp", "chat_text",
 ]
-EXPECTED_SESSION_COUNT = 22
-EXPECTED_ROW_COUNT = 11842
+EXPECTED_SESSION_COUNT = 23
+EXPECTED_ROW_COUNT = 11966
 
 
 # =====
@@ -132,9 +132,9 @@ class TestPreprocessChatText:
         assert parquet_df["chat_text"].apply(type).eq(str).all()
 
     def test_nonempty_chat_count_matches_verified(self, parquet_df):
-        """Regression: verified output has 7748 non-empty chat rows."""
+        """Regression: verified output has 8210 non-empty chat rows."""
         nonempty = (parquet_df["chat_text"] != "").sum()
-        assert nonempty == 7748
+        assert nonempty == 8210
 
     def test_chat_text_not_all_empty(self, parquet_df):
         """More than half of rows should have non-empty chat text."""
@@ -160,8 +160,9 @@ class TestPreprocessSessions:
         core_chat1 = {
             "160503_0820", "160510_0920", "160511_0853",
             "160511_1426", "160512_1420", "160513_0850",
-            "160519_0934", "161018_0903", "161019_0824",
-            "161019_1411", "170510_0938", "170510_1319",
+            "160519_0934", "161018_0903", "161018_1209",
+            "161019_0824", "161019_1411", "170510_0938",
+            "170510_1319",
         }
         missing = core_chat1 - sessions
         assert not missing, f"Missing sessions: {missing}"

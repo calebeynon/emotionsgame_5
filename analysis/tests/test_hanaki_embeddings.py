@@ -25,8 +25,8 @@ EMBEDDINGS_FILE = DERIVED_DIR / "hanaki_ozkes_embeddings.parquet"
 INPUT_FILE = DERIVED_DIR / "hanaki_ozkes_chat_decisions.parquet"
 
 # Known-good values from verified output
-EXPECTED_ROW_COUNT = 7748
-EXPECTED_SESSION_COUNT = 21
+EXPECTED_ROW_COUNT = 8210
+EXPECTED_SESSION_COUNT = 23
 EXPECTED_EMBEDDING_DIM = 1536
 EXPECTED_META_COLS = [
     "session_file", "period", "player_id", "group",

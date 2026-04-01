@@ -4,29 +4,31 @@
 \begin{tabular}{lcccccc}
    \tabularnewline \midrule \midrule
    Dependent Variable: & \multicolumn{6}{c}{PairAveCho}\\
-                   & Coop    & Promise       & Homog   & Rnd Liar       & Cum Liar & All \\   
-   Model:          & (1)     & (2)           & (3)     & (4)            & (5)      & (6)\\  
+                   & Coop          & Promise        & Homog         & Rnd Liar       & Cum Liar       & All \\   
+   Model:          & (1)           & (2)            & (3)           & (4)            & (5)            & (6)\\  
    \midrule
    \emph{Variables}\\
-   Cooperative     & 2.284   &               &         &                &          & 27.08$^{***}$\\   
-                   & (1.693) &               &         &                &          & (4.773)\\   
-   Promise         &         & 5.698$^{***}$ &         &                &          & 12.91$^{***}$\\   
-                   &         & (1.405)       &         &                &          & (1.715)\\   
-   Homogeneity     &         &               & 0.7979  &                &          & -22.08$^{***}$\\   
-                   &         &               & (2.018) &                &          & (5.451)\\   
-   Round Liar      &         &               &         & -7.499$^{***}$ &          & -16.33$^{***}$\\   
-                   &         &               &         & (1.562)        &          & (1.861)\\   
-   Cumulative Liar &         &               &         &                & -0.0839  & 5.099$^{***}$\\   
-                   &         &               &         &                & (1.852)  & (1.820)\\   
+   Cooperative     & 11.96$^{***}$ &                &               &                &                & 25.73$^{***}$\\   
+                   & (1.883)       &                &               &                &                & (4.419)\\   
+   Log(Word Count) & 1.709$^{***}$ & 0.8426$^{***}$ & 1.564$^{***}$ & 0.7531$^{***}$ & 1.490$^{***}$  & 1.574$^{***}$\\   
+                   & (0.2335)      & (0.2021)       & (0.2275)      & (0.2032)       & (0.2290)       & (0.2193)\\   
+   Promise         &               & 6.068$^{***}$  &               &                &                & 13.35$^{***}$\\   
+                   &               & (1.320)        &               &                &                & (1.595)\\   
+   Homogeneity     &               &                & 10.79$^{***}$ &                &                & -15.08$^{***}$\\   
+                   &               &                & (2.152)       &                &                & (5.056)\\   
+   Round Liar      &               &                &               & -6.019$^{***}$ &                & -14.08$^{***}$\\   
+                   &               &                &               & (1.546)        &                & (1.692)\\   
+   Cumulative Liar &               &                &               &                & -9.512$^{***}$ & -0.5433\\   
+                   &               &                &               &                & (1.913)        & (1.717)\\   
    \midrule
    \emph{Fixed-effects}\\
-   session\_file   & Yes     & Yes           & Yes     & Yes            & Yes      & Yes\\  
-   period          & Yes     & Yes           & Yes     & Yes            & Yes      & Yes\\  
+   session\_file   & Yes           & Yes            & Yes           & Yes            & Yes            & Yes\\  
+   period          & Yes           & Yes            & Yes           & Yes            & Yes            & Yes\\  
    \midrule
    \emph{Fit statistics}\\
-   Observations    & 7,748   & 7,748         & 7,748   & 7,748          & 7,748    & 7,748\\  
-   R$^2$           & 0.42029 & 0.42493       & 0.41947 & 0.42498        & 0.41937  & 0.45235\\  
-   Adjusted R$^2$  & 0.41644 & 0.42112       & 0.41562 & 0.42117        & 0.41553  & 0.44844\\  
+   Observations    & 7,846         & 7,846          & 7,846         & 7,846          & 7,846          & 7,846\\  
+   R$^2$           & 0.15559       & 0.14280        & 0.14796       & 0.13858        & 0.14424        & 0.19500\\  
+   Adjusted R$^2$  & 0.14985       & 0.13697        & 0.14217       & 0.13272        & 0.13842        & 0.18910\\  
    \midrule \midrule
    \multicolumn{7}{l}{\emph{Clustered (pair\_id) standard-errors in parentheses}}\\
    \multicolumn{7}{l}{\emph{Signif. Codes: ***: 0.01, **: 0.05, *: 0.1}}\\

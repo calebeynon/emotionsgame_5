@@ -26,7 +26,7 @@ EMBEDDINGS_FILE = DERIVED_DIR / "hanaki_ozkes_embeddings.parquet"
 DIRECTION_DIR = DERIVED_DIR / "direction_vectors"
 
 # Known-good values from verified output
-EXPECTED_ROW_COUNT = 7748
+EXPECTED_ROW_COUNT = 8210
 EXPECTED_COLUMNS = [
     "session_file", "period", "player_id", "group", "chat_text",
     "Inv", "OtherInv", "PairAveCho", "Profit", "Chat", "Comp",
@@ -135,7 +135,7 @@ class TestProjectionsAlignment:
 
     def test_session_count_matches_embeddings(self, proj_df):
         """Same number of sessions as embeddings."""
-        assert proj_df["session_file"].nunique() == 21
+        assert proj_df["session_file"].nunique() == 23
 
     def test_all_chat_1(self, proj_df):
         """All rows should have Chat=1."""
@@ -174,10 +174,10 @@ class TestProjectionsRegression:
     def test_projection_means(self, proj_df):
         """Projection means from verified run."""
         assert proj_df["proj_cooperative"].mean() == pytest.approx(
-            -0.0001, abs=0.01,
+            0.0002, abs=0.01,
         )
         assert proj_df["proj_promise"].mean() == pytest.approx(
-            0.1643, abs=0.01,
+            0.1647, abs=0.01,
         )
 
 
