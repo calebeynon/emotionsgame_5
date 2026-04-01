@@ -61,6 +61,9 @@ def _compute_projections():
     proj_data = {"group_key": group_keys}
     for name in DIRECTION_NAMES:
         proj_data[f"proj_{name}"] = embeddings @ directions[name]
+    # Carry n_words (group chat word count) for use as regression control
+    if "n_words" in emb_df.columns:
+        proj_data["n_words"] = emb_df["n_words"].values
     projections = pd.DataFrame(proj_data)
     logger.info("Computed projections for %d groups", len(projections))
     return projections
