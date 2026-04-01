@@ -42,10 +42,8 @@ aggregate_behavior_counts <- function(dt) {
     summary_dt <- dt[, .(
         N = .N,
         Promises = sum(made_promise),
-        Liars_20 = sum(is_liar_20),
-        Liars_5 = sum(is_liar_5),
-        Suckers_20 = sum(is_sucker_20),
-        Suckers_5 = sum(is_sucker_5)
+        Liars = sum(is_liar_20),
+        Suckers = sum(is_sucker_20)
     ), by = .(Treatment = treatment, Segment = segment)]
 
     summary_dt <- summary_dt[order(Treatment, Segment)]
@@ -56,7 +54,7 @@ aggregate_behavior_counts <- function(dt) {
 # LaTeX table creation
 # =====
 create_latex_table <- function(summary_dt) {
-    xtable(summary_dt, align = c("l", "c", "l", "r", "r", "r", "r", "r", "r"))
+    xtable(summary_dt, align = c("l", "c", "l", "r", "r", "r", "r"))
 }
 
 # =====
