@@ -38,10 +38,9 @@ main <- function() {
     validate_data(dt)
 
     model_20 <- run_regression(dt, "is_sucker_20")
-    model_5 <- run_regression(dt, "is_sucker_5")
 
     dir.create(OUTPUT_DIR, recursive = TRUE, showWarnings = FALSE)
-    export_latex_table(model_20, model_5, OUTPUT_TEX)
+    export_latex_table(model_20, OUTPUT_TEX)
 
     cat("Regression table exported to:", OUTPUT_TEX, "\n")
 }
@@ -108,20 +107,18 @@ run_regression <- function(dt, sucker_var) {
 # =====
 # LaTeX output
 # =====
-export_latex_table <- function(model_20, model_5, filepath) {
+export_latex_table <- function(model_20, filepath) {
     etable(
-        model_20, model_5,
+        model_20,
         file = filepath,
         tex = TRUE,
         fitstat = c("n", "r2"),
         dict = c(
             made_promise = "Made Promise",
-            is_sucker_20 = "Is Sucker (<20)",
-            is_sucker_5 = "Is Sucker (<5)",
+            is_sucker_20 = "Is Sucker",
             treatment = "Treatment",
             cluster_id = "session-segment-group"
         ),
-        headers = c("Sucker (<20)", "Sucker (<5)"),
         title = "Contribution Regression: Promise and Sucker Effects"
     )
 }
