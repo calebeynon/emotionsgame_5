@@ -142,14 +142,23 @@ print_all_models <- function(m20_main, m20_robust, m5_main, m5_robust) {
 }
 
 export_latex_table <- function(models, filepath) {
+    coef_names <- build_coef_dict()
     etable(
-        models[[1]], models[[2]], models[[3]], models[[4]],
+        models[[1]],
         file = filepath,
         tex = TRUE,
         fitstat = c("n", "r2"),
-        headers = c("$<$ 20 (Main)", "$<$ 20 (Robust)", "$<$ 5 (Main)", "$<$ 5 (Robust)"),
-        title = "Diff-in-Diff: Effect of Being Suckered on Contributions"
+        dict = coef_names
     )
+}
+
+build_coef_dict <- function() {
+    taus <- c(-6:-1, 1:5)
+    nms <- sprintf("tau_20::%d:got_suckered_20", taus)
+    labs <- sprintf("Treated $\\times$ $\\tau = %d$", taus)
+    dict <- setNames(labs, nms)
+    dict["treatment"] <- "Treatment"
+    return(dict)
 }
 
 # %%

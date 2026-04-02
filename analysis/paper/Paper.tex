@@ -160,9 +160,95 @@ begins each segment without the ``liar'' label, but the label persists for the r
 Table \ref{table:behavior_summary_aggregate} presents the number of suckers and liars by treatment and segment. 
 
 \begin{table}
+\centering
 \input{behavior_summary_aggregate.tex}
+\caption{Summary of sucker and liar counts by treatment and segment}
 \label{table:behavior_summary_aggregate}
 \end{table}
+
+While creating binary classifications based on communication and contributions is helpful, it fails to
+analyze the emotions and sentiment present in the communication between subjects. We use the VADER sentiment
+dictionary to map individual messages to a valence score. VADER is an analysis tool that is specifically attuned
+to sentiments expressed in social media [NEED CITE]. A positive valence indicates a positive sentiment and vice
+versa for a negative valence. Figure \ref{fig:sent_dist} presents the distribution of communication sentiment for players.
+
+\begin{figure}[htbp]
+    \centering
+    \begin{minipage}{0.48\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{sentiment_distribution_t1.png}
+        \caption{Player-round sentiment distribution in treatment 1}
+        \label{fig:t1_sent_dist}
+    \end{minipage}
+    \hfill
+    \begin{minipage}{0.48\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{sentiment_distribution_t2.png}
+        \caption{Player-round sentiment distribution in treatment 2}
+        \label{fig:t2_sent_dist}
+    \end{minipage}
+    \caption{Sentiment distributions by treatment}
+    \label{fig:sent_dist}
+\end{figure}
+
+
+
+\subsection{Classification Effect}
+
+We analyze the effect of being deceived on individual contribution levels. We use the following specification,
+\begin{equation}
+    Contribution_{i,t} = \beta_p promise_{i,t} + \beta_s sucker_{i,t} + \beta_t treatment_{i} + \alpha_r + \gamma_s + \varepsilon_{i,t}
+\label{eq:contribution_regression}
+\end{equation}
+where $Contribution_{i,t}$ is the round level individual contribution, $promise_{i,t}$ is a binary variable indicating whether the individual made
+a promise in that round, $sucker_{i,t}$ is a binary variable indicating whether the individual was a sucker in any previous round in the current segment, 
+$treatment_{i}$ is a binary variable for treatment, $\alpha_r$ are round fixed effects and $\gamma_s$ are segment fixed effects.
+
+\begin{table}
+\input{contribution_regression.tex}
+\caption{OLS results from specification \ref{eq:contribution_regression}. Standard errors clustered at the group level.}
+\label{table:contribution_regression}
+\end{table}
+
+First, note that there is a significant and positive coefficient on the Treatment variable. Participants
+contribute 1.62 more ECUs in expectation when they are unable to view the contributions of other group members. The
+coefficient on the Sucker variable is significant and negative. This indicates that participants who get ``suckered''
+contribute less in future rounds in expectation.
+
+We provide additional analysis on the effect of being suckered using a difference-in-differences style specification.
+We use participants who were ``suckered'' as a treated group. The control group are participants who were not ``suckered'',
+excluding variation from rounds and segments via fixed effects. The specification is given by
+
+\begin{equation}
+    Contribution_{i,t} = \sum_{\substack{k = -K \\ k \neq 0}}^{K} \beta_k \left( 1\{\tau_{i,t} = k\} \times \text{sucker}_i \right) + \gamma \, \text{Treatment}_i + \alpha_r + \gamma_s +    
+    \varepsilon_{it} 
+    \label{eq:did_contribution}
+\end{equation}
+
+Where $\tau_{i,t}$ is the relative round since being suckered. This specification allows us to recover a coefficient
+for each round since being suckered. These coefficients are causal effects given the following assumptions:
+\begin{enumerate}
+    \item Parallel Trends: Absent the suckering event, suckers and control subjects would have followed the same contribution trajectory.
+    While this is fundamentally untestable, pre-trends show no significant differences in trajectory between groups. 
+    \item No Anticipation: Subjects don't adjust their contributions prior to being suckered. This is plausible because subjects don't know
+    that groupmates will break a promise until after it has happened. Additionally, since participants are never grouped with the same person
+    twice, they lack knowledge from prior segments on other participants' propensity to lie.
+\end{enumerate}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\linewidth]{issue_20_did_coefplot_20_main.png}
+    \caption{The effect of a ``suckering'' event on future contributions.}
+    \label{fig:did_contribution}
+\end{figure}
+
+Notice that prior to the ``suckering'' event, coefficients are not significantly different between the treated and control groups.
+Coefficients following the event are significantly negative in every round and monotonically decrease. This suggests there is some 
+snowball effect, where participants continually decrease their contributions as they lose trust in their group.
+Table \ref{table:issue_20_did_contribution} presents these coefficients in tabular form. 
+
+
+
 
 \section{Conclusion}
 
@@ -172,7 +258,12 @@ Table \ref{table:behavior_summary_aggregate} presents the number of suckers and 
 
 \newpage
 \section{Appendix}
-\subsection{}
+
+\begin{table}
+    \input{issue_20_did_contribution.tex}
+    \caption{OLS results from the DiD specification (\ref{eq:did_contribution}). Standard errors clustered at the group level.}
+    \label{table:issue_20_did_contribution}
+    \end{table}
 
 \end{document}
 
