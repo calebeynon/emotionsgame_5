@@ -58,11 +58,11 @@ class TestPreprocessSchema:
         assert list(parquet_df.columns) == EXPECTED_COLUMNS
 
     def test_row_count_matches_verified(self, parquet_df):
-        """Regression: verified output has 6382 rows."""
+        """Regression: verified output has 11966 rows."""
         assert len(parquet_df) == EXPECTED_ROW_COUNT
 
     def test_session_count_matches_verified(self, parquet_df):
-        """Regression: verified output has 22 unique sessions."""
+        """Regression: verified output has 23 unique sessions."""
         assert parquet_df["session_file"].nunique() == EXPECTED_SESSION_COUNT
 
     def test_column_dtypes(self, parquet_df):

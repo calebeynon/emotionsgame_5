@@ -61,7 +61,7 @@ class TestProjectionsSchema:
         assert PROJECTIONS_FILE.exists()
 
     def test_row_count_matches_embeddings(self, proj_df):
-        """Row count should match embeddings input (7748)."""
+        """Row count should match embeddings input (8210)."""
         assert len(proj_df) == EXPECTED_ROW_COUNT
 
     def test_expected_columns(self, proj_df):

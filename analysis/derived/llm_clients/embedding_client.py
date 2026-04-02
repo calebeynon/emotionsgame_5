@@ -15,10 +15,9 @@ from pathlib import Path
 from dotenv import load_dotenv
 from openai import OpenAI, RateLimitError, APIStatusError
 
-# Load .env from project root, falling back to main repo
+# Load .env from project root
 _PROJECT_ROOT = Path(__file__).parent.parent.parent.parent
 load_dotenv(_PROJECT_ROOT / '.env')
-load_dotenv(Path.home() / 'Research' / 'emotionsgame_5' / '.env')
 
 # MODEL CONFIGURATION
 MODEL_SMALL = "text-embedding-3-small"

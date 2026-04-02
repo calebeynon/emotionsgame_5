@@ -64,11 +64,11 @@ class TestEmbeddingsSchema:
         assert EMBEDDINGS_FILE.exists()
 
     def test_row_count_matches_verified(self, embeddings_df):
-        """Regression: 7748 rows (non-empty chat only)."""
+        """Regression: 8210 rows (non-empty chat only)."""
         assert len(embeddings_df) == EXPECTED_ROW_COUNT
 
     def test_session_count(self, embeddings_df):
-        """21 sessions have non-empty chat text."""
+        """23 sessions have non-empty chat text."""
         assert embeddings_df["session_file"].nunique() == EXPECTED_SESSION_COUNT
 
     def test_total_column_count(self, embeddings_df):

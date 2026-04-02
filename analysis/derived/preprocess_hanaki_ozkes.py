@@ -94,13 +94,22 @@ def _parse_all_sessions(session_files):
 # =====
 def _collect_session_files():
     """Return sorted list of .xls paths for Chat=1 sessions only."""
-    chat1_ids = set(TREATMENT_MAP.keys())
+    if not DATA_DIR.exists():
+        raise FileNotFoundError(
+            f"Data directory not found: {DATA_DIR}. "
+            "Ensure the datastore symlink exists (see CLAUDE.md)."
+        )
     files = []
     for path in sorted(DATA_DIR.glob("*.xls")):
         if path.name in SKIP_FILES or path.stem.endswith("_"):
             continue
-        if path.stem in chat1_ids:
+        if path.stem in TREATMENT_MAP:
             files.append(path)
+    if not files:
+        raise FileNotFoundError(
+            f"No Chat=1 session .xls files found in {DATA_DIR}. "
+            f"Expected {len(TREATMENT_MAP)} sessions."
+        )
     logger.info("Found %d Chat=1 session files", len(files))
     return files
 

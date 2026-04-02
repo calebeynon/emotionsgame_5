@@ -130,16 +130,16 @@ class TestRegressionContent:
 class TestRegressionSampleSize:
     """Verify observations count matches expected N."""
 
-    def test_inv_observations_7748(self, inv_tex):
-        """All Inv models should report 7,748 observations."""
+    def test_inv_observations_7846(self, inv_tex):
+        """All Inv models should report 7,846 observations."""
         obs_line = [l for l in inv_tex.splitlines() if "Observations" in l]
         assert len(obs_line) == 1
         counts = re.findall(r"[\d,]+", obs_line[0])
         for c in counts:
             assert c == EXPECTED_N
 
-    def test_pair_observations_7748(self, pair_tex):
-        """All Pair models should report 7,748 observations."""
+    def test_pair_observations_7846(self, pair_tex):
+        """All Pair models should report 7,846 observations."""
         obs_line = [l for l in pair_tex.splitlines() if "Observations" in l]
         assert len(obs_line) == 1
         counts = re.findall(r"[\d,]+", obs_line[0])
