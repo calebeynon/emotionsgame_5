@@ -16,7 +16,8 @@ from dotenv import load_dotenv
 from openai import OpenAI, RateLimitError, APIStatusError
 
 # Load .env from project root
-load_dotenv(Path(__file__).parent.parent.parent.parent / '.env')
+_PROJECT_ROOT = Path(__file__).parent.parent.parent.parent
+load_dotenv(_PROJECT_ROOT / '.env')
 
 # MODEL CONFIGURATION
 MODEL_SMALL = "text-embedding-3-small"
