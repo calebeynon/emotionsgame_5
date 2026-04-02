@@ -80,7 +80,7 @@ load_and_prepare_data <- function(filepath) {
 validate_data <- function(dt) {
     required <- c(
         "group_contribution", "others_contribution",
-        "round", "segment", "cluster_id", PROJECTION_COLS
+        "round", "segment", "cluster_id", "word_count", PROJECTION_COLS
     )
     missing <- setdiff(required, names(dt))
     if (length(missing) > 0) {
@@ -107,7 +107,7 @@ run_regressions <- function(dt, dv) {
 }
 
 run_single_regression <- function(dt, dv, proj_col) {
-    formula_str <- sprintf("%s ~ %s | round + segment", dv, proj_col)
+    formula_str <- sprintf("%s ~ %s + word_count | round + segment", dv, proj_col)
     feols(as.formula(formula_str), data = dt, cluster = ~cluster_id)
 }
 
@@ -127,7 +127,10 @@ report_sample_sizes <- function(models_group, models_others) {
 # =====
 export_latex_table <- function(models, filepath, title) {
     model_list <- unname(models)
-    label_dict <- setNames(names(PROJECTION_COLS), PROJECTION_COLS)
+    label_dict <- c(
+        setNames(names(PROJECTION_COLS), PROJECTION_COLS),
+        word_count = "Word Count"
+    )
 
     do.call(etable, c(
         model_list,

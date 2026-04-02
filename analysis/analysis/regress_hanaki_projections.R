@@ -52,7 +52,6 @@ load_and_prepare_data <- function(filepath) {
     dt <- dt[period > 0]
     dt[, pair_id := paste(session_file, group, sep = "_")]
     dt[, word_count := lengths(strsplit(chat_text, "\\s+"))]
-    dt[, log_word_count := log(1 + word_count)]
     dt[, period := as.factor(period)]
     return(dt)
 }
@@ -73,19 +72,11 @@ validate_data <- function(dt) {
 # Regression specifications
 # =====
 run_all_specs <- function(dt, dv) {
-    univariate <- lapply(PROJ_VARS, function(pv) run_univariate(dt, dv, pv))
-    multivariate <- run_multivariate(dt, dv)
-    c(univariate, list(multivariate))
+    lapply(PROJ_VARS, function(pv) run_univariate(dt, dv, pv))
 }
 
 run_univariate <- function(dt, dv, proj_var) {
-    rhs <- paste(proj_var, "+ log_word_count")
-    fml <- as.formula(paste(dv, "~", rhs, "| session_file + period"))
-    feols(fml, data = dt, cluster = ~pair_id)
-}
-
-run_multivariate <- function(dt, dv) {
-    rhs <- paste(c(PROJ_VARS, "log_word_count"), collapse = " + ")
+    rhs <- paste(proj_var, "+ word_count")
     fml <- as.formula(paste(dv, "~", rhs, "| session_file + period"))
     feols(fml, data = dt, cluster = ~pair_id)
 }
@@ -104,7 +95,7 @@ report_sample_sizes <- function(models_inv, models_pair) {
 # =====
 export_table <- function(models, filepath, title) {
     headers <- c(
-        "Coop", "Promise", "Homog", "Rnd Liar", "Cum Liar", "All"
+        "Coop", "Promise", "Homog", "Rnd Liar", "Cum Liar"
     )
     etable(
         models,
@@ -124,7 +115,7 @@ build_var_dict <- function() {
         proj_homogeneity = "Homogeneity",
         proj_round_liar = "Round Liar",
         proj_cumulative_liar = "Cumulative Liar",
-        log_word_count = "Log(Word Count)"
+        word_count = "Word Count"
     )
 }
 

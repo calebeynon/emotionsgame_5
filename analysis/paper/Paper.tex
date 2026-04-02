@@ -118,6 +118,18 @@ After each period, subjects viewed the earnings from that period alongside the g
 \section{Results}
 
 \subsection{Summary Statistics}
+
+Figures \ref{fig:median_contribution_by_round} and \ref{fig:mean_contribution_by_round} display the 
+median and mean contribution by round within segments separated by treatment. Treatment 2 tends to have
+a higher contribution in the first round, but there is not significant difference in either measure following 
+round 1. Both measures converge to near a near 25 ECU mean and a 25 ECU median, consistent with the continuous,
+chat treatment in [CITE needed, I forget which paper had this]. Figure \ref{fig:contribution_cdf_by_treatment}
+displays the contribution CDF by treatment. The CDF from treatment 1 first-order stochastically dominates that of treatment 2. 
+This means that lower contributions tend to happen in treatment 1. 
+
+
+
+
 \begin{figure}[htbp]
     \centering
     \begin{minipage}{0.48\textwidth}
@@ -299,6 +311,75 @@ $\hat{\beta_1} = 1.034$ is not significant, failing to demonstrate the ability o
 due to lack of power.
 
 \subsection{Using Text Embeddings for External Validition}
+
+We use modern text embedding models to convert raw communication to numeric vectors.
+This allows us to compare the semantic similarity of messages, especially if we divide messages
+into categories, like we have already done. We can then use these embeddings to predict behavior, not
+just in our experiment, but also into other scenarios with communication and cooperation.
+
+Let $\mathbb{M}$ be the set of all possible messages. Then the embedding function is
+
+\begin{equation}
+    f: \mathbb{M} \rightarrow \mathbb{R}^d
+\end{equation}
+
+where $d$ is the embedding dimension which varies by model. We use the function provided by 
+OpenAI, text-embedding-3-small, to embed
+each participant's messages at the round level. We then group the embeddings into categories
+based on the following classifications:
+
+\begin{enumerate}
+    \item Cooperative: True if all other group members contribute an average of 20 ECUs.
+    \item Promise: True if a promise is detected in the participant's round messages.
+    \item Homogeneity: True if all group member contributions differ by no more than 1 ECU.
+    \item Round-liar: True if the participant lied in the current round.
+    \item Cumulative-liar: True if the participant lied in the current segment.
+\end{enumerate}
+
+For each of these classifications, we compute the centroid difference between the average true and false case.
+This is simply the distance between the average vectors in each category. We then normalize this vector to remove
+influence from the length of message. These normalized centroid vectors can be interpretted as the semantic difference
+between cooperative and non-cooperative states, or the semantic difference between homogenous vs heterogenous contribution states etc. 
+
+Now that we have centroids representing semantic differences between states, we can project any message embedding onto the centroid
+vector, using the dot product, to get a scalar value. This scalar projection value can be intrepretted as the degree of semantic
+similarity between the message and the centroid. In other words, ``How cooperative is this message?'' or ``How similar is this message to
+messages sent in a homogenous contribution environment?''
+
+We implement this method by projecting each participant's messages in each round onto each of our centroid vectors. We then specify separate regressions,
+regressing group contribution totals on the separate projection scores. Table \ref{table:group_contribution_embedding_regression}
+displays the results from these regressions. The coefficient on cooperative and homogeneity are positive and significant. This indicates
+that individuals who communicate similarly to cooperative groups or homogenous groups, tend to have higher group contributions. The coefficients
+on round-liar and cumulative-liar are negative and significant indicating that individuals who communicate similarly to liars, tend to have lower 
+group contributions. Note that these coefficients are greater than 25, meaning that the liar effect spreads beyond just the lying individual. This 
+is consistent with what we found in Figure \ref{fig:did_contribution}.
+
+These coefficients are somewhat circular. The cooperative projection score coefficient is positive partially because we defined a cooperative state
+as one where the contribution meets a minimum threshold. These coefficients demonstrate internal validity. The projection scores are significant, meaning
+participants communicate semantically different depending on the state of the group. We then can take our centroid vectors from \textit{this} experiment,
+and apply them to other experimental, or real world, data. 
+
+\begin{table}
+\input{group_contribution_embedding_regression.tex}
+\caption{Regression results from regressing group contribution on the separate projection scores. Standard errors clustered at the group level.}
+\label{table:group_contribution_embedding_regression}
+\end{table}
+
+
+We implement an external validation method using the communication and investment data from 
+the experiment implemented by Hanaki and Ozkes (2023). We embed their chat messages at the individual
+round level and then project their embeddings onto the centroids from our experiment. The result is a
+scalar measure of how similar the communication between particiapnts in Hanaki and Ozkes (2023) is to 
+the cooperators, liars, or promisers in our data. We then run a regression analalogous to that seen in
+Table \ref{table:group_contribution_embedding_regression}. We regress investment onto projection scores
+with fixed effects. Table \ref{table:hanak_external_validation_inv} presents the results from this regression.
+
+\begin{table}
+    \input{hanaki_external_validation_inv.tex}
+    \caption{External regression of investment on communication projections.}
+    \label{table:hanaki_external_validation_inv}
+\end{table}
+
 
 
 

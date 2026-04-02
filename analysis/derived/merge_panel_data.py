@@ -21,6 +21,7 @@ from load_emotion_data import EMOTION_COLS, load_emotion_data
 DERIVED_DIR = Path(__file__).parent.parent / 'datastore' / 'derived'
 STATE_FILE = DERIVED_DIR / 'player_state_classification.csv'
 SENTIMENT_FILE = DERIVED_DIR / 'sentiment_scores.csv'
+EMBEDDINGS_PR_FILE = DERIVED_DIR / 'embeddings_player_round_small.parquet'
 PROJECTION_FILE = DERIVED_DIR / 'embedding_projections.csv'
 PROMISE_PROJECTION_FILE = DERIVED_DIR / 'promise_embedding_projections.csv'
 HOMOGENEITY_PROJECTION_FILE = DERIVED_DIR / 'homogeneity_embedding_projections.csv'
@@ -85,6 +86,7 @@ def main():
     panel = build_game_panel(state_df)
     panel = append_instruction_rows(panel, emotion_df)
     panel = merge_sentiment(panel, sentiment_df)
+    panel = merge_word_count(panel)
     panel = _merge_all_projections(panel)
     panel = merge_emotion(panel, emotion_df)
 
@@ -159,6 +161,17 @@ def merge_sentiment(panel: pd.DataFrame, sentiment_df: pd.DataFrame) -> pd.DataF
     merged = panel.merge(sentiment_df, on=STATE_MERGE_KEYS, how='left')
     n_matched = merged[SENTIMENT_COLS[0]].notna().sum()
     print(f"Sentiment merge: {n_matched} rows matched")
+    return merged
+
+
+def merge_word_count(panel: pd.DataFrame) -> pd.DataFrame:
+    """Compute word_count from player-round embeddings and merge onto panel."""
+    df = pd.read_parquet(EMBEDDINGS_PR_FILE)
+    df['word_count'] = df['combined_text'].str.split().str.len()
+    wc = df.groupby(STATE_MERGE_KEYS)['word_count'].first().reset_index()
+    merged = panel.merge(wc, on=STATE_MERGE_KEYS, how='left')
+    n_matched = merged['word_count'].notna().sum()
+    print(f"Word count merge: {n_matched} rows matched")
     return merged
 
 
@@ -252,7 +265,7 @@ def _validate_instruction_rows(panel: pd.DataFrame):
 def save_panel(panel: pd.DataFrame):
     """Save merged panel to CSV with enforced column order."""
     final_order = (
-        OUTPUT_ORDER + SENTIMENT_COLS + EMBEDDING_COLS
+        OUTPUT_ORDER + SENTIMENT_COLS + ['word_count'] + EMBEDDING_COLS
         + PROMISE_EMBEDDING_COLS + HOMOGENEITY_EMBEDDING_COLS
         + ROUND_LIAR_EMBEDDING_COLS + CUMULATIVE_LIAR_EMBEDDING_COLS
         + EMOTION_COLS
