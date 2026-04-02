@@ -22,12 +22,12 @@ SENTIMENT_COLOR <- "#B2182B"
 # =====
 main <- function() {
     dt <- prepare_plot_data()
-    save_plot(build_dotplot(dt, "state_label", "Emotion vs Sentiment by Cooperative State"), STATE_PLOT)
-    save_plot(build_dotplot(dt[!is.na(is_liar_20)], "liar_label", "Emotion vs Sentiment by Liar Status"), LIAR_PLOT)
-    save_plot(build_dotplot(dt[!is.na(is_sucker_20)], "sucker_label", "Emotion vs Sentiment by Sucker Status"), SUCKER_PLOT)
+    save_plot(build_dotplot(dt, "state_label"), STATE_PLOT)
+    save_plot(build_dotplot(dt[!is.na(is_liar_20)], "liar_label"), LIAR_PLOT)
+    save_plot(build_dotplot(dt[!is.na(is_sucker_20)], "sucker_label"), SUCKER_PLOT)
     liar_state_dt <- dt[!is.na(is_liar_20)]
     liar_state_dt[, liar_state := paste(liar_label, state_label, sep = " / ")]
-    save_plot(build_dotplot(liar_state_dt, "liar_state", "Emotion vs Sentiment by Liar Status x Cooperative State"), LIAR_STATE_PLOT)
+    save_plot(build_dotplot(liar_state_dt, "liar_state"), LIAR_STATE_PLOT)
 }
 
 # =====
@@ -71,7 +71,7 @@ summarize_by_group <- function(dt, group_col) {
 # =====
 # Dot plot construction
 # =====
-build_dotplot <- function(dt, group_col, title) {
+build_dotplot <- function(dt, group_col) {
     summary_dt <- add_n_labels(summarize_by_group(dt, group_col))
     ggplot(summary_dt, aes(x = mean, y = group_n, color = measure)) +
         geom_vline(xintercept = 0, linetype = "dashed", color = "grey50") +
@@ -86,7 +86,7 @@ build_dotplot <- function(dt, group_col, title) {
             "Emotion (Valence)" = EMOTION_COLOR,
             "Sentiment (Compound)" = SENTIMENT_COLOR
         )) +
-        labs(x = "Z-Score", y = NULL, title = title, color = NULL) +
+        labs(x = "Z-Score", y = NULL, color = NULL) +
         PLOT_THEME + theme(legend.position = "bottom")
 }
 

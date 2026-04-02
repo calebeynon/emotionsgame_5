@@ -191,7 +191,21 @@ versa for a negative valence. Figure \ref{fig:sent_dist} presents the distributi
     \label{fig:sent_dist}
 \end{figure}
 
+\subsection{Communication Sentiment}
 
+We analyze the effect of communication sentiment on individual contributions. We use the following specification,
+\begin{equation}
+    Contribution_{i,t} = \beta_s sentiment_{i,t} + \beta_t treatment_{i} + \beta_n n\_messages_{i,t}+ \alpha_r + \gamma_s + \varepsilon_{i,t}
+\label{eq:contribution_sentiment}
+\end{equation}
+
+where $Contribution_{i,t}$ is the round level individual contribution, $treatment_{i}$ is a binary variable for treatment 2,
+$sentiment_{i,t}$ is the mean sentiment for player $i$ in round, segment $t$, $n_messages_{i,t}$ is the number of messages sent
+by player $i$ in $t$, $\alpha_r$ are round fixed effects and $\gamma_s$ are segment fixed effects. Table \ref{table:contribution_regression}
+presents the results from this regression. Sentiment has a positive and significant coefficient of 2.182, indicating that a positive valence
+is associated with higher contributions in expectation. The number of messages sent by an individual is not significant. A limitation of our experimental design
+is that the first communication opportunity does not happen until \textit{after} the first contribution, thus those contributions are excluded
+from this regression. 
 
 \subsection{Classification Effect}
 
@@ -200,18 +214,18 @@ We analyze the effect of being deceived on individual contribution levels. We us
     Contribution_{i,t} = \beta_p promise_{i,t} + \beta_s sucker_{i,t} + \beta_t treatment_{i} + \alpha_r + \gamma_s + \varepsilon_{i,t}
 \label{eq:contribution_regression}
 \end{equation}
-where $Contribution_{i,t}$ is the round level individual contribution, $promise_{i,t}$ is a binary variable indicating whether the individual made
-a promise in that round, $sucker_{i,t}$ is a binary variable indicating whether the individual was a sucker in any previous round in the current segment, 
-$treatment_{i}$ is a binary variable for treatment, $\alpha_r$ are round fixed effects and $\gamma_s$ are segment fixed effects.
+where $promise_{i,t}$ is a binary variable indicating whether the individual made
+a promise in that round, and $sucker_{i,t}$ is a binary variable indicating whether the individual was a sucker in any previous round in the current segment.
 
 \begin{table}
-\input{contribution_regression.tex}
-\caption{OLS results from specification \ref{eq:contribution_regression}. Standard errors clustered at the group level.}
+\input{contribution_regression_combined.tex}
+\caption{OLS results from specifications \ref{eq:contribution_sentiment} and \ref{eq:contribution_regression}. Standard errors clustered at the group level.}
 \label{table:contribution_regression}
 \end{table}
 
-First, note that there is a significant and positive coefficient on the Treatment variable. Participants
-contribute 1.62 more ECUs in expectation when they are unable to view the contributions of other group members. The
+First, note that there is a significant and positive coefficient on the Treatment variable which is different
+than the sentiment contribution regression. This indicates that the treatment effect operates through the first contribution.
+Participants contribute 1.62 more ECUs in expectation when they are unable to view the contributions of other group members. The
 coefficient on the Sucker variable is significant and negative. This indicates that participants who get ``suckered''
 contribute less in future rounds in expectation.
 
@@ -247,6 +261,44 @@ Coefficients following the event are significantly negative in every round and m
 snowball effect, where participants continually decrease their contributions as they lose trust in their group.
 Table \ref{table:issue_20_did_contribution} presents these coefficients in tabular form. 
 
+\subsection{Facial Emotions}
+
+In addition to observing communication between participants, we observe facial emotions during the experiment
+through a webcam. We then use the Affective AFFDEX software to convert raw video into time stamped facial emotion observations.
+We observe continuous emotion variables, such as valence, anger, or frustration, and indicator variables for eye rolls, lip pursing, etc. 
+
+One could typically expect facial emotions and communication sentiment to be positively correlated in cases where someone is telling the truth.
+In the case where a participant is lying, it seems plausible that sentiment and emotion could differ as they attempt to deceive their groupmates.
+To create the comparison between emotions and sentiment, we first normalize each observation using the min-max normalization method across the entire sample.
+We only analyze sentiment and emotions during the communication \textit{prior} to the contribution, and the contribution itself. Differences are not taken
+across rounds. 
+
+Figure \ref{fig:emotion_sentiment_gap_by_liar_status} displays the normalized valence emotion and sentiment split by liar status.
+In the case where a player is not lying, there is no significant difference between the facial emotions and communication sentiment. 
+However, when a player is lying, their communication sentiment is significantly lower than facial emotions. One possible explanation is that
+liars try to communicate similarly to everyone else (typically very neutral), but know that they will defect and receive a higher payoff. This 
+would be observable in their facial expression, but not in their public communication.
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\linewidth]{emotion_sentiment_gap_by_liar_status.png}
+    \caption{Comparison of normalized emotions and sentiment by liar status.}
+    \label{fig:emotion_sentiment_gap_by_liar_status}
+\end{figure}
+
+Additionally, we test whether the gap in emotions and sentiment is predictive of a participant lying. We use
+the following logit specification,
+
+\begin{equation}
+    \Pr(\text{Lied}_{it} = 1 \mid \text{Promise}_{it} = 1) = \Lambda\left(\beta_1 \, \text{Gap}_{it} + \alpha_r + \gamma_s\right)
+    \label{eq:logit_liar}
+\end{equation}
+
+Where $\Lambda(\cdot)$ is the logistic function $\frac{e^x}{1+e^x}$, and $\text{Gap}_{it}$ is the min-max normalized emotion-sentiment gap (facial valence minus chat sentiment). The
+liar model conditions on the subsample of player-rounds where a promise was made. After estimation and inference, we find that
+$\hat{\beta_1} = 1.034$ is not significant, failing to demonstrate the ability of the emotion sentiment gap to predict lying, likely
+due to lack of power.
+
+\subsection{Using Text Embeddings for External Validition}
 
 
 
