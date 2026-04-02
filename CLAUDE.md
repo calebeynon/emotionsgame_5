@@ -167,5 +167,8 @@ Two-stage process for behavioral video annotation:
 - **Input**: oTree data CSV, oTree chat CSV, PageTimes CSV, timesheet.xlsx (in `analysis/datastore/`)
 - **Output**: Analysis results in `analysis/results/`, annotations in `analysis/datastore/annotations/`
 
+## Issue Documentation
+- All issue documentation (`.md` files) goes in `analysis/issues/`
+
 
 # Repo Owner Github: calebeynon
