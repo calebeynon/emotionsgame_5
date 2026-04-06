@@ -28,7 +28,7 @@
 \renewcommand{\thefootnote}{\arabic{footnote}}
 
 %\title{Transforming Emotions to Confidence}
-\title{Facial emotions vs Verbal Sentiments in a public Goods game}
+\title{Facial Emotions vs Verbal Sentiments in a Public Goods game}
 
 \author{
     Caleb Eynon$^{1}$ \and
@@ -58,7 +58,7 @@ This paper studies how information structure and emotions affect cooperation in 
 \end{spacing}
 \newpage
 \section{Introduction}
-Cooperation in public-goods environments critically depends on both communication and the information individuals have about one another’s behavior. A large experimental literature shows that allowing subjects to communicate can substantially increase contributions relative to settings without communication, even when communication is cheap talk and non-binding. At the same time, the degree of transparency surrounding individual actions—specifically, whether individual contributions are observable or only aggregate outcomes are revealed—has been shown to shape incentives, social norms, and the sustainability of cooperation. Despite extensive study of these two mechanisms independently, less is known about how communication interacts with informational visibility to influence cooperative behavior over time.
+Cooperation in public-goods environments critically depends on both communication and the information individuals have about one another’s behavior. A large body of experimental literature shows that allowing subjects to communicate can substantially increase contributions relative to settings without communication, even when communication is cheap talk and non-binding. At the same time, the degree of transparency surrounding individual actions—specifically, whether individual contributions are observable or only aggregate outcomes are revealed—has been shown to shape incentives, social norms, and the sustainability of cooperation. Despite extensive study of these two mechanisms independently, less is known about how communication interacts with informational visibility to influence cooperative behavior over time.
 
 In many real-world collective action problems, individuals can communicate freely while facing varying degrees of transparency about others’ behavior. In some settings, such as small teams or committees, individual contributions are highly visible. In others, such as large organizations or anonymous online platforms, only aggregate outcomes are observed, obscuring individual responsibility. Understanding how cooperation emerges and evolves under these different informational regimes—particularly when communication is present—is essential for explaining variation in cooperative outcomes across institutional environments.
 
@@ -119,13 +119,11 @@ After each period, subjects viewed the earnings from that period alongside the g
 
 \subsection{Summary Statistics}
 
-Figures \ref{fig:median_contribution_by_round} and \ref{fig:mean_contribution_by_round} display the 
-median and mean contribution by round within segments separated by treatment. Treatment 2 tends to have
-a higher contribution in the first round, but there is not significant difference in either measure following 
+To recall, we use a total of 5 segments, each with varying number of rounds. Figures \ref{fig:median_contribution_by_round} and \ref{fig:mean_contribution_by_round} display the 
+median and mean contributions by rounds within segments for the two treatement types. We see a higher contribution in Treatment 2 during the first round, but there is not significant difference in either measure following 
 round 1. Both measures converge to near a near 25 ECU mean and a 25 ECU median, consistent with the continuous,
 chat treatment in [CITE needed, I forget which paper had this]. Figure \ref{fig:contribution_cdf_by_treatment}
-displays the contribution CDF by treatment. The CDF from treatment 1 first-order stochastically dominates that of treatment 2. 
-This means that lower contributions tend to happen in treatment 1. 
+displays the contribution CDF by treatment. The CDF from treatment 1 first-order stochastically dominates that of treatment 2 which implies overall lower contributions in treatment 1. 
 
 
 
@@ -157,18 +155,14 @@ This means that lower contributions tend to happen in treatment 1.
 
 \subsection{Classifying Behavior}
 
-Participants were able to communicate freely with very little restriction. This allows for text analysis across many dimensions.
-However, we must first present some classificiation of text and corresponding behavior that relates to our hypotheses.
-Historically, classifying text has been arduous . However, we utilize recent advancements in large language models,
-to perform this task. Specifically, we are interested in identifying whether a participants makes a promise to other group members.
-We use OpenAI's GPT-5-mini model to classify a player's message as promise or not promise. We use the same prompt for all players.
-The prompt includes the following elements: a brief explanation of the public goods game, a list of examples of promises, and the message to classify and the 
-preceding messages in the conversation. The model is explicitly told to take the player's message in the context of the whole conversation.
+During the study, participants were able to communicate freely with very little restriction. This allowed for text analysis across many dimensions.
+We first start by presenting a classification of text and corresponding behavior that relates to our hypotheses. Historically, classifying text has been arduous. However, we utilize recent advancements in large language models
+to perform this task. Specifically, we are interested in identifying whether a participant makes a promise to other group members.
+Using OpenAI's GPT-5-mini model, we classify a participant's message as a promise or not a promise \footnote{ We use the same prompt for all participants. This prompt includes the following elements: a brief explanation of the public goods game, a list of examples of promises, a message to classify, and the 
+preceding messages in the conversation. The model is explicitly told to take the participant's message in the context of the whole conversation.}
 
-With these promise classifications, we can then classify the behavior of the players. We create two separate classifications at the player-round level.
-First, we classify a player as a ``liar'' if they made a promise, but then failed to contribute more than 20 ECUs in the next contribution decision. Each player 
-begins each segment without the ``liar'' label, but the label persists for the rest of the segment once they first become a liar. We then classify a player as a 
-``sucker'' if they contributed the maximum (25 points) in a round where a groupmate lied. Similar to the liar label, the sucker label persists for the rest of the segment once they first become a sucker.
+By classifying the messages from participants, we can classify their behavior as well. We create two separate classifications at the participant-round level.
+First, we classify a participant as a ``liar'' if they made a promise, but later failed to contribute more than 20 ECUs in the next contribution decision. Each participant begins each segment without the ``liar'' label, but the label persists for the rest of the segment once they first become a liar. We then classify a participant as a ``sucker'' if they contributed the maximum (25 points) in a round where a groupmate lied. Similar to the liar label, the sucker label persists for the rest of the segment once they first become a sucker.
 Table \ref{table:behavior_summary_aggregate} presents the number of suckers and liars by treatment and segment. 
 
 \begin{table}
@@ -179,24 +173,24 @@ Table \ref{table:behavior_summary_aggregate} presents the number of suckers and 
 \end{table}
 
 While creating binary classifications based on communication and contributions is helpful, it fails to
-analyze the emotions and sentiment present in the communication between subjects. We use the VADER sentiment
+analyze the emotions and sentiment present in the communication between subjects. Hence, we use the VADER sentiment
 dictionary to map individual messages to a valence score. VADER is an analysis tool that is specifically attuned
 to sentiments expressed in social media [NEED CITE]. A positive valence indicates a positive sentiment and vice
-versa for a negative valence. Figure \ref{fig:sent_dist} presents the distribution of communication sentiment for players.
+versa for a negative valence. Figure \ref{fig:sent_dist} presents the distribution of communication sentiment for participants.
 
 \begin{figure}[htbp]
     \centering
     \begin{minipage}{0.48\textwidth}
         \centering
         \includegraphics[width=\linewidth]{sentiment_distribution_t1.png}
-        \caption{Player-round sentiment distribution in treatment 1}
+        \caption{participant-round sentiment distribution in treatment 1}
         \label{fig:t1_sent_dist}
     \end{minipage}
     \hfill
     \begin{minipage}{0.48\textwidth}
         \centering
         \includegraphics[width=\linewidth]{sentiment_distribution_t2.png}
-        \caption{Player-round sentiment distribution in treatment 2}
+        \caption{participant-round sentiment distribution in treatment 2}
         \label{fig:t2_sent_dist}
     \end{minipage}
     \caption{Sentiment distributions by treatment}
@@ -212,8 +206,8 @@ We analyze the effect of communication sentiment on individual contributions. We
 \end{equation}
 
 where $Contribution_{i,t}$ is the round level individual contribution, $treatment_{i}$ is a binary variable for treatment 2,
-$sentiment_{i,t}$ is the mean sentiment for player $i$ in round, segment $t$, $n_messages_{i,t}$ is the number of messages sent
-by player $i$ in $t$, $\alpha_r$ are round fixed effects and $\gamma_s$ are segment fixed effects. Table \ref{table:contribution_regression}
+$sentiment_{i,t}$ is the mean sentiment for participant $i$ in round, segment $t$, $n_messages_{i,t}$ is the number of messages sent
+by participant $i$ in $t$, $\alpha_r$ are round fixed effects and $\gamma_s$ are segment fixed effects. Table \ref{table:contribution_regression}
 presents the results from this regression. Sentiment has a positive and significant coefficient of 2.182, indicating that a positive valence
 is associated with higher contributions in expectation. The number of messages sent by an individual is not significant. A limitation of our experimental design
 is that the first communication opportunity does not happen until \textit{after} the first contribution, thus those contributions are excluded
@@ -286,8 +280,8 @@ We only analyze sentiment and emotions during the communication \textit{prior} t
 across rounds. 
 
 Figure \ref{fig:emotion_sentiment_gap_by_liar_status} displays the normalized valence emotion and sentiment split by liar status.
-In the case where a player is not lying, there is no significant difference between the facial emotions and communication sentiment. 
-However, when a player is lying, their communication sentiment is significantly lower than facial emotions. One possible explanation is that
+In the case where a participant is not lying, there is no significant difference between the facial emotions and communication sentiment. 
+However, when a participant is lying, their communication sentiment is significantly lower than facial emotions. One possible explanation is that
 liars try to communicate similarly to everyone else (typically very neutral), but know that they will defect and receive a higher payoff. This 
 would be observable in their facial expression, but not in their public communication.
 \begin{figure}[htbp]
@@ -306,7 +300,7 @@ the following logit specification,
 \end{equation}
 
 Where $\Lambda(\cdot)$ is the logistic function $\frac{e^x}{1+e^x}$, and $\text{Gap}_{it}$ is the min-max normalized emotion-sentiment gap (facial valence minus chat sentiment). The
-liar model conditions on the subsample of player-rounds where a promise was made. After estimation and inference, we find that
+liar model conditions on the subsample of participant-rounds where a promise was made. After estimation and inference, we find that
 $\hat{\beta_1} = 1.034$ is not significant, failing to demonstrate the ability of the emotion sentiment gap to predict lying, likely
 due to lack of power.
 
