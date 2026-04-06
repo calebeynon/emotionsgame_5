@@ -26,7 +26,7 @@ POS_COLOR  <- "#388E3C"
 # =====
 main <- function() {
     dt <- load_data()
-    save_plot(build_plot(dt[treatment == "Treatment 1"]), OUTPUT_T1)
+    save_plot(build_plot(dt[treatment == "Treatment 1"], y_max = 500), OUTPUT_T1)
     save_plot(build_plot(dt[treatment == "Treatment 2"]), OUTPUT_T2)
 }
 
@@ -50,8 +50,8 @@ load_data <- function() {
 # =====
 # Plot construction
 # =====
-build_plot <- function(dt) {
-    ggplot(dt, aes(x = sentiment_compound_mean, fill = sentiment_category)) +
+build_plot <- function(dt, y_max = NULL) {
+    p <- ggplot(dt, aes(x = sentiment_compound_mean, fill = sentiment_category)) +
         geom_histogram(binwidth = 0.05, boundary = 0, color = "white",
                        linewidth = 0.2) +
         scale_fill_manual(
@@ -65,6 +65,10 @@ build_plot <- function(dt) {
             panel.grid.minor = element_blank(),
             legend.position = "none"
         )
+    if (!is.null(y_max)) {
+        p <- p + coord_cartesian(ylim = c(0, y_max))
+    }
+    p
 }
 
 # =====
