@@ -8,6 +8,17 @@
 source("analysis/issue_39_common.R")
 # nolint end
 
+# DISPLAY NAMES for emotion columns (maps column name -> pretty label)
+EMOTION_DISPLAY_NAMES <- c(
+    emotion_anger = "Anger", emotion_contempt = "Contempt",
+    emotion_disgust = "Disgust", emotion_fear = "Fear",
+    emotion_joy = "Joy", emotion_sadness = "Sadness",
+    emotion_surprise = "Surprise", emotion_engagement = "Engagement",
+    emotion_valence = "Valence", emotion_sentimentality = "Sentimentality",
+    emotion_confusion = "Confusion", emotion_neutral = "Neutral",
+    emotion_attention = "Attention"
+)
+
 # =====
 # Main entry point (demonstrates usage)
 # =====
@@ -96,6 +107,20 @@ zscore_valence <- function(dt) {
     val_sd <- sd(complete$emotion_valence)
     if (val_sd == 0) stop("Zero variance in emotion_valence — cannot z-score")
     dt[, valence_z := (emotion_valence - val_mean) / val_sd]
+    return(dt)
+}
+
+# =====
+# Generic z-score for any emotion column -> {col}_z
+# =====
+zscore_emotion <- function(dt, col) {
+    z_col <- paste0(col, "_z")
+    complete <- dt[!is.na(get(col))]
+    if (nrow(complete) == 0) stop(sprintf("No non-NA values in %s", col))
+    col_mean <- mean(complete[[col]])
+    col_sd <- sd(complete[[col]])
+    if (col_sd == 0) stop(sprintf("Zero variance in %s — cannot z-score", col))
+    dt[, (z_col) := (get(col) - col_mean) / col_sd]
     return(dt)
 }
 
