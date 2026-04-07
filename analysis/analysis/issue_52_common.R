@@ -98,6 +98,58 @@ add_first_time_labels <- function(dt) {
 }
 
 # =====
+# Within-person expanding-window deviation from mean
+# =====
+within_person_deviation <- function(dt, col) {
+    d_col <- paste0(col, "_wpd")
+    setorderv(dt, c("session_code", "label", "segment", "round"))
+    dt[, (d_col) := compute_expanding_deviation(.SD[[col]]),
+       by = .(session_code, label)]
+    return(dt)
+}
+
+# Helper: expanding-window deviation from prior mean (min k=1)
+compute_expanding_deviation <- function(x) {
+    n <- length(x)
+    d <- rep(NA_real_, n)
+    for (t in seq_len(n)) {
+        if (t < 2) next
+        prior <- x[seq_len(t - 1)]
+        prior <- prior[!is.na(prior)]
+        if (length(prior) < 1) next
+        d[t] <- x[t] - mean(prior)
+    }
+    return(d)
+}
+
+# =====
+# Load ResultsOnly data with within-person deviations
+# =====
+load_results_emotion_data_wp <- function(filepath = INPUT_CSV) {
+    dt <- fread(filepath)
+    dt <- dt[page_type %in% c("ResultsOnly", "all_instructions")]
+    dt <- apply_within_person_deviations(dt)
+    dt <- dt[page_type == "ResultsOnly"]
+    dt <- merge_behavior_classifications(dt)
+    dt <- add_readable_labels(dt)
+    dt <- add_first_time_flags(dt)
+    dt <- add_first_time_labels(dt)
+    return(dt)
+}
+
+# Apply within-person deviations to all emotion columns + valence
+apply_within_person_deviations <- function(dt) {
+    for (col in EMOTION_COLS) {
+        dt <- within_person_deviation(dt, col)
+    }
+    # Also create valence_wpd alias for convenience
+    if (!"valence_wpd" %in% names(dt)) {
+        dt[, valence_wpd := emotion_valence_wpd]
+    }
+    return(dt)
+}
+
+# =====
 # Z-score emotion_valence within ResultsOnly subset
 # =====
 zscore_valence <- function(dt) {

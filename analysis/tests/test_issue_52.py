@@ -22,6 +22,8 @@ WORKING_DIR = Path(__file__).resolve().parent.parent
 # R SCRIPT PATHS
 COMMON_SCRIPT = ANALYSIS_DIR / "issue_52_common.R"
 VALENCE_PLOTS_SCRIPT = ANALYSIS_DIR / "issue_52_valence_plots.R"
+WITHIN_PERSON_PLOTS_SCRIPT = ANALYSIS_DIR / "issue_52_within_person_plots.R"
+WITHIN_PERSON_PLOT_DIR = PLOT_DIR / "within_person"
 
 # EXPECTED COUNTS (from real data)
 EXPECTED_RESULTS_ROWS = 3520
@@ -53,7 +55,10 @@ def run_r_code(code, timeout=60):
 # =====
 # Precondition checks
 # =====
-REQUIRED_FILES = [DATA_FILE, BEHAVIOR_FILE, COMMON_SCRIPT, VALENCE_PLOTS_SCRIPT]
+REQUIRED_FILES = [
+    DATA_FILE, BEHAVIOR_FILE, COMMON_SCRIPT,
+    VALENCE_PLOTS_SCRIPT, WITHIN_PERSON_PLOTS_SCRIPT,
+]
 
 # EXPECTED PLOT OUTPUT FILES
 EXPECTED_PLOT_FILES = [
@@ -572,3 +577,319 @@ for (i in seq_len(nrow(s2))) {
         assert "Honest MEAN: -0.0078 N: 2608" in result.stdout
         assert "Sucker MEAN: 0.3855 N: 151" in result.stdout
         assert "Non-sucker MEAN: -0.0229 N: 2545" in result.stdout
+
+
+# =====
+# Within-person deviation function tests
+# =====
+class TestWithinPersonDeviation:
+    """Test the within_person_deviation expanding-window function."""
+
+    def test_cold_start_first_obs_is_na(self):
+        """First obs (instruction) has no prior — NA."""
+        result = run_r_code("""
+TESTING <- TRUE
+source("analysis/issue_52_common.R")
+dt <- fread(INPUT_CSV)
+dt <- dt[page_type %in% c("ResultsOnly", "all_instructions")]
+dt <- within_person_deviation(dt, "emotion_valence")
+p <- dt[session_code=="6sdkxl2q" & label=="D"]
+setorderv(p, c("segment", "round"))
+cat("INSTR_WPD:", is.na(p$emotion_valence_wpd[1]), "\\n")
+cat("S1R1_WPD:", round(p$emotion_valence_wpd[2], 4), "\\n")
+""")
+        assert result.returncode == 0, result.stderr
+        assert "INSTR_WPD: TRUE" in result.stdout
+        assert "S1R1_WPD: 1.4428" in result.stdout
+
+    def test_second_results_obs_has_deviation(self):
+        """Second ResultsOnly obs (3rd overall) has 2 prior — valid deviation."""
+        result = run_r_code("""
+TESTING <- TRUE
+source("analysis/issue_52_common.R")
+dt <- fread(INPUT_CSV)
+dt <- dt[page_type %in% c("ResultsOnly", "all_instructions")]
+dt <- within_person_deviation(dt, "emotion_valence")
+p <- dt[session_code=="6sdkxl2q" & label=="D"]
+setorderv(p, c("segment", "round"))
+cat("S1R2_WPD_NA:", is.na(p$emotion_valence_wpd[3]), "\\n")
+cat("S1R2_WPD:", round(p$emotion_valence_wpd[3], 4), "\\n")
+""")
+        assert result.returncode == 0, result.stderr
+        assert "S1R2_WPD_NA: FALSE" in result.stdout
+        assert "S1R2_WPD: 2.5798" in result.stdout
+
+    def test_cross_supergame_accumulation(self):
+        """History accumulates across supergame boundaries.
+
+        Player D s2r1 uses instruction + s1r1,s1r2,s1r3 as prior (4 obs).
+        Manual: prior=c(-2.1264,-0.6837,1.1748,2.6747), val=-0.8607 -> d=-1.1206
+        """
+        result = run_r_code("""
+TESTING <- TRUE
+source("analysis/issue_52_common.R")
+dt <- fread(INPUT_CSV)
+dt <- dt[page_type %in% c("ResultsOnly", "all_instructions")]
+dt <- within_person_deviation(dt, "emotion_valence")
+p <- dt[session_code=="6sdkxl2q" & label=="D"]
+setorderv(p, c("segment", "round"))
+# Row 5 = supergame2 round 1
+s2r1 <- p[segment=="supergame2" & round==1]
+cat("S2R1_WPD:", round(s2r1$emotion_valence_wpd, 4), "\\n")
+""")
+        assert result.returncode == 0, result.stderr
+        assert "S2R1_WPD: -1.1206" in result.stdout
+
+    def test_expanding_window_grows(self):
+        """Later rounds use more prior observations."""
+        result = run_r_code("""
+TESTING <- TRUE
+source("analysis/issue_52_common.R")
+dt <- fread(INPUT_CSV)
+dt <- dt[page_type %in% c("ResultsOnly", "all_instructions")]
+dt <- within_person_deviation(dt, "emotion_valence")
+p <- dt[session_code=="6sdkxl2q" & label=="D"]
+setorderv(p, c("segment", "round"))
+# Row 9 = supergame3 round 1 (8 prior obs)
+s3r1 <- p[segment=="supergame3" & round==1]
+cat("S3R1_WPD:", round(s3r1$emotion_valence_wpd, 4), "\\n")
+""")
+        assert result.returncode == 0, result.stderr
+        assert "S3R1_WPD: 10.206" in result.stdout
+
+    def test_na_valence_produces_na_deviation(self):
+        """Players with all-NA valence get all-NA wpd values."""
+        result = run_r_code("""
+TESTING <- TRUE
+source("analysis/issue_52_common.R")
+dt <- fread(INPUT_CSV)
+dt <- dt[page_type %in% c("ResultsOnly", "all_instructions")]
+dt <- within_person_deviation(dt, "emotion_valence")
+# Player E in session sa7mprty has all NA valence
+p <- dt[session_code=="sa7mprty" & label=="E"]
+cat("ALL_NA:", all(is.na(p$emotion_valence_wpd)), "\\n")
+""")
+        assert result.returncode == 0, result.stderr
+        assert "ALL_NA: TRUE" in result.stdout
+
+    def test_output_column_naming(self):
+        """Output column should be {col}_wpd."""
+        result = run_r_code("""
+TESTING <- TRUE
+source("analysis/issue_52_common.R")
+dt <- fread(INPUT_CSV)
+dt <- dt[page_type %in% c("ResultsOnly", "all_instructions")]
+dt <- within_person_deviation(dt, "emotion_anger")
+cat("HAS_COL:", "emotion_anger_wpd" %in% names(dt), "\\n")
+""")
+        assert result.returncode == 0, result.stderr
+        assert "HAS_COL: TRUE" in result.stdout
+
+
+# =====
+# load_results_emotion_data_wp() tests
+# =====
+class TestLoadResultsEmotionDataWP:
+    """Test the within-person data loader."""
+
+    def test_returns_results_only_rows(self):
+        result = run_r_code("""
+TESTING <- TRUE
+source("analysis/issue_52_common.R")
+dt <- load_results_emotion_data_wp()
+cat("PAGE_TYPES:", paste(unique(dt$page_type), collapse="|"), "\\n")
+cat("ROWS:", nrow(dt), "\\n")
+""")
+        assert result.returncode == 0, result.stderr
+        assert "PAGE_TYPES: ResultsOnly" in result.stdout
+        assert f"ROWS: {EXPECTED_RESULTS_ROWS}" in result.stdout
+
+    def test_has_all_13_wpd_columns(self):
+        result = run_r_code("""
+TESTING <- TRUE
+source("analysis/issue_52_common.R")
+dt <- load_results_emotion_data_wp()
+wpd <- grep("_wpd$", names(dt), value=TRUE)
+cat("N_WPD:", length(wpd), "\\n")
+""")
+        assert result.returncode == 0, result.stderr
+        # 13 emotion columns + valence_wpd alias = 14
+        assert "N_WPD: 14" in result.stdout
+
+    @pytest.mark.parametrize("col", [
+        "emotion_anger_wpd", "emotion_contempt_wpd", "emotion_disgust_wpd",
+        "emotion_fear_wpd", "emotion_joy_wpd", "emotion_sadness_wpd",
+        "emotion_surprise_wpd", "emotion_engagement_wpd",
+        "emotion_valence_wpd", "emotion_sentimentality_wpd",
+        "emotion_confusion_wpd", "emotion_neutral_wpd",
+        "emotion_attention_wpd", "valence_wpd",
+    ])
+    def test_wpd_column_exists(self, col):
+        result = run_r_code(f"""
+TESTING <- TRUE
+source("analysis/issue_52_common.R")
+dt <- load_results_emotion_data_wp()
+cat("EXISTS:", "{col}" %in% names(dt), "\\n")
+""")
+        assert result.returncode == 0, result.stderr
+        assert "EXISTS: TRUE" in result.stdout
+
+    def test_valence_wpd_alias_matches(self):
+        """valence_wpd should equal emotion_valence_wpd."""
+        result = run_r_code("""
+TESTING <- TRUE
+source("analysis/issue_52_common.R")
+dt <- load_results_emotion_data_wp()
+both_valid <- !is.na(dt$valence_wpd) & !is.na(dt$emotion_valence_wpd)
+cat("MATCH:", all(dt$valence_wpd[both_valid] == dt$emotion_valence_wpd[both_valid]), "\\n")
+""")
+        assert result.returncode == 0, result.stderr
+        assert "MATCH: TRUE" in result.stdout
+
+    def test_valence_wpd_non_na_count(self):
+        result = run_r_code("""
+TESTING <- TRUE
+source("analysis/issue_52_common.R")
+dt <- load_results_emotion_data_wp()
+cat("NON_NA:", sum(!is.na(dt$emotion_valence_wpd)), "\\n")
+""")
+        assert result.returncode == 0, result.stderr
+        assert "NON_NA: 2696" in result.stdout
+
+    def test_behavior_columns_present(self):
+        """Behavior classification columns survive wp pipeline."""
+        result = run_r_code("""
+TESTING <- TRUE
+source("analysis/issue_52_common.R")
+dt <- load_results_emotion_data_wp()
+cat("LIAR:", "is_liar_20" %in% names(dt), "\\n")
+cat("SUCKER:", "is_sucker_20" %in% names(dt), "\\n")
+cat("FT_LIAR:", "first_time_liar" %in% names(dt), "\\n")
+cat("FT_SUCKER:", "first_time_sucker" %in% names(dt), "\\n")
+cat("LIAR_LABEL:", "liar_label" %in% names(dt), "\\n")
+""")
+        assert result.returncode == 0, result.stderr
+        for tag in ["LIAR:", "SUCKER:", "FT_LIAR:", "FT_SUCKER:", "LIAR_LABEL:"]:
+            assert f"{tag} TRUE" in result.stdout
+
+    def test_no_instruction_rows_in_output(self):
+        """Instruction baseline used for deviation computation but filtered out."""
+        result = run_r_code("""
+TESTING <- TRUE
+source("analysis/issue_52_common.R")
+dt <- load_results_emotion_data_wp()
+cat("INSTR_ROWS:", sum(dt$page_type == "all_instructions"), "\\n")
+""")
+        assert result.returncode == 0, result.stderr
+        assert "INSTR_ROWS: 0" in result.stdout
+
+
+# =====
+# Within-person deviation regression values (traced from raw data)
+# =====
+# Verification method (2026-04-07):
+# 1. Player D (6sdkxl2q): instruction valence=-2.1264, followed by 22 ResultsOnly
+# 2. Manual deviation at s1r2: prior=[-2.1264, -0.6837], val=1.1748
+#    mean(prior)=-1.40505, dev=1.1748-(-1.40505)=2.5798
+# 3. Cross-supergame s2r1: prior=[-2.1264,-0.6837,1.1748,2.6747], val=-0.8607
+#    mean(prior)=0.2599, dev=-0.8607-0.2599=-1.1206
+# 4. Full pipeline: 3520 ResultsOnly rows, 2696 with non-NA valence_wpd
+
+
+class TestWithinPersonRegressionValues:
+    """Pin within-person deviation values verified by manual computation."""
+
+    def test_player_d_s1r2_deviation(self):
+        """Manual: prior=[-2.1264,-0.6837], val=1.1748, dev=2.5798."""
+        result = run_r_code("""
+TESTING <- TRUE
+source("analysis/issue_52_common.R")
+dt <- load_results_emotion_data_wp()
+d <- dt[session_code=="6sdkxl2q" & label=="D" & segment=="supergame1" & round==2]
+cat("WPD:", round(d$emotion_valence_wpd, 4), "\\n")
+""")
+        assert result.returncode == 0, result.stderr
+        assert "WPD: 2.5798" in result.stdout
+
+    def test_player_d_s2r1_cross_supergame(self):
+        """Cross-supergame: 4 prior obs, dev=-1.1206."""
+        result = run_r_code("""
+TESTING <- TRUE
+source("analysis/issue_52_common.R")
+dt <- load_results_emotion_data_wp()
+d <- dt[session_code=="6sdkxl2q" & label=="D" & segment=="supergame2" & round==1]
+cat("WPD:", round(d$emotion_valence_wpd, 4), "\\n")
+""")
+        assert result.returncode == 0, result.stderr
+        assert "WPD: -1.1206" in result.stdout
+
+    def test_player_d_s2r3_liar_round(self):
+        """Player D at first-time liar round: dev=-10.1273."""
+        result = run_r_code("""
+TESTING <- TRUE
+source("analysis/issue_52_common.R")
+dt <- load_results_emotion_data_wp()
+d <- dt[session_code=="6sdkxl2q" & label=="D" & segment=="supergame2" & round==3]
+cat("WPD:", round(d$emotion_valence_wpd, 4), "\\n")
+cat("IS_LIAR:", d$is_liar_20, "\\n")
+cat("FIRST_TIME:", d$first_time_liar, "\\n")
+""")
+        assert result.returncode == 0, result.stderr
+        assert "WPD: -10.1273" in result.stdout
+        assert "IS_LIAR: TRUE" in result.stdout
+        assert "FIRST_TIME: TRUE" in result.stdout
+
+    def test_player_d_last_round(self):
+        """Player D s5r5 (22nd obs, 21 prior): dev=-15.7187."""
+        result = run_r_code("""
+TESTING <- TRUE
+source("analysis/issue_52_common.R")
+dt <- load_results_emotion_data_wp()
+d <- dt[session_code=="6sdkxl2q" & label=="D" & segment=="supergame5" & round==5]
+cat("WPD:", round(d$emotion_valence_wpd, 4), "\\n")
+""")
+        assert result.returncode == 0, result.stderr
+        assert "WPD: -15.7187" in result.stdout
+
+
+# =====
+# issue_52_within_person_plots.R tests
+# =====
+
+# All 13 emotions x 4 plot types = 52 expected files
+EMOTION_SHORT_NAMES = [
+    "anger", "contempt", "disgust", "fear", "joy", "sadness",
+    "surprise", "engagement", "valence", "sentimentality",
+    "confusion", "neutral", "attention",
+]
+EXPECTED_WP_PLOT_FILES = [
+    f"results_{emo}_by_{var}.png"
+    for emo in EMOTION_SHORT_NAMES
+    for var in ["liar_status", "sucker_status",
+                "first_time_liar", "first_time_sucker"]
+]
+
+
+class TestWithinPersonPlots:
+    """Test within-person deviation plot script and outputs."""
+
+    def test_script_runs_successfully(self):
+        result = run_r_script(WITHIN_PERSON_PLOTS_SCRIPT, timeout=300)
+        assert result.returncode == 0, f"stderr: {result.stderr}"
+
+    def test_generates_52_plots(self):
+        """Should produce 4 plots x 13 emotions = 52 PNG files."""
+        if not WITHIN_PERSON_PLOT_DIR.exists():
+            pytest.skip("Plot dir missing — run test_script_runs_successfully first")
+        pngs = list(WITHIN_PERSON_PLOT_DIR.glob("*.png"))
+        assert len(pngs) == 52, (
+            f"Expected 52 plots, found {len(pngs)}: {sorted(p.name for p in pngs)}"
+        )
+
+    @pytest.mark.parametrize("filename", EXPECTED_WP_PLOT_FILES)
+    def test_plot_file_exists_and_nonempty(self, filename):
+        path = WITHIN_PERSON_PLOT_DIR / filename
+        assert path.exists(), f"Plot file missing: {path}"
+        assert path.stat().st_size > 10_000, (
+            f"Plot file suspiciously small: {path.stat().st_size} bytes"
+        )
