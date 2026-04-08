@@ -150,6 +150,81 @@ apply_within_person_deviations <- function(dt) {
 }
 
 # =====
+# Detrend valence: assign time index per player
+# =====
+assign_time_index <- function(dt) {
+    setorderv(dt, c("session_code", "label", "segment", "round"))
+    dt[, t_index := seq_len(.N), by = .(session_code, label)]
+    return(dt)
+}
+
+# =====
+# Detrend valence: segment-mean (trend across supergame means)
+# =====
+detrend_valence_segmean <- function(dt) {
+    supergames <- paste0("supergame", 1:5)
+    dt[, segment_index := match(segment, supergames)]
+    dt[, valence_segmean_detrended := compute_segmean_residual(
+        emotion_valence, segment_index
+    ), by = .(session_code, label)]
+    return(dt)
+}
+
+compute_segmean_residual <- function(y, seg_idx) {
+    # Compute segment means from this player's data
+    valid <- !is.na(y) & !is.na(seg_idx)
+    if (sum(valid) == 0) return(rep(NA_real_, length(y)))
+    player_dt <- data.table(y = y[valid], si = seg_idx[valid])
+    seg_agg <- player_dt[, .(mean_val = mean(y)), by = si]
+    if (nrow(seg_agg) < 2) return(rep(NA_real_, length(y)))
+    fit <- lm(mean_val ~ si, data = seg_agg)
+    predicted <- coef(fit)[1] + coef(fit)[2] * seg_idx
+    resid <- y - predicted
+    resid[is.na(seg_idx)] <- NA_real_
+    return(resid)
+}
+
+# =====
+# Detrend valence: reverse (train on segments 4+5, extrapolate back)
+# =====
+detrend_valence_reverse <- function(dt) {
+    dt <- assign_time_index(dt)
+    train_segments <- c("supergame4", "supergame5")
+    dt[, valence_reverse_detrended := detrend_residuals(
+        emotion_valence, t_index, t_index[segment %in% train_segments]
+    ), by = .(session_code, label)]
+    return(dt)
+}
+
+# Helper: fit lm on training indices, compute residuals for all
+detrend_residuals <- function(y, t_all, t_train) {
+    train_mask <- t_all %in% t_train
+    y_train <- y[train_mask]
+    t_train_vals <- t_all[train_mask]
+    non_na <- !is.na(y_train)
+    if (sum(non_na) < 2) return(rep(NA_real_, length(y)))
+    fit <- lm(y_train ~ t_train_vals, na.action = na.exclude)
+    predicted <- coef(fit)[1] + coef(fit)[2] * t_all
+    return(y - predicted)
+}
+
+# =====
+# Load ResultsOnly data with linear detrending
+# =====
+load_results_emotion_data_detrended <- function(filepath = INPUT_CSV) {
+    dt <- fread(filepath)
+    dt <- dt[page_type %in% c("ResultsOnly", "all_instructions")]
+    dt <- detrend_valence_segmean(dt)
+    dt <- detrend_valence_reverse(dt)
+    dt <- dt[page_type == "ResultsOnly"]
+    dt <- merge_behavior_classifications(dt)
+    dt <- add_readable_labels(dt)
+    dt <- add_first_time_flags(dt)
+    dt <- add_first_time_labels(dt)
+    return(dt)
+}
+
+# =====
 # Z-score emotion_valence within ResultsOnly subset
 # =====
 zscore_valence <- function(dt) {

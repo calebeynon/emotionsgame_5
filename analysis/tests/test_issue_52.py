@@ -55,9 +55,13 @@ def run_r_code(code, timeout=60):
 # =====
 # Precondition checks
 # =====
+DETRENDED_PLOTS_SCRIPT = ANALYSIS_DIR / "issue_52_detrended_plots.R"
+DETRENDED_PLOT_DIR = PLOT_DIR / "within_person_detrended"
+
 REQUIRED_FILES = [
     DATA_FILE, BEHAVIOR_FILE, COMMON_SCRIPT,
     VALENCE_PLOTS_SCRIPT, WITHIN_PERSON_PLOTS_SCRIPT,
+    DETRENDED_PLOTS_SCRIPT,
 ]
 
 # EXPECTED PLOT OUTPUT FILES
@@ -893,3 +897,466 @@ class TestWithinPersonPlots:
         assert path.stat().st_size > 10_000, (
             f"Plot file suspiciously small: {path.stat().st_size} bytes"
         )
+
+
+# =====
+# Detrending: assign_time_index tests
+# =====
+class TestAssignTimeIndex:
+    """Test time index assignment for detrending."""
+
+    def test_time_index_starts_at_one(self):
+        result = run_r_code("""
+TESTING <- TRUE
+source("analysis/issue_52_common.R")
+dt <- fread(INPUT_CSV)
+dt <- dt[page_type %in% c("ResultsOnly", "all_instructions")]
+dt <- assign_time_index(dt)
+cat("MIN_T:", min(dt$t_index), "\\n")
+""")
+        assert result.returncode == 0, result.stderr
+        assert "MIN_T: 1" in result.stdout
+
+    def test_time_index_max_is_23(self):
+        """23 obs per player: 1 instruction + 22 ResultsOnly."""
+        result = run_r_code("""
+TESTING <- TRUE
+source("analysis/issue_52_common.R")
+dt <- fread(INPUT_CSV)
+dt <- dt[page_type %in% c("ResultsOnly", "all_instructions")]
+dt <- assign_time_index(dt)
+cat("MAX_T:", max(dt$t_index), "\\n")
+""")
+        assert result.returncode == 0, result.stderr
+        assert "MAX_T: 23" in result.stdout
+
+    def test_player_d_has_23_obs(self):
+        result = run_r_code("""
+TESTING <- TRUE
+source("analysis/issue_52_common.R")
+dt <- fread(INPUT_CSV)
+dt <- dt[page_type %in% c("ResultsOnly", "all_instructions")]
+dt <- assign_time_index(dt)
+d <- dt[session_code=="6sdkxl2q" & label=="D"]
+cat("N_OBS:", nrow(d), "\\n")
+cat("T_RANGE:", min(d$t_index), "-", max(d$t_index), "\\n")
+""")
+        assert result.returncode == 0, result.stderr
+        assert "N_OBS: 23" in result.stdout
+        assert "T_RANGE: 1 - 23" in result.stdout
+
+
+# =====
+# Detrending: detrend_residuals helper tests
+# =====
+class TestDetrendResiduals:
+    """Test the detrend_residuals helper function."""
+
+    def test_perfect_linear_produces_zero_residuals(self):
+        result = run_r_code("""
+TESTING <- TRUE
+source("analysis/issue_52_common.R")
+y <- c(1, 3, 5, 7, 9)
+t_all <- c(1, 2, 3, 4, 5)
+r <- detrend_residuals(y, t_all, t_all)
+cat("RESIDUALS:", paste(round(r, 4), collapse=","), "\\n")
+""")
+        assert result.returncode == 0, result.stderr
+        assert "RESIDUALS: 0,0,0,0,0" in result.stdout
+
+    def test_partial_training_extrapolates(self):
+        """Training on first 3 obs of perfect linear still gives 0 residuals."""
+        result = run_r_code("""
+TESTING <- TRUE
+source("analysis/issue_52_common.R")
+y <- c(1, 3, 5, 7, 9)
+t_all <- c(1, 2, 3, 4, 5)
+r <- detrend_residuals(y, t_all, c(1,2,3))
+cat("RESIDUALS:", paste(round(r, 4), collapse=","), "\\n")
+""")
+        assert result.returncode == 0, result.stderr
+        assert "RESIDUALS: 0,0,0,0,0" in result.stdout
+
+    def test_fewer_than_two_non_na_returns_all_na(self):
+        result = run_r_code("""
+TESTING <- TRUE
+source("analysis/issue_52_common.R")
+y <- c(5, NA, NA, NA, NA)
+t_all <- c(1, 2, 3, 4, 5)
+r <- detrend_residuals(y, t_all, t_all)
+cat("ALL_NA:", all(is.na(r)), "\\n")
+""")
+        assert result.returncode == 0, result.stderr
+        assert "ALL_NA: TRUE" in result.stdout
+
+    def test_two_training_obs_is_minimum(self):
+        """lm needs at least 2 non-NA training points."""
+        result = run_r_code("""
+TESTING <- TRUE
+source("analysis/issue_52_common.R")
+y <- c(2, 4, NA, NA, NA)
+t_all <- c(1, 2, 3, 4, 5)
+r <- detrend_residuals(y, t_all, c(1,2))
+cat("R1:", round(r[1], 4), "\\n")
+cat("R2:", round(r[2], 4), "\\n")
+cat("R3_NA:", is.na(r[3]), "\\n")
+""")
+        assert result.returncode == 0, result.stderr
+        assert "R1: 0" in result.stdout
+        assert "R2: 0" in result.stdout
+        assert "R3_NA: TRUE" in result.stdout
+
+
+# =====
+# Detrending: segment-mean and reverse detrend functions
+# =====
+class TestDetrendFunctions:
+    """Test detrend_valence_segmean and detrend_valence_reverse."""
+
+    def test_segmean_creates_column(self):
+        result = run_r_code("""
+TESTING <- TRUE
+source("analysis/issue_52_common.R")
+dt <- fread(INPUT_CSV)
+dt <- dt[page_type %in% c("ResultsOnly", "all_instructions")]
+dt <- detrend_valence_segmean(dt)
+cat("HAS_COL:", "valence_segmean_detrended" %in% names(dt), "\\n")
+""")
+        assert result.returncode == 0, result.stderr
+        assert "HAS_COL: TRUE" in result.stdout
+
+    def test_reverse_creates_column(self):
+        result = run_r_code("""
+TESTING <- TRUE
+source("analysis/issue_52_common.R")
+dt <- fread(INPUT_CSV)
+dt <- dt[page_type %in% c("ResultsOnly", "all_instructions")]
+dt <- detrend_valence_reverse(dt)
+cat("HAS_COL:", "valence_reverse_detrended" %in% names(dt), "\\n")
+""")
+        assert result.returncode == 0, result.stderr
+        assert "HAS_COL: TRUE" in result.stdout
+
+    def test_reverse_training_residuals_mean_zero(self):
+        """Training window (segments 4+5) residuals for reverse should average 0."""
+        result = run_r_code("""
+TESTING <- TRUE
+source("analysis/issue_52_common.R")
+dt <- fread(INPUT_CSV)
+dt <- dt[page_type %in% c("ResultsOnly", "all_instructions")]
+dt <- detrend_valence_reverse(dt)
+train <- dt[segment %in% c("supergame4", "supergame5")]
+valid <- train[!is.na(valence_reverse_detrended)]
+cat("TRAIN_MEAN:", round(mean(valid$valence_reverse_detrended), 4), "\\n")
+""")
+        assert result.returncode == 0, result.stderr
+        assert "TRAIN_MEAN: 0" in result.stdout
+
+    def test_na_player_gets_na_detrended(self):
+        """Player with all-NA valence gets all-NA detrended values."""
+        result = run_r_code("""
+TESTING <- TRUE
+source("analysis/issue_52_common.R")
+dt <- load_results_emotion_data_detrended()
+p <- dt[session_code=="sa7mprty" & label=="E"]
+cat("ALL_SEGMEAN_NA:", all(is.na(p$valence_segmean_detrended)), "\\n")
+cat("ALL_REVERSE_NA:", all(is.na(p$valence_reverse_detrended)), "\\n")
+""")
+        assert result.returncode == 0, result.stderr
+        assert "ALL_SEGMEAN_NA: TRUE" in result.stdout
+        assert "ALL_REVERSE_NA: TRUE" in result.stdout
+
+
+# =====
+# load_results_emotion_data_detrended() tests
+# =====
+class TestLoadDetrendedData:
+    """Test the detrended data loader."""
+
+    def test_returns_expected_row_count(self):
+        result = run_r_code("""
+TESTING <- TRUE
+source("analysis/issue_52_common.R")
+dt <- load_results_emotion_data_detrended()
+cat("ROWS:", nrow(dt), "\\n")
+""")
+        assert result.returncode == 0, result.stderr
+        assert f"ROWS: {EXPECTED_RESULTS_ROWS}" in result.stdout
+
+    def test_returns_results_only(self):
+        result = run_r_code("""
+TESTING <- TRUE
+source("analysis/issue_52_common.R")
+dt <- load_results_emotion_data_detrended()
+cat("PAGE_TYPES:", paste(unique(dt$page_type), collapse="|"), "\\n")
+""")
+        assert result.returncode == 0, result.stderr
+        assert "PAGE_TYPES: ResultsOnly" in result.stdout
+
+    def test_has_both_detrended_columns(self):
+        result = run_r_code("""
+TESTING <- TRUE
+source("analysis/issue_52_common.R")
+dt <- load_results_emotion_data_detrended()
+cat("HAS_SEGMEAN:", "valence_segmean_detrended" %in% names(dt), "\\n")
+cat("HAS_REVERSE:", "valence_reverse_detrended" %in% names(dt), "\\n")
+""")
+        assert result.returncode == 0, result.stderr
+        assert "HAS_SEGMEAN: TRUE" in result.stdout
+        assert "HAS_REVERSE: TRUE" in result.stdout
+
+    def test_detrended_non_na_count(self):
+        result = run_r_code("""
+TESTING <- TRUE
+source("analysis/issue_52_common.R")
+dt <- load_results_emotion_data_detrended()
+cat("SEGMEAN_NON_NA:", sum(!is.na(dt$valence_segmean_detrended)), "\\n")
+cat("REVERSE_NON_NA:", sum(!is.na(dt$valence_reverse_detrended)), "\\n")
+""")
+        assert result.returncode == 0, result.stderr
+        assert "SEGMEAN_NON_NA: 2696" in result.stdout
+        assert "REVERSE_NON_NA: 2696" in result.stdout
+
+    def test_behavior_columns_present(self):
+        """Behavior classification columns survive detrended pipeline."""
+        result = run_r_code("""
+TESTING <- TRUE
+source("analysis/issue_52_common.R")
+dt <- load_results_emotion_data_detrended()
+cols <- c("is_liar_20", "is_sucker_20", "first_time_liar",
+          "first_time_sucker", "liar_label", "sucker_label")
+for (col in cols) cat(col, ":", col %in% names(dt), "\\n")
+""")
+        assert result.returncode == 0, result.stderr
+        for col in ["is_liar_20", "is_sucker_20", "first_time_liar",
+                     "first_time_sucker", "liar_label", "sucker_label"]:
+            assert f"{col} : TRUE" in result.stdout, (
+                f"Column {col} missing from detrended output"
+            )
+
+    def test_has_t_index_column(self):
+        """t_index should be present (used for detrending)."""
+        result = run_r_code("""
+TESTING <- TRUE
+source("analysis/issue_52_common.R")
+dt <- load_results_emotion_data_detrended()
+cat("HAS_T_INDEX:", "t_index" %in% names(dt), "\\n")
+""")
+        assert result.returncode == 0, result.stderr
+        assert "HAS_T_INDEX: TRUE" in result.stdout
+
+
+# =====
+# Detrending regression values (traced from R output)
+# =====
+# Verification method (2026-04-08):
+# 1. Segment-mean detrend: fits lm on per-supergame mean valence, predicts per-obs
+# 2. Reverse detrend: trains lm on segments 4+5 time indices, extrapolates to all
+# 3. Player D (6sdkxl2q): s1r1 segmean=-3.1454, reverse=-2.0038
+# 4. Player D s2r3 (first-time liar): segmean=-8.9282, reverse=-7.5805
+# 5. Player K (6sdkxl2q) s2r3 (first-time sucker): segmean=-1.1036, reverse=-37.5532
+# 6. Player E (sa7mprty): all-NA valence -> all-NA detrended
+# 7. Group means independently computed from load_results_emotion_data_detrended()
+
+
+class TestDetrendRegressionValues:
+    """Pin detrended values verified against the current implementation."""
+
+    def test_player_d_segmean_s1r1(self):
+        """Player D s1r1 segment-mean detrended = -3.1454."""
+        result = run_r_code("""
+TESTING <- TRUE
+source("analysis/issue_52_common.R")
+dt <- load_results_emotion_data_detrended()
+d <- dt[session_code=="6sdkxl2q" & label=="D" & segment=="supergame1" & round==1]
+cat("SEGMEAN:", round(d$valence_segmean_detrended, 4), "\\n")
+""")
+        assert result.returncode == 0, result.stderr
+        assert "SEGMEAN: -3.1454" in result.stdout
+
+    def test_player_d_segmean_s2r3_liar(self):
+        """Player D at first-time liar round: segmean=-8.9282."""
+        result = run_r_code("""
+TESTING <- TRUE
+source("analysis/issue_52_common.R")
+dt <- load_results_emotion_data_detrended()
+d <- dt[session_code=="6sdkxl2q" & label=="D" & segment=="supergame2" & round==3]
+cat("SEGMEAN:", round(d$valence_segmean_detrended, 4), "\\n")
+cat("IS_LIAR:", d$is_liar_20, "\\n")
+cat("FIRST_TIME:", d$first_time_liar, "\\n")
+""")
+        assert result.returncode == 0, result.stderr
+        assert "SEGMEAN: -8.9282" in result.stdout
+        assert "IS_LIAR: TRUE" in result.stdout
+        assert "FIRST_TIME: TRUE" in result.stdout
+
+    def test_player_d_reverse_s2r3_liar(self):
+        """Player D at first-time liar round: reverse=-7.5805."""
+        result = run_r_code("""
+TESTING <- TRUE
+source("analysis/issue_52_common.R")
+dt <- load_results_emotion_data_detrended()
+d <- dt[session_code=="6sdkxl2q" & label=="D" & segment=="supergame2" & round==3]
+cat("REVERSE:", round(d$valence_reverse_detrended, 4), "\\n")
+""")
+        assert result.returncode == 0, result.stderr
+        assert "REVERSE: -7.5805" in result.stdout
+
+    def test_player_d_segmean_s5r5(self):
+        """Segment-mean detrend at last round: -11.7654."""
+        result = run_r_code("""
+TESTING <- TRUE
+source("analysis/issue_52_common.R")
+dt <- load_results_emotion_data_detrended()
+d <- dt[session_code=="6sdkxl2q" & label=="D" & segment=="supergame5" & round==5]
+cat("SEGMEAN:", round(d$valence_segmean_detrended, 4), "\\n")
+""")
+        assert result.returncode == 0, result.stderr
+        assert "SEGMEAN: -11.7654" in result.stdout
+
+    def test_player_d_reverse_s5r5(self):
+        """Reverse detrend at last round: -9.337."""
+        result = run_r_code("""
+TESTING <- TRUE
+source("analysis/issue_52_common.R")
+dt <- load_results_emotion_data_detrended()
+d <- dt[session_code=="6sdkxl2q" & label=="D" & segment=="supergame5" & round==5]
+cat("REVERSE:", round(d$valence_reverse_detrended, 4), "\\n")
+""")
+        assert result.returncode == 0, result.stderr
+        assert "REVERSE: -9.337" in result.stdout
+
+    def test_player_k_segmean_sucker_round(self):
+        """Player K s2r3: first-time sucker, segmean=-1.1036."""
+        result = run_r_code("""
+TESTING <- TRUE
+source("analysis/issue_52_common.R")
+dt <- load_results_emotion_data_detrended()
+k <- dt[session_code=="6sdkxl2q" & label=="K" & segment=="supergame2" & round==3]
+cat("SEGMEAN:", round(k$valence_segmean_detrended, 4), "\\n")
+cat("IS_SUCKER:", k$is_sucker_20, "\\n")
+cat("FIRST_TIME:", k$first_time_sucker, "\\n")
+""")
+        assert result.returncode == 0, result.stderr
+        assert "SEGMEAN: -1.1036" in result.stdout
+        assert "IS_SUCKER: TRUE" in result.stdout
+        assert "FIRST_TIME: TRUE" in result.stdout
+
+    def test_group_means_segmean_liar(self):
+        """Group means for segment-mean detrended by liar status."""
+        result = run_r_code("""
+TESTING <- TRUE
+source("analysis/issue_52_common.R")
+dt <- load_results_emotion_data_detrended()
+dt <- dt[!is.na(valence_segmean_detrended) & !is.na(is_liar_20)]
+s <- dt[, .(mean=mean(valence_segmean_detrended), n=.N), by=liar_label]
+for (i in seq_len(nrow(s))) {
+    cat(s$liar_label[i], "MEAN:", round(s$mean[i], 4), "N:", s$n[i], "\\n")
+}
+""")
+        assert result.returncode == 0, result.stderr
+        assert "Honest MEAN: 0.0871 N: 2608" in result.stdout
+        assert "Liar MEAN: 0.6863 N: 88" in result.stdout
+
+    def test_group_means_reverse_sucker(self):
+        """Group means for reverse detrended by sucker status."""
+        result = run_r_code("""
+TESTING <- TRUE
+source("analysis/issue_52_common.R")
+dt <- load_results_emotion_data_detrended()
+dt <- dt[!is.na(valence_reverse_detrended) & !is.na(is_sucker_20)]
+s <- dt[, .(mean=mean(valence_reverse_detrended), n=.N), by=sucker_label]
+for (i in seq_len(nrow(s))) {
+    cat(s$sucker_label[i], "MEAN:", round(s$mean[i], 4), "N:", s$n[i], "\\n")
+}
+""")
+        assert result.returncode == 0, result.stderr
+        assert "Non-sucker MEAN: -1.5136 N: 2545" in result.stdout
+        assert "Sucker MEAN: 2.5381 N: 151" in result.stdout
+
+
+# =====
+# issue_52_detrended_plots.R tests
+# =====
+EXPECTED_DETRENDED_PLOT_FILES = [
+    "valence_segment_mean_by_liar_status.png",
+    "valence_segment_mean_by_sucker_status.png",
+    "valence_segment_mean_by_first_time_liar.png",
+    "valence_segment_mean_by_first_time_sucker.png",
+    "valence_reverse_by_liar_status.png",
+    "valence_reverse_by_sucker_status.png",
+    "valence_reverse_by_first_time_liar.png",
+    "valence_reverse_by_first_time_sucker.png",
+]
+
+
+class TestDetrendedPlotsPreconditions:
+    """Verify the detrended plots script exists."""
+
+    def test_script_exists(self):
+        assert DETRENDED_PLOTS_SCRIPT.exists(), (
+            f"Detrended plots script missing: {DETRENDED_PLOTS_SCRIPT}"
+        )
+
+
+class TestDetrendedPlots:
+    """Test detrended valence plot script execution and outputs."""
+
+    def test_script_runs_successfully(self):
+        result = run_r_script(DETRENDED_PLOTS_SCRIPT, timeout=300)
+        assert result.returncode == 0, f"stderr: {result.stderr}"
+
+    def test_generates_8_plots(self):
+        """Should produce 4 plots x 2 methods = 8 PNG files."""
+        if not DETRENDED_PLOT_DIR.exists():
+            pytest.skip("Plot dir missing — run test_script_runs_successfully first")
+        pngs = list(DETRENDED_PLOT_DIR.glob("*.png"))
+        assert len(pngs) == 8, (
+            f"Expected 8 plots, found {len(pngs)}: "
+            f"{sorted(p.name for p in pngs)}"
+        )
+
+    @pytest.mark.parametrize("filename", EXPECTED_DETRENDED_PLOT_FILES)
+    def test_plot_file_exists_and_nonempty(self, filename):
+        path = DETRENDED_PLOT_DIR / filename
+        assert path.exists(), f"Plot file missing: {path}"
+        assert path.stat().st_size > 10_000, (
+            f"Plot file suspiciously small: {path.stat().st_size} bytes"
+        )
+
+
+# =====
+# Detrended plots summary statistics tests
+# =====
+class TestDetrendedPlotsSummary:
+    """Test summarize_detrend from the detrended plots script."""
+
+    def test_liar_segmean_summary_has_two_groups(self):
+        result = run_r_code("""
+TESTING <- TRUE
+source("analysis/issue_52_detrended_plots.R")
+dt <- load_results_emotion_data_detrended()
+dt_v <- dt[!is.na(valence_segmean_detrended) & !is.na(is_liar_20)]
+s <- summarize_detrend(dt_v, "valence_segmean_detrended",
+                       "liar_label", "Segment-Mean", "test.png")
+cat("N_ROWS:", nrow(s), "\\n")
+cat("METHOD:", s$method, "\\n")
+""")
+        assert result.returncode == 0, result.stderr
+        assert "N_ROWS: 1" in result.stdout
+        assert "METHOD: Segment-Mean" in result.stdout
+
+    def test_sucker_reverse_summary_has_two_groups(self):
+        result = run_r_code("""
+TESTING <- TRUE
+source("analysis/issue_52_detrended_plots.R")
+dt <- load_results_emotion_data_detrended()
+dt_v <- dt[!is.na(valence_reverse_detrended) & !is.na(is_sucker_20)]
+s <- summarize_detrend(dt_v, "valence_reverse_detrended",
+                       "sucker_label", "Reverse", "test.png")
+cat("N_ROWS:", nrow(s), "\\n")
+cat("METHOD:", s$method, "\\n")
+""")
+        assert result.returncode == 0, result.stderr
+        assert "N_ROWS: 1" in result.stdout
+        assert "METHOD: Reverse" in result.stdout
