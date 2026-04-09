@@ -104,11 +104,9 @@ create_lag <- function(dt) {
 # Regression models
 # =====
 estimate_models <- function(dt) {
-    m1 <- run_logit(dt, "lied ~ lied_prev_round | segment")
-    m2 <- run_logit(dt, "lied ~ lied_prev_round + female | segment")
-    m3 <- run_logit(dt, "lied ~ lied_prev_round + female + treatment | segment")
-    print_model_summary(m1, m2, m3)
-    return(list(m1 = m1, m2 = m2, m3 = m3))
+    m1 <- run_logit(dt, "lied ~ lied_prev_round + female + treatment | segment")
+    print(summary(m1))
+    return(list(m1 = m1))
 }
 
 run_logit <- function(dt, formula_str) {
@@ -120,21 +118,12 @@ run_logit <- function(dt, formula_str) {
     )
 }
 
-print_model_summary <- function(m1, m2, m3) {
-    cat("\n--- Model 1: Base (no controls) ---\n")
-    print(summary(m1))
-    cat("\n--- Model 2: + Gender ---\n")
-    print(summary(m2))
-    cat("\n--- Model 3: + Gender + Treatment ---\n")
-    print(summary(m3))
-}
-
 # =====
 # LaTeX export
 # =====
 export_table <- function(models, filepath) {
     etable(
-        models$m1, models$m2, models$m3,
+        models$m1,
         file = filepath,
         tex = TRUE,
         fitstat = c("n"),
@@ -143,7 +132,6 @@ export_table <- function(models, filepath) {
             female = "Female",
             treatment = "Treatment"
         ),
-        headers = c("Base", "+ Gender", "+ Gender + Treatment"),
         title = "Conditional Probability of Lying (Logistic Regression)"
     )
 }

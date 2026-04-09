@@ -32,7 +32,7 @@ EMOTION_LABELS = ['Anger', 'Contempt', 'Joy', 'Sadness', 'Surprise']
 def main():
     """Main execution flow for liar bucket visualizations."""
     df = load_and_merge()
-    df = filter_contribute_pages(df)
+    df = filter_results_pages(df)
     plot_sentiment_boxplot(df)
     plot_emotion_boxplots(df)
     save_summary_table(df)
@@ -62,13 +62,12 @@ def validate_inputs_exist():
         raise FileNotFoundError(f"Missing: {LIAR_BUCKETS}. Run liar_buckets.py first.")
 
 
-def filter_contribute_pages(df: pd.DataFrame) -> pd.DataFrame:
-    """Filter to Contribute pages, drop round 1 (no prior chat sentiment)."""
-    contrib = df[df['page_type'] == 'Contribute'].copy()
-    # Drop round 1 of each segment — no sentiment from prior chat
-    contrib = contrib[contrib['round'] > 1]
-    print(f"Filtered to {len(contrib)} Contribute rows (round > 1)")
-    return contrib
+def filter_results_pages(df: pd.DataFrame) -> pd.DataFrame:
+    """Filter to Results pages, drop round 1 (no sentiment data)."""
+    results = df[df['page_type'] == 'Results'].copy()
+    results = results[results['round'] > 1]
+    print(f"Filtered to {len(results)} Results rows (round > 1)")
+    return results
 
 
 # =====
