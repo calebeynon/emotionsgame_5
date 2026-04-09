@@ -159,7 +159,7 @@ build_coef_names <- function(model) {
         "Contribution$_{t-1}$", "Contribution$_{t-2}$",
         "Positive Deviation$_{t-1}$", "Negative Deviation$_{t-1}$",
         "Round 1", "Round 2", "Round 3", "Round 4", "Round 5",
-        "Supergame"
+        "Segment"
     )
     if (length(coef(model)) > length(names)) {
         names <- c(names, "Constant")
@@ -168,14 +168,36 @@ build_coef_names <- function(model) {
 }
 
 # =====
-# Build custom GOF rows (observations, AR tests, Sargan)
+# Wald test for linear hypothesis H0: Rβ = 0 using robust vcov
+# =====
+wald_test_pvalue <- function(robust_summary, coef_names) {
+    beta <- robust_summary$coefficients[, 1]
+    V <- robust_summary$vcov
+    idx <- match(coef_names, names(beta))
+    r <- beta[idx]
+    W <- sum(r)^2 / sum(V[idx, idx])
+    pchisq(W, df = 1, lower.tail = FALSE)
+}
+
+# =====
+# Build custom GOF rows (observations, AR tests, Sargan, Wald tests)
 # =====
 build_gof_rows <- function(m1, m2, s1, s2) {
+    # Wald test: positive + negative deviation = 0 (symmetry)
+    dev_vars <- c("contmore_L1", "contless_L1")
+    dev_p <- c(wald_test_pvalue(s1, dev_vars), wald_test_pvalue(s2, dev_vars))
+
+    # Wald test: round1 + round2 = 0
+    rd_vars <- c("round1", "round2")
+    rd_p <- c(wald_test_pvalue(s1, rd_vars), wald_test_pvalue(s2, rd_vars))
+
     list(
         "Observations" = c(extract(m1)@gof[4], extract(m2)@gof[4]),
         "AR(1) p-value" = c(s1$m1$p.value, s2$m1$p.value),
         "AR(2) p-value" = c(s1$m2$p.value, s2$m2$p.value),
-        "Sargan p-value" = c(s1$sargan$p.value, s2$sargan$p.value)
+        "Sargan p-value" = c(s1$sargan$p.value, s2$sargan$p.value),
+        "$\\beta_{\\text{pos}} + \\beta_{\\text{neg}} = 0$ (p)" = dev_p,
+        "$\\beta_{R1} + \\beta_{R2} = 0$ (p)" = rd_p
     )
 }
 
