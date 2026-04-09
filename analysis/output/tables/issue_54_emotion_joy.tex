@@ -1,0 +1,37 @@
+
+\begingroup
+\centering
+\begin{tabular}{lccccc}
+   \tabularnewline \midrule \midrule
+   Dependent Variable: & \multicolumn{5}{c}{emotion\_joy}\\
+                        & Cooperative & Promise        & Homogeneity & Round-liar    & Combined \\   
+   Model:               & (1)         & (2)            & (3)         & (4)           & (5)\\  
+   \midrule
+   \emph{Variables}\\
+   Cooperative          & 8.097$^{*}$ &                &             &               & 18.98\\   
+                        & (4.233)     &                &             &               & (17.49)\\   
+   Word Count           & 0.1287      & 0.0875         & 0.1266      & 0.0447        & 0.1182\\   
+                        & (0.1070)    & (0.0871)       & (0.1061)    & (0.0867)      & (0.1067)\\   
+   Sentiment (compound) & -1.271      & 0.5632         & -1.319      & 0.2645        & 0.1792\\   
+                        & (2.034)     & (1.912)        & (2.045)     & (1.941)       & (1.982)\\   
+   Promise              &             & -12.37$^{***}$ &             &               & -11.71$^{***}$\\   
+                        &             & (3.312)        &             &               & (4.366)\\   
+   Homogeneity          &             &                & 8.037$^{*}$ &               & -15.91\\   
+                        &             &                & (4.274)     &               & (18.64)\\   
+   Round-liar           &             &                &             & -13.42$^{**}$ & -2.203\\   
+                        &             &                &             & (5.756)       & (6.453)\\   
+   \midrule
+   \emph{Fixed-effects}\\
+   player\_id           & Yes         & Yes            & Yes         & Yes           & Yes\\  
+   segment              & Yes         & Yes            & Yes         & Yes           & Yes\\  
+   \midrule
+   \emph{Fit statistics}\\
+   Observations         & 1,791       & 1,791          & 1,791       & 1,791         & 1,791\\  
+   R$^2$                & 0.20849     & 0.21282        & 0.20846     & 0.20907       & 0.21350\\  
+   \midrule \midrule
+   \multicolumn{6}{l}{\emph{Clustered (cluster\_id) standard-errors in parentheses}}\\
+   \multicolumn{6}{l}{\emph{Signif. Codes: ***: 0.01, **: 0.05, *: 0.1}}\\
+\end{tabular}
+\par\endgroup
+
+
