@@ -1,0 +1,48 @@
+
+\begingroup
+\centering
+\begin{tabular}{lccc}
+   \tabularnewline \midrule \midrule
+   Dependent Variables: & emotion\_joy & \multicolumn{2}{c}{emotion\_valence}\\
+                                & Joy (Lied)    & Valence (Lied) & Valence (Suckered) \\   
+   Model:                       & (1)           & (2)            & (3)\\  
+   \midrule
+   \emph{Variables}\\
+   Constant                     & 2.147$^{***}$ & 0.5498         & 0.7487\\   
+                                & (0.6495)      & (0.7995)       & (0.8115)\\   
+   lied\_this\_round\_20TRUE    & 10.79$^{***}$ & 7.757$^{***}$  &   \\   
+                                & (3.775)       & (2.932)        &   \\   
+   segmentsupergame2            & 0.8070        & 0.7779         & 0.6031\\   
+                                & (0.6714)      & (0.8013)       & (0.8198)\\   
+   segmentsupergame3            & 1.455$^{*}$   & 1.903$^{**}$   & 1.609$^{*}$\\   
+                                & (0.7669)      & (0.8783)       & (0.8755)\\   
+   segmentsupergame4            & 1.718$^{**}$  & 2.278$^{***}$  & 2.051$^{**}$\\   
+                                & (0.7342)      & (0.8623)       & (0.8413)\\   
+   segmentsupergame5            & 1.044         & 1.417          & 1.117\\   
+                                & (0.7512)      & (0.8959)       & (0.9104)\\   
+   round2                       & -0.0340       & 0.7119         & 1.091$^{*}$\\   
+                                & (0.5172)      & (0.5701)       & (0.5582)\\   
+   round3                       & 0.4108        & 1.405$^{**}$   & 1.305$^{**}$\\   
+                                & (0.5333)      & (0.6242)       & (0.5829)\\   
+   round4                       & 0.2539        & 0.9786         & 0.9850\\   
+                                & (0.6898)      & (0.6670)       & (0.6781)\\   
+   round5                       & 0.4207        & 0.7174         & 0.8752\\   
+                                & (0.7065)      & (0.7935)       & (0.8299)\\   
+   round6                       & 2.597$^{*}$   & 4.014$^{***}$  & 4.229$^{***}$\\   
+                                & (1.439)       & (1.510)        & (1.567)\\   
+   round7                       & 1.200         & 2.229$^{*}$    & 2.394$^{*}$\\   
+                                & (1.142)       & (1.248)        & (1.264)\\   
+   suckered\_this\_roundTRUE    &               &                & 4.742$^{**}$\\   
+                                &               &                & (2.357)\\   
+   \midrule
+   \emph{Fit statistics}\\
+   Observations                 & 2,696         & 2,696          & 2,696\\  
+   R$^2$                        & 0.02893       & 0.02119        & 0.01502\\  
+   Adjusted R$^2$               & 0.02495       & 0.01717        & 0.01098\\  
+   \midrule \midrule
+   \multicolumn{4}{l}{\emph{Clustered (player\_id) standard-errors in parentheses}}\\
+   \multicolumn{4}{l}{\emph{Signif. Codes: ***: 0.01, **: 0.05, *: 0.1}}\\
+\end{tabular}
+\par\endgroup
+
+

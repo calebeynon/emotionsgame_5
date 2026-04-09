@@ -1,0 +1,54 @@
+
+\begingroup
+\centering
+\begin{tabular}{lcccc}
+   \tabularnewline \midrule \midrule
+   Dependent Variable: & \multicolumn{4}{c}{emotion\_valence}\\
+                               & Sucker Round (OLS) & Sucker Round (FE) & Liar (OLS)    & Liar (FE) \\   
+   Model:                      & (1)                & (2)               & (3)           & (4)\\  
+   \midrule
+   \emph{Variables}\\
+   Constant                    & 0.7487             &                   & 0.7771        &   \\   
+                               & (0.8115)           &                   & (0.8204)      &   \\   
+   suckered\_this\_roundTRUE   & 4.742$^{**}$       & 3.600$^{**}$      &               &   \\   
+                               & (2.357)            & (1.784)           &               &   \\   
+   segmentsupergame2           & 0.6031             &                   & 0.5655        &   \\   
+                               & (0.8198)           &                   & (0.8293)      &   \\   
+   segmentsupergame3           & 1.609$^{*}$        &                   & 1.582$^{*}$   &   \\   
+                               & (0.8755)           &                   & (0.8937)      &   \\   
+   segmentsupergame4           & 2.051$^{**}$       &                   & 2.007$^{**}$  &   \\   
+                               & (0.8413)           &                   & (0.8498)      &   \\   
+   segmentsupergame5           & 1.117              &                   & 1.084         &   \\   
+                               & (0.9104)           &                   & (0.9263)      &   \\   
+   round2                      & 1.091$^{*}$        & 1.091$^{*}$       & 1.091$^{*}$   & 1.091$^{*}$\\   
+                               & (0.5582)           & (0.5582)          & (0.5583)      & (0.5583)\\   
+   round3                      & 1.305$^{**}$       & 1.388$^{**}$      & 1.581$^{**}$  & 1.664$^{***}$\\   
+                               & (0.5829)           & (0.5970)          & (0.6136)      & (0.6089)\\   
+   round4                      & 0.9850             & 1.027             & 1.026         & 1.154$^{*}$\\   
+                               & (0.6781)           & (0.6831)          & (0.6678)      & (0.6598)\\   
+   round5                      & 0.8752             & 0.9046            & 0.8281        & 0.9801\\   
+                               & (0.8299)           & (0.8352)          & (0.8043)      & (0.8178)\\   
+   round6                      & 4.229$^{***}$      & 4.281$^{***}$     & 4.228$^{***}$ & 4.434$^{***}$\\   
+                               & (1.567)            & (1.565)           & (1.582)       & (1.569)\\   
+   round7                      & 2.394$^{*}$        & 2.428$^{*}$       & 2.192$^{*}$   & 2.493$^{*}$\\   
+                               & (1.264)            & (1.261)           & (1.299)       & (1.297)\\   
+   is\_liar\_20TRUE            &                    &                   & 3.119         & 0.3922\\   
+                               &                    &                   & (3.928)       & (2.447)\\   
+   first\_time\_liarTRUE       &                    &                   & -2.846        & -1.195\\   
+                               &                    &                   & (4.473)       & (3.233)\\   
+   \midrule
+   \emph{Fixed-effects}\\
+   segment                     &                    & Yes               &               & Yes\\  
+   player\_id                  &                    & Yes               &               & Yes\\  
+   \midrule
+   \emph{Fit statistics}\\
+   Observations                & 2,696              & 2,696             & 2,696         & 2,696\\  
+   R$^2$                       & 0.01502            & 0.27673           & 0.01283       & 0.27488\\  
+   Within R$^2$                &                    & 0.00969           &               & 0.00716\\  
+   \midrule \midrule
+   \multicolumn{5}{l}{\emph{Clustered (player\_id) standard-errors in parentheses}}\\
+   \multicolumn{5}{l}{\emph{Signif. Codes: ***: 0.01, **: 0.05, *: 0.1}}\\
+\end{tabular}
+\par\endgroup
+
+
