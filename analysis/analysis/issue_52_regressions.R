@@ -1,5 +1,5 @@
 # Purpose: Round-specific liar/sucker emotion regressions on the Results page
-#          Lied-this-round → Joy, Valence; Suckered-this-round → Valence
+#          Player + segment FE, round controls, clustered SEs by player
 # Author: Claude Code
 # Date: 2026-04-08
 
@@ -35,20 +35,27 @@ prepare_regression_data <- function() {
 }
 
 # =====
-# Derive suckered-this-round from cumulative flag
+# Derive suckered-this-round from round-level conditions
 # =====
 add_suckered_this_round <- function(dt) {
-    setorderv(dt, c("session_code", "label", "segment", "round"))
-    dt[, prev_sucker := shift(is_sucker_20, 1, fill = FALSE),
-       by = .(session_code, label, segment)]
-    dt[, suckered_this_round := (is_sucker_20 == TRUE) &
-           (prev_sucker == FALSE)]
-    dt[, prev_sucker := NULL]
+    # A player is suckered in round R if: a groupmate lied this round
+    # AND the player cooperated (contributed max = 25)
+    bc <- fread(BEHAVIOR_CSV)
+    group_has_liar <- bc[lied_this_round_20 == TRUE,
+                         .(groupmate_lied = TRUE),
+                         by = .(session_code, segment, round, group)]
+    dt <- merge(dt, group_has_liar,
+                by = c("session_code", "segment", "round", "group"),
+                all.x = TRUE)
+    dt[is.na(groupmate_lied), groupmate_lied := FALSE]
+    dt[, suckered_this_round := groupmate_lied &
+           (contribution == 25) & (lied_this_round_20 == FALSE)]
+    dt[, groupmate_lied := NULL]
     return(dt)
 }
 
 # =====
-# Estimate the 3 key models
+# Estimate 3 models with player + segment FE
 # =====
 estimate_models <- function(dt) {
     dt_val <- dt[!is.na(emotion_valence)]
@@ -56,11 +63,14 @@ estimate_models <- function(dt) {
 
     list(
         lied_joy = feols(emotion_joy ~ lied_this_round_20 +
-            segment + round, cluster = ~player_id, data = dt_joy),
+            round | segment + player_id,
+            cluster = ~player_id, data = dt_joy),
         lied_valence = feols(emotion_valence ~ lied_this_round_20 +
-            segment + round, cluster = ~player_id, data = dt_val),
+            round | segment + player_id,
+            cluster = ~player_id, data = dt_val),
         suckered_valence = feols(emotion_valence ~ suckered_this_round +
-            segment + round, cluster = ~player_id, data = dt_val)
+            round | segment + player_id,
+            cluster = ~player_id, data = dt_val)
     )
 }
 
@@ -85,13 +95,11 @@ export_table <- function(models) {
 print_summary <- function(models) {
     for (name in names(models)) {
         m <- models[[name]]
-        flag_idx <- grep("lied_this|suckered_this", names(coef(m)))
-        coef_val <- coef(m)[flag_idx]
-        se_val <- sqrt(vcov(m)[flag_idx, flag_idx])
-        p_val <- 2 * pt(abs(coef_val / se_val),
-                        m$nobs - length(coef(m)), lower.tail = FALSE)
+        ct <- coeftable(m)
+        flag_row <- grep("lied_this|suckered_this", rownames(ct))
         message(sprintf("  %s: coef=%.3f se=%.3f p=%.4f n=%d",
-                        name, coef_val, se_val, p_val, m$nobs))
+                        name, ct[flag_row, 1], ct[flag_row, 2],
+                        ct[flag_row, 4], m$nobs))
     }
 }
 
