@@ -275,34 +275,14 @@ We observe continuous emotion variables, such as valence, anger, or frustration,
 
 One could typically expect facial emotions and communication sentiment to be positively correlated in cases where someone is telling the truth.
 In the case where a participant is lying, it seems plausible that sentiment and emotion could differ as they attempt to deceive their groupmates.
-To create the comparison between emotions and sentiment, we first normalize each observation using the min-max normalization method across the entire sample.
-We only analyze sentiment and emotions during the communication \textit{prior} to the contribution, and the contribution itself. Differences are not taken
-across rounds. 
+We only analyze sentiment and emotions during the communication \textit{prior} to the contribution, and viewing the group contribution results.
 
-Figure \ref{fig:emotion_sentiment_gap_by_liar_status} displays the normalized valence emotion and sentiment split by liar status.
-In the case where a participant is not lying, there is no significant difference between the facial emotions and communication sentiment. 
-However, when a participant is lying, their communication sentiment is significantly lower than facial emotions. One possible explanation is that
-liars try to communicate similarly to everyone else (typically very neutral), but know that they will defect and receive a higher payoff. This 
-would be observable in their facial expression, but not in their public communication.
-\begin{figure}[htbp]
+\begin{table}[htbp]
     \centering
-    \includegraphics[width=\linewidth]{emotion_sentiment_gap_by_liar_status.png}
-    \caption{Comparison of normalized emotions and sentiment by liar status.}
-    \label{fig:emotion_sentiment_gap_by_liar_status}
-\end{figure}
-
-Additionally, we test whether the gap in emotions and sentiment is predictive of a participant lying. We use
-the following logit specification,
-
-\begin{equation}
-    \Pr(\text{Lied}_{it} = 1 \mid \text{Promise}_{it} = 1) = \Lambda\left(\beta_1 \, \text{Gap}_{it} + \alpha_r + \gamma_s\right)
-    \label{eq:logit_liar}
-\end{equation}
-
-Where $\Lambda(\cdot)$ is the logistic function $\frac{e^x}{1+e^x}$, and $\text{Gap}_{it}$ is the min-max normalized emotion-sentiment gap (facial valence minus chat sentiment). The
-liar model conditions on the subsample of participant-rounds where a promise was made. After estimation and inference, we find that
-$\hat{\beta_1} = 1.034$ is not significant, failing to demonstrate the ability of the emotion sentiment gap to predict lying, likely
-due to lack of power.
+    \caption{Facial Valence--Chat Sentiment Gap Regressions}
+    \label{table:valence_sentiment_gap}
+    \input{issue_52_valence_sentiment_gap_regressions}
+\end{table}
 
 \subsection{Using Text Embeddings for External Validition}
 
