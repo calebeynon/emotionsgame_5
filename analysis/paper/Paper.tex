@@ -314,17 +314,6 @@ liar model conditions on the subsample of participant-rounds where a promise was
 $\hat{\beta_1} = 1.034$ is not significant, failing to demonstrate the ability of the emotion sentiment gap to predict lying, likely
 due to lack of power.
 
-\subsubsection{Persistence of Lying}
-
-We also examine whether lying is persistent within participants across rounds. Using all participant-round observations (not conditioned on promises), we estimate a logistic regression of the form:
-
-\begin{equation}
-    \Pr(\text{Lied}_{it} = 1) = \Lambda\left(\beta_1 \, \text{LiedPrev}_{it} + \beta_2 \, \text{Female}_i + \beta_3 \, \text{Treatment}_i + \alpha_s\right)
-    \label{eq:logit_liar_conditional}
-\end{equation}
-
-where $\text{LiedPrev}_{it}$ is an indicator for whether participant $i$ lied in the previous round of the same supergame, and $\alpha_s$ are segment fixed effects. Standard errors are clustered at the participant level. Table \ref{table:liar_conditional_probability} presents the results. Participants who lied in the previous round are approximately 4.3 times more likely to lie again ($\hat{\beta_1} = 1.448$, $p < 0.01$). Gender and treatment are not significant predictors of lying.
-
 \begin{table}[htbp]
     \centering
     \caption{Conditional Probability of Lying (Logistic Regression)}

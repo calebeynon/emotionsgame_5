@@ -52,8 +52,8 @@ P(liar_t | liar_{t-1}) — the probability of lying in the current round given t
 
 **Model**:
 ```r
-feglm(lied_this_round_20 ~ lied_prev_round + gender + treatment | segment,
-      family = binomial, cluster = ~label_session, data = df)
+feglm(lied ~ lied_prev_round + female + treatment | segment,
+      family = binomial, cluster = ~label_session, data = dt)
 ```
 
 **Steps**:
@@ -74,7 +74,7 @@ feglm(lied_this_round_20 ~ lied_prev_round + gender + treatment | segment,
 
 **Steps**:
 1. Merge liar buckets onto merged panel by session_code + label
-2. Filter to `page_type == "Contribute"` (one row per player-round)
+2. Filter to `page_type == "Results"` (reaction to round outcomes)
 3. Drop round 1 of each segment (no prior chat to generate sentiment)
 
 **Outputs**:
