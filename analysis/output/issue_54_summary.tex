@@ -1,0 +1,112 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{booktabs}
+\usepackage{amsmath}
+\usepackage{parskip}
+\usepackage{enumitem}
+
+\title{Issue \#54: Embedding Projections $\rightarrow$ Facial Emotion\\[6pt]
+\large Summary of Specifications, Results, and Interpretation}
+\author{}
+\date{April 9, 2026}
+
+\begin{document}
+\maketitle
+
+\section{Research Question}
+
+Do chat embedding projections---measuring the cooperative, promise-making, homogeneity, and liar-like content of a player's messages---predict facial emotion during the subsequent contribution decision?
+
+\section{Data and Timing}
+
+Chat occurs \textbf{after} each round's contribution decision. Chat from round $N$ is paired with round $N+1$'s data. Facial emotion is measured via iMotions (webcam-based affect detection) during the \textbf{Contribute page} of round $N+1$.
+
+\medskip
+\noindent Timeline for a single player:
+\begin{enumerate}[nosep]
+    \item Round $N$: Contribute $\rightarrow$ Results $\rightarrow$ \textbf{Chat}
+    \item Round $N+1$: \textbf{Facial emotion measured} $\rightarrow$ Contribute $\rightarrow$ Results $\rightarrow$ Chat
+\end{enumerate}
+
+Round 1 has no prior chat and is excluded, yielding $N = 1{,}791$ complete-case observations across 10 sessions and 5 supergames.
+
+\section{Projection Variables}
+
+Each player's chat messages are embedded (text-embedding-3-small), then projected onto direction vectors defined by group centroids:
+
+\begin{itemize}[nosep]
+    \item \textbf{Cooperative}: centroid of high-contributor chat $-$ low-contributor chat
+    \item \textbf{Promise}: centroid of promise-making chat $-$ non-promise chat
+    \item \textbf{Homogeneity}: within-group embedding similarity
+    \item \textbf{Round-liar}: centroid of liar chat $-$ non-liar chat (liar $=$ promised $\wedge$ contributed $< 20$)
+\end{itemize}
+
+Multiple messages per player-round are averaged to a single projection score.
+
+\section{Specification}
+
+Each cell in the results table is a separate univariate regression:
+\begin{equation*}
+    \text{Emotion}_Y \;=\; \beta \cdot \text{Projection}_X \;+\; \gamma_1 \cdot \text{WordCount} \;+\; \gamma_2 \cdot \text{Sentiment} \;+\; \alpha_i \;+\; \delta_s \;+\; \varepsilon
+\end{equation*}
+
+\begin{itemize}[nosep]
+    \item Fixed effects: player ($\alpha_i$), supergame segment ($\delta_s$)
+    \item Standard errors clustered at session $\times$ segment $\times$ group level
+    \item Controls: word count and VADER compound sentiment
+\end{itemize}
+
+\section{Results}
+
+\input{tables/issue_54_combined.tex}
+
+\medskip
+Key findings:
+\begin{itemize}[nosep]
+    \item \textbf{Promise} projection significantly predicts lower Valence ($-12.70^{***}$) and Joy ($-12.37^{***}$)
+    \item \textbf{Round-liar} projection predicts lower Valence ($-16.16^{**}$), lower Joy ($-13.42^{**}$), and higher Contempt ($2.908^{**}$)
+    \item \textbf{Cooperative} and \textbf{Homogeneity} show weak positive effects on Valence/Joy (marginal significance)
+    \item No projection significantly predicts Anger or Surprise
+\end{itemize}
+
+\section{Interpretation Puzzle: Round-Liar Projection}
+
+The negative Round-liar $\rightarrow$ Valence result is initially surprising: why would liar-like language predict negative facial affect?
+
+\subsection{Ruling out the obvious explanation}
+
+A separate regression of a binary liar flag on valence during the \textbf{Chat page} (same round as the lie) found a \textbf{positive} effect---liars show higher valence while chatting, not lower. So actual liars are not driving the negative valence result in the next round.
+
+\subsection{Ruling out social contagion}
+
+We tested whether being lied to in round $N-1$ causes a player to adopt liar-like language in round $N$. Among non-liars whose groupmates lied in the previous round:
+\begin{itemize}[nosep]
+    \item Correlation with own projection: $r = 0.03$ (negligible)
+    \item Mean projection: 0.065 (others lied) vs.\ 0.057 (others did not) --- minimal difference
+\end{itemize}
+Social contagion of liar-like language is not supported.
+
+\subsection{The actual driver: non-liars with liar-like language}
+
+Decomposing by liar status reveals the effect comes from \textbf{non-liars} (n $= 1{,}720$):
+
+\begin{center}
+\begin{tabular}{lcccc}
+\toprule
+& Mean Projection & Mean Valence & Mean Contribution & N \\
+\midrule
+Non-liars, high projection ($\geq$ p75) & 0.130 & 4.01 & 23.7 & 430 \\
+Non-liars, low projection ($\leq$ p25) & 0.001 & 6.65 & 23.4 & 430 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+These two groups are behaviorally identical (same contributions, same cooperative/noncooperative split, similar sentiment). They differ only in \textbf{linguistic style}: high-projection non-liars use shorter messages (6.9 vs.\ 8.3 words) that happen to resemble liar language.
+
+\subsection{Open question}
+
+The round-liar direction vector, while defined by the liar/non-liar centroid difference, appears to capture a linguistic dimension---possibly terse or disengaged communication---that correlates with negative facial affect but is orthogonal to actual lying behavior. The projection is a weak predictor of actual lying ($r = 0.28$) and a weaker predictor of facial emotion ($r = -0.06$), but the regression coefficient is statistically significant with player fixed effects.
+
+What this linguistic dimension represents substantively, and whether the round-liar direction is the right way to capture it, remains an open question.
+
+\end{document}
