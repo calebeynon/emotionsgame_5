@@ -192,7 +192,8 @@ build_gof_rows <- function(m1, m2, s1, s2) {
     rd_p <- c(wald_test_pvalue(s1, rd_vars), wald_test_pvalue(s2, rd_vars))
 
     list(
-        "Observations" = c(extract(m1)@gof[4], extract(m2)@gof[4]),
+        "Observations" = c(sum(sapply(m1$residuals, length)),
+                          sum(sapply(m2$residuals, length))),
         "AR(1) p-value" = c(s1$m1$p.value, s2$m1$p.value),
         "AR(2) p-value" = c(s1$m2$p.value, s2$m2$p.value),
         "Sargan p-value" = c(s1$sargan$p.value, s2$sargan$p.value),
