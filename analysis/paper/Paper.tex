@@ -196,7 +196,7 @@ made a lot more sense to me. Perhaps you could fill out the results from the dyn
 
 \subsection{Classifying Behavior}
 
-During the experiment, we allowed participants to communicate freely with very little restriction. This allowed for text analysis across many dimensions.
+During the experiment, we allowed participants to communicate freely with little restriction. This allowed for text analysis across several dimensions.
 We first start by presenting a classification of text and corresponding behavior that relates to our hypotheses. Historically, classifying text has been arduous. However, we utilize recent advancements in large language models
 to perform this task. Specifically, we are interested in identifying whether a participant makes a promise to other group members.
 Using \cite{openai_gpt5mini_2025}'s GPT-5-mini model, we classify a participant's message as a promise or not a promise \footnote{ We use the same prompt for all participants. This prompt includes the following elements: a brief explanation of the public goods game, a list of examples of promises, a message to classify, and the 
@@ -204,14 +204,45 @@ preceding messages in the conversation. The model is explicitly told to take the
 
 By classifying the messages from participants, we can classify their behavior as well. We create two separate classifications at the participant-round level.
 First, we classify a participant as a ``liar'' if they made a promise, but later failed to contribute more than 20 ECUs in the next contribution decision. Each participant begins each segment without the ``liar'' label, but the label persists for the rest of the segment once they first become a liar. We then classify a participant as a ``sucker'' if they contributed the maximum (25 points) in a round where a groupmate lied. Similar to the liar label, the sucker label persists for the rest of the segment once they first become a sucker.
-Table \ref{table:behavior_summary_aggregate} presents the number of suckers and liars by treatment and segment. 
+%Table \ref{table:behavior_summary_aggregate} presents the number of suckers and liars by treatment and segment. 
+
+We examine the persistence of liars throughout the experiment. We use the following logit fixed effects specification,
+\begin{equation}
+    \Pr(\text{Lied}_{i,t} = 1) = \Lambda\left(\beta_1 \cdot \text{Lied}_{i,t-1} + \beta_2 \cdot \text{Female}_i + \beta_3 \cdot \text{Treatment}_i + \alpha_s\right) 
+    \label{eq:liar_logit}
+\end{equation}
+where $\Lambda(\cdot)$ is the logitistic function, $Lied{i,t}$ is a binary variable indicating whether they
+lied during the communication phase of round $t$, $Female_i$ is a binary variable for gender, and $Treatment_i$ is a binary
+variable for treatment 2, and $\alpha_s$ are segment fixed effects. We use fixed effects
+to examine the probability absent regrouping effects. Table \ref{table:logit_liar_results} presents the results from this specification.
+Both gender and treatment are not significant predictors of the probability of lying at the individual-round level.
+Lying in the previous round is a significant, positive predictor of lying in the current round. This indicates that
+lying is a persistent behavior. While this describes behavior conditional on being a liar, figure \ref{fig:liar_dist} presents
+the distribution of lying frequency. 105 out of 160 participants never lie throughout the entire experiment. Lying is an uncommon, but persistent behavior. 
+
+
 
 \begin{table}
-\centering
-\input{behavior_summary_aggregate.tex}
-\caption{Summary of sucker and liar counts by treatment and segment}
-\label{table:behavior_summary_aggregate}
+    \centering
+    \input{liar_conditional_probability.tex}
+    \caption{Logit regression for the probability of lying. Standard errors clustered at the individual level.}
+    \label{table:logit_liar_results}
 \end{table}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\linewidth]{liar_count_distribution.png}
+    \caption{The distribution of liars at the participant-round level.}
+    \label{fig:liar_dist}
+\end{figure}
+
+
+%\begin{table}
+%\centering
+%\input{behavior_summary_aggregate.tex}
+%\caption{Summary of sucker and liar counts by treatment and segment}
+%\label{table:behavior_summary_aggregate}
+%\end{table}
 
 While creating binary classifications based on communication and contributions is helpful, it fails to
 analyze the emotions and sentiment present in the communication between subjects. Hence, we use the VADER sentiment
@@ -247,7 +278,7 @@ We analyze the effect of communication sentiment on individual contributions. We
 \end{equation}
 
 where $Contribution_{i,t}$ is the round level individual contribution, $treatment_{i}$ is a binary variable for treatment 2,
-$sentiment_{i,t}$ is the mean sentiment for participant $i$ in round, segment $t$, $n_messages_{i,t}$ is the number of messages sent
+$sentiment_{i,t}$ is the mean sentiment for participant $i$ in round, segment $t$, $n\_messages_{i,t}$ is the number of messages sent
 by participant $i$ in $t$, $\alpha_r$ are round fixed effects and $\gamma_s$ are segment fixed effects. Table \ref{table:contribution_regression}
 presents the results from this regression. Sentiment has a positive and significant coefficient of 2.182, indicating that a positive valence
 is associated with higher contributions in expectation. The number of messages sent by an individual is not significant. A limitation of our experimental design
@@ -344,6 +375,13 @@ Where $\Lambda(\cdot)$ is the logistic function $\frac{e^x}{1+e^x}$, and $\text{
 liar model conditions on the subsample of participant-rounds where a promise was made. After estimation and inference, we find that
 $\hat{\beta_1} = 1.034$ is not significant, failing to demonstrate the ability of the emotion sentiment gap to predict lying, likely
 due to lack of power.
+
+\begin{table}[htbp]
+    \centering
+    \caption{Conditional Probability of Lying (Logistic Regression)}
+    \label{table:liar_conditional_probability}
+    \input{liar_conditional_probability}
+\end{table}
 
 \subsection{Using Text Embeddings for External Validition}
 
