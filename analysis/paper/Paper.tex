@@ -155,6 +155,26 @@ displays the contribution CDF by treatment. The CDF from Treatment 1 first-order
 
 \subsection{Regression Analysis}
 
+We start by analyzing the dynamic effect of individual contributions across treatments. We estimate the following model subsetted
+by treatment using two-step difference GMM[CITE Arrellano and Bond].  
+\begin{equation}
+\begin{split}
+    \Delta Contribution_{i,t}
+    &= \beta_1 \Delta Contribution_{i,t-1} + \beta_2 \Delta Contribution_{i,t-2} \\
+    &\quad + \beta_{pos} \Delta D^+_{i,t-1} + \beta_{neg} \Delta D^-_{i,t-1}
+    + \sum_{r=1}^{5} \beta_{Rr} \cdot 1\{Round_{t} = r\} \\
+    &\quad + \psi \Delta Segment_{t} + \varepsilon_{i,t}
+\end{split}
+\label{eq:dynamic_reg}
+\end{equation}
+Where $\Delta Contribution_{i,t} = Contribution_{i,t} - Contribution_{i,t-1}$ and $Contribution_{i,t}$ is the 
+round level individual contribution to the group account. $D^+_{i,t}$ and $D^-_{i,t}$ are binary variables indicating
+whether the individual contribution was greater or less than the group mean for round $t$. $Round_t$ and $Segment_t$
+are variables for position in time within the experiment. We use $\Delta Contribution_{i,t-2}$, $\Delta Contribution_{i,t-3}$, and $\Delta Contribution_{i,t-4}$ 
+as the lagged instruments. 
+
+
+
 \begin{table}
     \centering \footnotesize
     \input{dynamic_regression.tex}
@@ -162,7 +182,18 @@ displays the contribution CDF by treatment. The CDF from Treatment 1 first-order
     \label{tab:dynamic_regression}
 \end{table}
 
-\newpage
+Table \ref{tab:dynamic_regression} presents the results from this specification. 
+
+
+\bigskip
+\noindent\fcolorbox{red}{yellow!10}{%
+\parbox{\dimexpr\textwidth-2\fboxsep-2\fboxrule}{%
+\textbf{Note (to be excluded from the paper):} I tried to add my own interpretation but I think Paan's explanation of this
+made a lot more sense to me. Perhaps you could fill out the results from the dynamic model.
+}}
+\bigskip
+
+
 \subsection{Classifying Behavior}
 
 During the experiment, we allowed participants to communicate freely with very little restriction. This allowed for text analysis across many dimensions.
