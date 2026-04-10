@@ -155,16 +155,12 @@ export_latex_table <- function(m1, m2, filepath) {
 # Build coefficient display names
 # =====
 build_coef_names <- function(model) {
-    names <- c(
+    c(
         "Contribution$_{t-1}$", "Contribution$_{t-2}$",
         "Positive Deviation$_{t-1}$", "Negative Deviation$_{t-1}$",
         "Round 1", "Round 2", "Round 3", "Round 4", "Round 5",
         "Segment"
     )
-    if (length(coef(model)) > length(names)) {
-        names <- c(names, "Constant")
-    }
-    return(names)
 }
 
 # =====
