@@ -5,7 +5,7 @@
 # Translates analysis/analysis/dynamic_regression.do to R
 # Model: xtabond equivalent with 2 lags of dependent variable, two-step GMM
 # Separate estimations for Treatment 1 and Treatment 2
-# Instruments: lags 2-4 of contribution (maxldep=4, maxlags=4)
+# Instruments: lags 2-5 of contribution (maxldep(4) = 4 instrument lags starting from lag 2)
 
 # nolint start
 library(data.table)
@@ -111,7 +111,7 @@ run_arellano_bond <- function(pdata) {
             contmore_L1 + contless_L1 +
             round1 + round2 + round3 + round4 + round5 +
             segmentnumber |
-            lag(contribution, 2:4),
+            lag(contribution, 2:5),
         data = pdata,
         effect = "individual",
         model = "twosteps",
