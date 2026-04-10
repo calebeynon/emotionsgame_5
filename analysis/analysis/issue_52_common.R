@@ -1,6 +1,6 @@
 # Purpose: Shared data prep for Issue #52 — valence of liars and suckers
-#          Loads ResultsOnly emotion data, merges behavior classifications,
-#          and computes first-time liar/sucker flags
+#          Loads ResultsOnly and Chat emotion data, merges behavior
+#          classifications, and computes first-time liar/sucker flags
 # Author: Claude Code
 # Date: 2026-04-06
 
@@ -24,25 +24,45 @@ EMOTION_DISPLAY_NAMES <- c(
 # =====
 main <- function() {
     dt <- load_results_emotion_data()
-    message(sprintf("Loaded %d ResultsOnly rows (%d with valence data)",
-                    nrow(dt), sum(!is.na(dt$emotion_valence))))
-    message(sprintf("First-time liars: %d, First-time suckers: %d",
+    print_data_summary(dt, "ResultsOnly")
+    chat_dt <- load_chat_emotion_data()
+    print_data_summary(chat_dt, "Chat")
+}
+
+# =====
+# Summary printer
+# =====
+print_data_summary <- function(dt, label) {
+    message(sprintf("Loaded %d %s rows (%d with valence data)",
+                    nrow(dt), label, sum(!is.na(dt$emotion_valence))))
+    message(sprintf("  First-time liars: %d, First-time suckers: %d",
                     sum(dt$first_time_liar, na.rm = TRUE),
                     sum(dt$first_time_sucker, na.rm = TRUE)))
 }
 
 # =====
-# Load and prepare ResultsOnly emotion data
+# Private helper: load emotion data filtered by page_type
 # =====
-load_results_emotion_data <- function(filepath = INPUT_CSV) {
+load_emotion_data_by_page <- function(target_page, filepath = INPUT_CSV) {
     dt <- fread(filepath)
-    dt <- dt[page_type == "ResultsOnly"]
+    dt <- dt[page_type == target_page]
     dt <- merge_behavior_classifications(dt)
     dt <- add_readable_labels(dt)
     dt <- add_first_time_flags(dt)
     dt <- add_first_time_labels(dt)
     dt <- zscore_valence(dt)
     return(dt)
+}
+
+# =====
+# Public loaders: ResultsOnly and Chat
+# =====
+load_results_emotion_data <- function(filepath = INPUT_CSV) {
+    return(load_emotion_data_by_page("ResultsOnly", filepath))
+}
+
+load_chat_emotion_data <- function(filepath = INPUT_CSV) {
+    return(load_emotion_data_by_page("Results", filepath))
 }
 
 # =====
@@ -123,18 +143,26 @@ compute_expanding_deviation <- function(x) {
 }
 
 # =====
-# Load ResultsOnly data with within-person deviations
+# Private helper: load data with within-person deviations
 # =====
-load_results_emotion_data_wp <- function(filepath = INPUT_CSV) {
+load_emotion_data_wp_by_page <- function(target_page, filepath = INPUT_CSV) {
     dt <- fread(filepath)
-    dt <- dt[page_type %in% c("ResultsOnly", "all_instructions")]
+    dt <- dt[page_type %in% c(target_page, "all_instructions")]
     dt <- apply_within_person_deviations(dt)
-    dt <- dt[page_type == "ResultsOnly"]
+    dt <- dt[page_type == target_page]
     dt <- merge_behavior_classifications(dt)
     dt <- add_readable_labels(dt)
     dt <- add_first_time_flags(dt)
     dt <- add_first_time_labels(dt)
     return(dt)
+}
+
+load_results_emotion_data_wp <- function(filepath = INPUT_CSV) {
+    return(load_emotion_data_wp_by_page("ResultsOnly", filepath))
+}
+
+load_chat_emotion_data_wp <- function(filepath = INPUT_CSV) {
+    return(load_emotion_data_wp_by_page("Results", filepath))
 }
 
 # Apply within-person deviations to all emotion columns + valence
@@ -209,14 +237,14 @@ detrend_residuals <- function(y, t_all, t_train) {
 }
 
 # =====
-# Load ResultsOnly data with linear detrending
+# Private helper: load data with linear detrending
 # =====
-load_results_emotion_data_detrended <- function(filepath = INPUT_CSV) {
+load_emotion_data_detrended_by_page <- function(target_page, filepath = INPUT_CSV) {
     dt <- fread(filepath)
-    dt <- dt[page_type %in% c("ResultsOnly", "all_instructions")]
+    dt <- dt[page_type %in% c(target_page, "all_instructions")]
     dt <- detrend_valence_segmean(dt)
     dt <- detrend_valence_reverse(dt)
-    dt <- dt[page_type == "ResultsOnly"]
+    dt <- dt[page_type == target_page]
     dt <- merge_behavior_classifications(dt)
     dt <- add_readable_labels(dt)
     dt <- add_first_time_flags(dt)
@@ -224,12 +252,20 @@ load_results_emotion_data_detrended <- function(filepath = INPUT_CSV) {
     return(dt)
 }
 
+load_results_emotion_data_detrended <- function(filepath = INPUT_CSV) {
+    return(load_emotion_data_detrended_by_page("ResultsOnly", filepath))
+}
+
+load_chat_emotion_data_detrended <- function(filepath = INPUT_CSV) {
+    return(load_emotion_data_detrended_by_page("Results", filepath))
+}
+
 # =====
-# Z-score emotion_valence within ResultsOnly subset
+# Z-score emotion_valence within the filtered subset
 # =====
 zscore_valence <- function(dt) {
     complete <- dt[!is.na(emotion_valence)]
-    if (nrow(complete) == 0) stop("No non-NA valence values in ResultsOnly data")
+    if (nrow(complete) == 0) stop("No non-NA valence values in data")
     val_mean <- mean(complete$emotion_valence)
     val_sd <- sd(complete$emotion_valence)
     if (val_sd == 0) stop("Zero variance in emotion_valence — cannot z-score")
