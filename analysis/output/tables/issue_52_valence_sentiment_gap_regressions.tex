@@ -1,44 +1,44 @@
 
 \begingroup
 \centering
-\begin{tabular}{lcc}
+\begin{tabular}{lcccc}
    \tabularnewline \midrule \midrule
-   Dependent Variable: & \multicolumn{2}{c}{Y}\\
-                           & Lied (Face-Chat Gap) & Suckered (Face-Chat Gap) \\   
-   Model:                  & (1)                  & (2)\\  
+   Dependent Variable: & \multicolumn{4}{c}{Y}\\
+    & \multicolumn{2}{c}{Results Page Face} & \multicolumn{2}{c}{Chat Period Face} \\ 
+   Model:                  & (1)          & (2)         & (3)           & (4)\\  
    \midrule
    \emph{Variables}\\
-   Lied This Round         & -1.140               &   \\   
-                           & (0.7803)             &   \\   
-   Face $\times$ Lied      & 7.596$^{**}$         &   \\   
-                           & (2.925)              &   \\   
-   round3                  & 0.2519               & 0.2355\\   
-                           & (0.3083)             & (0.3172)\\   
-   round4                  & 0.0959               & 0.0636\\   
-                           & (0.4369)             & (0.4474)\\   
-   round5                  & 0.1715               & 0.1661\\   
-                           & (0.4569)             & (0.4691)\\   
-   round6                  & 1.539$^{*}$          & 1.612$^{*}$\\   
-                           & (0.8584)             & (0.8877)\\   
-   round7                  & 0.9967               & 1.013\\   
-                           & (0.8467)             & (0.8404)\\   
-   Suckered This Round     &                      & -0.3268\\   
-                           &                      & (0.5055)\\   
-   Face $\times$ Suckered  &                      & 1.765\\   
-                           &                      & (1.563)\\   
+   Lied This Round         & -1.140       &             & -1.971        &   \\   
+                           & (0.7803)     &             & (1.318)       &   \\   
+   Face $\times$ Lied      & 7.596$^{**}$ &             & 1.382         &   \\   
+                           & (2.925)      &             & (2.825)       &   \\   
+   round3                  & 0.2519       & 0.2355      & 1.255$^{***}$ & 1.243$^{***}$\\   
+                           & (0.3083)     & (0.3172)    & (0.3058)      & (0.2961)\\   
+   round4                  & 0.0959       & 0.0636      & 1.264$^{***}$ & 1.269$^{***}$\\   
+                           & (0.4369)     & (0.4474)    & (0.4632)      & (0.4596)\\   
+   round5                  & 0.1715       & 0.1661      & 1.465$^{***}$ & 1.450$^{***}$\\   
+                           & (0.4569)     & (0.4691)    & (0.5129)      & (0.5108)\\   
+   round6                  & 1.539$^{*}$  & 1.612$^{*}$ & 1.623$^{***}$ & 1.570$^{***}$\\   
+                           & (0.8584)     & (0.8877)    & (0.5965)      & (0.5892)\\   
+   round7                  & 0.9967       & 1.013       & 3.554$^{***}$ & 3.533$^{***}$\\   
+                           & (0.8467)     & (0.8404)    & (0.7387)      & (0.7370)\\   
+   Suckered This Round     &              & -0.3268     &               & -0.3583\\   
+                           &              & (0.5055)    &               & (0.7256)\\   
+   Face $\times$ Suckered  &              & 1.765       &               & -0.7439\\   
+                           &              & (1.563)     &               & (1.585)\\   
    \midrule
    \emph{Fixed-effects}\\
-   segment                 & Yes                  & Yes\\  
-   player\_id              & Yes                  & Yes\\  
-   channel                 & Yes                  & Yes\\  
+   segment                 & Yes          & Yes         & Yes           & Yes\\  
+   player\_id              & Yes          & Yes         & Yes           & Yes\\  
+   channel                 & Yes          & Yes         & Yes           & Yes\\  
    \midrule
    \emph{Fit statistics}\\
-   Observations            & 3,582                & 3,582\\  
-   R$^2$                   & 0.17096              & 0.16221\\  
-   Within R$^2$            & 0.01288              & 0.00245\\  
+   Observations            & 3,582        & 3,582       & 3,690         & 3,690\\  
+   R$^2$                   & 0.17096      & 0.16221     & 0.25931       & 0.25893\\  
+   Within R$^2$            & 0.01288      & 0.00245     & 0.00898       & 0.00848\\  
    \midrule \midrule
-   \multicolumn{3}{l}{\emph{Clustered (player\_id) standard-errors in parentheses}}\\
-   \multicolumn{3}{l}{\emph{Signif. Codes: ***: 0.01, **: 0.05, *: 0.1}}\\
+   \multicolumn{5}{l}{\emph{Clustered (player\_id) standard-errors in parentheses}}\\
+   \multicolumn{5}{l}{\emph{Signif. Codes: ***: 0.01, **: 0.05, *: 0.1}}\\
 \end{tabular}
 \par\endgroup
 
