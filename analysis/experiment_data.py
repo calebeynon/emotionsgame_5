@@ -486,7 +486,9 @@ class Experiment:
     
     def to_dataframe_contributions(self) -> Optional[pd.DataFrame]:
         """Flatten contributions across all sessions into a DataFrame.
-        Columns: session_code, treatment, segment, round, group, label, participant_id, contribution, payoff, role
+        Columns: session_code, treatment, segment, round, group, label,
+        participant_id, contribution, payoff, role,
+        others_contribution_1, others_contribution_2, others_contribution_3
         Returns None if no data found.
         """
         records: List[Dict[str, Any]] = []
@@ -497,7 +499,12 @@ class Experiment:
                 for round_num, rnd in segment.rounds.items():
                     for group_id, grp in rnd.groups.items():
                         for label, player in grp.players.items():
-                            records.append({
+                            others = [
+                                p.contribution
+                                for lbl, p in grp.players.items()
+                                if lbl != label
+                            ]
+                            record = {
                                 'session_code': code,
                                 'treatment': sess.treatment,
                                 'segment': segment_name,
@@ -507,8 +514,11 @@ class Experiment:
                                 'participant_id': player.participant_id,
                                 'contribution': player.contribution,
                                 'payoff': player.payoff,
-                                'role': player.role
-                            })
+                                'role': player.role,
+                            }
+                            for i, val in enumerate(others, start=1):
+                                record[f'others_contribution_{i}'] = val
+                            records.append(record)
         if not records:
             return None
         return pd.DataFrame.from_records(records)
