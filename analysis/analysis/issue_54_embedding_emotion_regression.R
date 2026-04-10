@@ -51,6 +51,8 @@ main <- function() {
         dv_col <- EMOTION_DVS[i]
         run_emotion_analysis(dt, dv_col, dv_label)
     }
+
+    export_combined_table(dt)
 }
 
 # =====
@@ -195,6 +197,27 @@ build_label_dict <- function() {
         word_count = "Word Count",
         sentiment_compound_mean = "Sentiment (compound)"
     )
+}
+
+# =====
+# Combined table (all emotions side-by-side)
+# =====
+export_combined_table <- function(dt) {
+    models <- lapply(EMOTION_DVS, function(dv) run_combined_model(dt, dv))
+    output_path <- file.path(OUTPUT_DIR, "issue_54_combined.tex")
+    label_dict <- c(build_label_dict(), setNames(names(EMOTION_DVS), EMOTION_DVS))
+
+    do.call(etable, c(
+        unname(models),
+        list(
+            file = output_path,
+            tex = TRUE,
+            fitstat = c("n", "r2"),
+            dict = label_dict,
+            title = "Embedding Projections on Facial Emotion"
+        )
+    ))
+    cat("Exported:", output_path, "\n")
 }
 
 # =====
