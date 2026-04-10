@@ -200,24 +200,86 @@ build_label_dict <- function() {
 }
 
 # =====
-# Combined table (all emotions side-by-side)
+# Combined table (univariate regressions, paneled by projection)
 # =====
 export_combined_table <- function(dt) {
-    models <- lapply(EMOTION_DVS, function(dv) run_combined_model(dt, dv))
+    coef_matrix <- build_coef_matrix(dt)
     output_path <- file.path(OUTPUT_DIR, "issue_54_combined.tex")
-    label_dict <- c(build_label_dict(), setNames(names(EMOTION_DVS), EMOTION_DVS))
-
-    do.call(etable, c(
-        unname(models),
-        list(
-            file = output_path,
-            tex = TRUE,
-            fitstat = c("n", "r2"),
-            dict = label_dict,
-            title = "Embedding Projections on Facial Emotion"
-        )
-    ))
+    write_combined_tex(coef_matrix, output_path, nrow(dt))
     cat("Exported:", output_path, "\n")
+}
+
+build_coef_matrix <- function(dt) {
+    results <- list()
+    for (proj_name in names(PROJECTION_COLS)) {
+        proj_col <- PROJECTION_COLS[proj_name]
+        for (dv_name in names(EMOTION_DVS)) {
+            m <- run_single_regression(dt, EMOTION_DVS[dv_name], proj_col)
+            ct <- summary(m)$coeftable
+            results[[length(results) + 1]] <- list(
+                proj = proj_name, dv = dv_name,
+                coef = ct[proj_col, "Estimate"],
+                se = ct[proj_col, "Std. Error"],
+                pval = ct[proj_col, "Pr(>|t|)"]
+            )
+        }
+    }
+    return(results)
+}
+
+write_combined_tex <- function(results, filepath, n_obs) {
+    dv_names <- names(EMOTION_DVS)
+    n_dv <- length(dv_names)
+    lines <- c(
+        "\\begingroup", "\\centering",
+        sprintf("\\begin{tabular}{l%s}", paste(rep("c", n_dv), collapse = "")),
+        "\\tabularnewline \\midrule \\midrule",
+        paste0("& ", paste(dv_names, collapse = " & "), " \\\\"),
+        "\\midrule"
+    )
+    for (proj in names(PROJECTION_COLS)) {
+        lines <- c(lines, format_proj_rows(results, proj))
+    }
+    lines <- c(lines, format_footer(n_obs, n_dv))
+    writeLines(lines, filepath)
+}
+
+format_proj_rows <- function(results, proj) {
+    proj_results <- Filter(function(r) r$proj == proj, results)
+    coefs <- sapply(proj_results, function(r) format_coef(r$coef, r$pval))
+    ses <- sapply(proj_results, function(r) sprintf("(%s)", format_num(r$se)))
+    c(
+        paste0(proj, " & ", paste(coefs, collapse = " & "), " \\\\"),
+        paste0("& ", paste(ses, collapse = " & "), " \\\\"),
+        "\\addlinespace"
+    )
+}
+
+format_footer <- function(n_obs, n_dv) {
+    n_str <- format(n_obs, big.mark = ",")
+    nc <- n_dv + 1
+    c(
+        "\\midrule",
+        sprintf("Observations & %s \\\\", paste(rep(n_str, n_dv), collapse = " & ")),
+        sprintf("Controls & \\multicolumn{%d}{c}{Word Count, Sentiment (compound)} \\\\", n_dv),
+        sprintf("Fixed Effects & \\multicolumn{%d}{c}{Player, Segment} \\\\", n_dv),
+        sprintf("Clustering & \\multicolumn{%d}{c}{Session $\\times$ Segment $\\times$ Group} \\\\", n_dv),
+        "\\midrule \\midrule",
+        sprintf("\\multicolumn{%d}{l}{\\emph{Standard errors in parentheses}} \\\\", nc),
+        sprintf("\\multicolumn{%d}{l}{\\emph{Signif. Codes: ***: 0.01, **: 0.05, *: 0.1}} \\\\", nc),
+        "\\end{tabular}", "\\par\\endgroup"
+    )
+}
+
+format_num <- function(x) {
+    if (abs(x) >= 10) return(sprintf("%.2f", x))
+    if (abs(x) >= 1) return(sprintf("%.3f", x))
+    return(sprintf("%.4f", x))
+}
+
+format_coef <- function(coef, pval) {
+    stars <- if (pval < 0.01) "$^{***}$" else if (pval < 0.05) "$^{**}$" else if (pval < 0.1) "$^{*}$" else ""
+    paste0(format_num(coef), stars)
 }
 
 # =====
