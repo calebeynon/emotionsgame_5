@@ -132,7 +132,11 @@ export_table <- function(models, filepath) {
             female = "Female",
             treatment = "Treatment"
         ),
-        title = "Conditional Probability of Lying (Logistic Regression)"
+        title = "Conditional Probability of Lying (Logistic Regression)",
+        se.below = TRUE,
+        postprocess.tex = function(x) {
+            gsub("label\\\\_session", "individual", x)
+        }
     )
 }
 
