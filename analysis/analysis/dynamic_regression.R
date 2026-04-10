@@ -166,9 +166,9 @@ build_coef_names <- function(model) {
 # =====
 # Wald test for linear hypothesis H0: Rβ = 0 using robust vcov
 # =====
-wald_test_pvalue <- function(robust_summary, coef_names) {
-    beta <- robust_summary$coefficients[, 1]
-    V <- robust_summary$vcov
+wald_test_pvalue <- function(model, coef_names) {
+    beta <- coef(model)
+    V <- vcovHC(model)
     idx <- match(coef_names, names(beta))
     r <- beta[idx]
     W <- sum(r)^2 / sum(V[idx, idx])
@@ -181,11 +181,11 @@ wald_test_pvalue <- function(robust_summary, coef_names) {
 build_gof_rows <- function(m1, m2, s1, s2) {
     # Wald test: positive + negative deviation = 0 (symmetry)
     dev_vars <- c("contmore_L1", "contless_L1")
-    dev_p <- c(wald_test_pvalue(s1, dev_vars), wald_test_pvalue(s2, dev_vars))
+    dev_p <- c(wald_test_pvalue(m1, dev_vars), wald_test_pvalue(m2, dev_vars))
 
     # Wald test: round1 + round2 = 0
     rd_vars <- c("round1", "round2")
-    rd_p <- c(wald_test_pvalue(s1, rd_vars), wald_test_pvalue(s2, rd_vars))
+    rd_p <- c(wald_test_pvalue(m1, rd_vars), wald_test_pvalue(m2, rd_vars))
 
     list(
         "Observations" = c(sum(sapply(m1$residuals, length)),
