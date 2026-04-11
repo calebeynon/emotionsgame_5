@@ -194,6 +194,7 @@ build_coef_dict <- function() {
             dict <- c(dict, setNames(labs, nms))
         }
     }
+    dict <- c(dict, "treatment2" = "Treatment 2")
     return(dict)
 }
 
