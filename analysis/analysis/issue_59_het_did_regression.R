@@ -5,10 +5,11 @@
 # Date: 2026-04-10
 #
 # Model: contribution ~ i(tau, suckered_t1, ref = c(0, 999))
-#                      + i(tau, suckered_t2, ref = c(0, 999)) | round + segment
+#                      + i(tau, suckered_t2, ref = c(0, 999)) + treatment
+#                      | round + segment
 #
-# This produces separate event-study coefficients for Treatment 1 (no chat) and
-# Treatment 2 (chat), allowing heterogeneous treatment effects across treatments.
+# This produces separate event-study coefficients for Treatment 1 and Treatment 2,
+# allowing heterogeneous treatment effects across treatments.
 # Treatment-specific suckered indicators are constructed by interacting got_suckered
 # with treatment group dummies.
 #

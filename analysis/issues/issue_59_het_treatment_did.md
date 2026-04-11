@@ -11,7 +11,7 @@ Extends the issue #20 DiD event study to estimate separate treatment effects by 
 ```
 contribution ~ i(tau, suckered_t1, ref = c(0, 999))
              + i(tau, suckered_t2, ref = c(0, 999))
-             | round + segment
+             + treatment | round + segment
 ```
 
 Where `suckered_t1` and `suckered_t2` are treatment-specific suckered indicators constructed by interacting `got_suckered` with treatment group dummies. Clustered on `cluster_id`.
@@ -34,15 +34,15 @@ Same as issue #20:
 
 | Script | Purpose |
 |--------|---------|
-| `analysis/issue_59_het_did_regression.R` | Runs 4 regressions (2 thresholds x 2 samples), exports LaTeX table |
-| `analysis/issue_59_het_did_coefplot.R` | Generates coefficient plots overlaying Treatment 1 vs Treatment 2 |
+| `analysis/analysis/issue_59_het_did_regression.R` | Runs 4 regressions (2 thresholds x 2 samples), exports LaTeX table |
+| `analysis/analysis/issue_59_het_did_coefplot.R` | Generates coefficient plots overlaying Treatment 1 vs Treatment 2 |
 
 ## Output
 
 | File | Description |
 |------|-------------|
 | `output/tables/issue_59_het_did_contribution.tex` | 4-column regression table with T1/T2 coefficients |
-| `output/plots/issue_59_het_did_coefplot_20_main.png` | Coefplot, threshold < 20, main sample |
-| `output/plots/issue_59_het_did_coefplot_20_robust.png` | Coefplot, threshold < 20, robust sample |
-| `output/plots/issue_59_het_did_coefplot_5_main.png` | Coefplot, threshold < 5, main sample |
-| `output/plots/issue_59_het_did_coefplot_5_robust.png` | Coefplot, threshold < 5, robust sample |
+| `output/plots/issue_59_het_did_coefplot_20_main.pdf` | Coefplot, threshold < 20, main sample |
+| `output/plots/issue_59_het_did_coefplot_20_robust.pdf` | Coefplot, threshold < 20, robust sample |
+| `output/plots/issue_59_het_did_coefplot_5_main.pdf` | Coefplot, threshold < 5, main sample |
+| `output/plots/issue_59_het_did_coefplot_5_robust.pdf` | Coefplot, threshold < 5, robust sample |
