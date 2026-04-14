@@ -54,38 +54,23 @@ prepare_pre_decision_chat_face_data <- function() {
 }
 
 # =====
-# Derive suckered-this-round from behavior CSV round-level conditions
-# =====
-add_suckered_this_round <- function(dt) {
-    bc <- fread(BEHAVIOR_CSV)
-    gh <- bc[lied_this_round_20 == TRUE,
-             .(groupmate_lied = TRUE),
-             by = .(session_code, segment, round, group)]
-    dt <- merge(dt, gh,
-                by = c("session_code", "segment", "round", "group"),
-                all.x = TRUE)
-    dt[is.na(groupmate_lied), groupmate_lied := FALSE]
-    dt[, suckered_this_round := groupmate_lied &
-           (contribution == 25) & (lied_this_round_20 == FALSE)]
-    dt[, groupmate_lied := NULL]
-    return(dt)
-}
-
-# =====
-# Estimate lied and suckered models on a face-only panel
+# Estimate lied and suckered models on a face-only panel.
+# Two-way cluster on player_id + group_segment_round because Suckered is
+# mechanically a group-level event (Issue #52 review #3).
+# Fixed effects use segment^round to get segment-specific round FE, matching
+# the paper's description of round 1 being omitted within each segment
+# (Issue #52 review #6).
 # =====
 estimate_face_models <- function(dt, y_col) {
     dt <- copy(dt)
-    dt[, round := factor(round)]
     fml_lied <- as.formula(paste0(
-        y_col, " ~ lied_this_round_20 + i(round)",
-        " | segment + player_id"))
+        y_col, " ~ lied_this_round_20 | segment^round + player_id"))
     fml_suck <- as.formula(paste0(
-        y_col, " ~ suckered_this_round + i(round)",
-        " | segment + player_id"))
+        y_col, " ~ suckered_this_round | segment^round + player_id"))
+    cl <- ~player_id + group_segment_round
     list(
-        lied = feols(fml_lied, cluster = ~player_id, data = dt),
-        suckered = feols(fml_suck, cluster = ~player_id, data = dt)
+        lied = feols(fml_lied, cluster = cl, data = dt),
+        suckered = feols(fml_suck, cluster = cl, data = dt)
     )
 }
 
@@ -100,7 +85,7 @@ export_combined_table <- function(res, pre) {
                           "Pre-Decision Chat Face" = 2),
            se.below = TRUE,
            dict = build_coef_dict(),
-           order = c("Lied", "Suckered", "round"),
+           order = c("Lied", "Suckered"),
            signif.code = c("***" = 0.01, "**" = 0.05, "*" = 0.10),
            notes = build_table_note(), tex = TRUE, file = GAP_TABLE_FILE)
     message(sprintf("Saved: %s", GAP_TABLE_FILE))
@@ -125,11 +110,13 @@ build_table_note <- function() {
           "contribution falls at least 20 tokens below their most recent",
           "chat promise; Suckered = 1 if a groupmate lied, the player",
           "contributed the full 25-token endowment, and did not lie.",
-          "The same regression was also estimated for the 12 other",
-          "AFFDEX emotions (anger, contempt, disgust, fear, joy, sadness,",
-          "surprise, engagement, sentimentality, confusion, neutral,",
-          "attention); headline results for joy and engagement appear",
-          "in the appendix.")
+          "Fixed effects are segment$\\times$round and player.",
+          "Standard errors are two-way clustered by player and by",
+          "session-segment-round-group. The same regression was also",
+          "estimated for the 12 other AFFDEX emotions (anger, contempt,",
+          "disgust, fear, joy, sadness, surprise, engagement,",
+          "sentimentality, confusion, neutral, attention); headline",
+          "results for joy and engagement appear in the appendix.")
 }
 
 # =====

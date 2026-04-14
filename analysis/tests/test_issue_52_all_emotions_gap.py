@@ -2,19 +2,25 @@
 Purpose: Regression tests for the all-emotions gap regression tables
          produced by issue_52_gap_regressions_all_emotions.R.
          Validates table existence, structure, emotion row coverage,
-         pinned Valence coefficients, and backup byte-equality of the
-         existing valence-sentiment table.
+         pinned Valence coefficients, BH q-value annotations, and that
+         the R script actually runs before the tests read its tables.
 Author: test-writer
-Date: 2026-04-13
+Date: 2026-04-14
 """
 
 import re
+import subprocess
 from pathlib import Path
 
 import pytest
 
 # FILE PATHS
-TABLE_DIR = Path(__file__).resolve().parent.parent / "output" / "tables"
+ANALYSIS_DIR = Path(__file__).resolve().parent.parent / "analysis"
+OUTPUT_DIR = Path(__file__).resolve().parent.parent / "output"
+TABLE_DIR = OUTPUT_DIR / "tables"
+WORKING_DIR = Path(__file__).resolve().parent.parent
+
+ALL_EMOTIONS_SCRIPT = ANALYSIS_DIR / "issue_52_gap_regressions_all_emotions.R"
 LIED_TABLE = TABLE_DIR / "issue_52_gap_summary_lied.tex"
 SUCKERED_TABLE = TABLE_DIR / "issue_52_gap_summary_suckered.tex"
 
@@ -28,22 +34,66 @@ EMOTION_DISPLAY_NAMES = [
 
 COEF_TOLERANCE = 0.01
 
-# Pinned Valence coefficients (from verified prior run 2026-04-13)
-# Format: (coef, se) per column
+# Pinned Valence coefficients (from verified 2026-04-14 run with updated
+# spec: segment^round FE, two-way cluster ~player_id + group_segment_round).
 VALENCE_PINS_LIED = {
-    "Results Page Face": (5.487, 2.306),
-    "Pre-Decision Chat Face": (-2.140, 0.898),
+    "Results Page Face": (5.346, 2.609),
+    "Pre-Decision Chat Face": (-2.004, 0.825),
 }
 VALENCE_PINS_SUCKERED = {
-    "Results Page Face": (1.885, 1.520),
-    "Pre-Decision Chat Face": (-1.235, 1.214),
+    "Results Page Face": (1.899, 1.270),
+    "Pre-Decision Chat Face": (-1.064, 1.086),
 }
 
-# Parses a signed number, optionally followed by one of the significance marks
+# Coefficient cell: signed number, optional sig stars, optional trailing
+# [q=X.XXX] BH q-value annotation (Issue #52 review — methodology agent).
 COEF_CELL_RE = re.compile(
-    r"^(-?\d+\.\d+)(?:\$\^\{\*{1,3}\}\$)?$"
+    r"^(-?\d+\.\d+)(?:\$\^\{\*{1,3}\}\$)?(?:\s*\[q=\d+\.\d+\])?$"
 )
 SE_CELL_RE = re.compile(r"^\((-?\d+\.\d+)\)$")
+
+
+# =====
+# Precondition: actually run the R script so stale tables never pass.
+# (Issue #52 review #14)
+# =====
+@pytest.fixture(scope="session")
+def all_emotions_script_result():
+    return subprocess.run(
+        ["Rscript", str(ALL_EMOTIONS_SCRIPT)],
+        capture_output=True, text=True,
+        cwd=str(WORKING_DIR), timeout=600,
+    )
+
+
+class TestAllEmotionsScriptRuns:
+    def test_script_returncode_zero(self, all_emotions_script_result):
+        assert all_emotions_script_result.returncode == 0, (
+            all_emotions_script_result.stderr)
+
+    def test_lied_table_created(self, all_emotions_script_result):
+        assert LIED_TABLE.exists(), f"Missing after script run: {LIED_TABLE}"
+
+    def test_suckered_table_created(self, all_emotions_script_result):
+        assert SUCKERED_TABLE.exists(), (
+            f"Missing after script run: {SUCKERED_TABLE}")
+
+
+# =====
+# BH q-value annotation must appear in both summary tables (inline [q=X.XXX]).
+# =====
+class TestBHQValueAnnotation:
+    def test_lied_contains_q_marker(self, all_emotions_script_result):
+        content = LIED_TABLE.read_text()
+        assert "[q=" in content
+        # Spot-check a known q-value from the 2026-04-14 run
+        assert re.search(r"\[q=0\.0\d{2}\]", content), (
+            "Expected at least one small q-value annotation in lied table")
+
+    def test_suckered_contains_q_marker(self, all_emotions_script_result):
+        content = SUCKERED_TABLE.read_text()
+        assert "[q=" in content
+        assert re.search(r"\[q=\d+\.\d{3}\]", content)
 
 
 # =====
@@ -89,18 +139,18 @@ def extract_se_value(cell):
 # File existence
 # =====
 class TestTableFilesExist:
-    """Verify both new summary tables exist."""
+    """Verify both new summary tables exist after the script runs."""
 
-    def test_lied_table_exists(self):
+    def test_lied_table_exists(self, all_emotions_script_result):
         assert LIED_TABLE.exists(), f"Missing: {LIED_TABLE}"
 
-    def test_suckered_table_exists(self):
+    def test_suckered_table_exists(self, all_emotions_script_result):
         assert SUCKERED_TABLE.exists(), f"Missing: {SUCKERED_TABLE}"
 
-    def test_lied_table_nonempty(self):
+    def test_lied_table_nonempty(self, all_emotions_script_result):
         assert LIED_TABLE.stat().st_size > 500
 
-    def test_suckered_table_nonempty(self):
+    def test_suckered_table_nonempty(self, all_emotions_script_result):
         assert SUCKERED_TABLE.stat().st_size > 500
 
 
@@ -108,12 +158,12 @@ class TestTableFilesExist:
 # Structure: 13 emotion rows, 4 spec columns
 # =====
 @pytest.fixture(scope="module")
-def lied_rows():
+def lied_rows(all_emotions_script_result):
     return parse_emotion_rows(LIED_TABLE)
 
 
 @pytest.fixture(scope="module")
-def suckered_rows():
+def suckered_rows(all_emotions_script_result):
     return parse_emotion_rows(SUCKERED_TABLE)
 
 

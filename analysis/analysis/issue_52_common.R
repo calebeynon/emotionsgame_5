@@ -50,7 +50,11 @@ load_emotion_data_by_page <- function(target_page, filepath = INPUT_CSV) {
     dt <- add_readable_labels(dt)
     dt <- add_first_time_flags(dt)
     dt <- add_first_time_labels(dt)
-    dt <- zscore_valence(dt)
+    # NOTE: zscore_valence() is NOT applied here. Earlier versions z-scored on
+    # the raw panel before per-spec filtering (e.g. the pre-decision chat spec
+    # drops round 1 after a lag shift), which leaked dropped rows into the
+    # denominator (Issue #52 review #15). Specs that need valence_z should
+    # call zscore_valence() after their own filtering.
     return(dt)
 }
 
@@ -137,146 +141,60 @@ add_first_time_labels <- function(dt) {
 }
 
 # =====
-# Within-person expanding-window deviation from mean
+# Merge-integrity assertions (Issue #52 review #5)
+# Fail loudly when a left join silently drops rows or produces empty output
 # =====
-within_person_deviation <- function(dt, col) {
-    d_col <- paste0(col, "_wpd")
-    setorderv(dt, c("session_code", "label", "segment", "round"))
-    dt[, (d_col) := compute_expanding_deviation(.SD[[col]]),
-       by = .(session_code, label)]
-    return(dt)
-}
-
-# Helper: expanding-window deviation from prior mean (min k=1)
-compute_expanding_deviation <- function(x) {
-    n <- length(x)
-    d <- rep(NA_real_, n)
-    for (t in seq_len(n)) {
-        if (t < 2) next
-        prior <- x[seq_len(t - 1)]
-        prior <- prior[!is.na(prior)]
-        if (length(prior) < 1) next
-        d[t] <- x[t] - mean(prior)
+assert_merge_integrity <- function(dt_before, dt_after, label,
+                                   min_retention = 0.99) {
+    n_before <- nrow(dt_before)
+    n_after <- nrow(dt_after)
+    retention <- n_after / n_before
+    if (retention < min_retention) {
+        stop(sprintf(
+            "%s: merge retained %d/%d rows (%.1f%%), below %.1f%% threshold",
+            label, n_after, n_before, 100 * retention,
+            100 * min_retention))
     }
-    return(d)
-}
-
-# =====
-# Private helper: load data with within-person deviations
-# =====
-load_emotion_data_wp_by_page <- function(target_page, filepath = INPUT_CSV) {
-    dt <- fread(filepath)
-    dt <- dt[page_type %in% c(target_page, "all_instructions")]
-    dt <- apply_within_person_deviations(dt)
-    dt <- dt[page_type == target_page]
-    dt <- merge_behavior_classifications(dt)
-    dt <- add_readable_labels(dt)
-    dt <- add_first_time_flags(dt)
-    dt <- add_first_time_labels(dt)
-    return(dt)
-}
-
-load_results_emotion_data_wp <- function(filepath = INPUT_CSV) {
-    return(load_emotion_data_wp_by_page("ResultsOnly", filepath))
-}
-
-load_chat_emotion_data_wp <- function(filepath = INPUT_CSV) {
-    return(load_emotion_data_wp_by_page("Results", filepath))
-}
-
-# Apply within-person deviations to all emotion columns + valence
-apply_within_person_deviations <- function(dt) {
-    for (col in EMOTION_COLS) {
-        dt <- within_person_deviation(dt, col)
+    if (n_after == 0) {
+        stop(sprintf("%s: merge produced zero rows", label))
     }
-    # Also create valence_wpd alias for convenience
-    if (!"valence_wpd" %in% names(dt)) {
-        dt[, valence_wpd := emotion_valence_wpd]
+}
+
+assert_flag_nonzero <- function(dt, flag_col, label) {
+    n_true <- sum(dt[[flag_col]], na.rm = TRUE)
+    if (n_true == 0) {
+        stop(sprintf(
+            "%s: flag %s has zero TRUE rows — likely a merge-key mismatch",
+            label, flag_col))
     }
+    message(sprintf("%s: %s has %d TRUE / %d total rows",
+                    label, flag_col, n_true, nrow(dt)))
+}
+
+# =====
+# Derive suckered-this-round flag from behavior CSV (shared across specs).
+# Also constructs group_segment_round for two-way clustering: suckered is a
+# group-level event (one groupmate lying flips the flag for all non-liar
+# groupmates), so residuals correlate within the group-round.
+# =====
+add_suckered_this_round <- function(dt, label = "add_suckered_this_round") {
+    bc <- fread(BEHAVIOR_CSV)
+    gh <- bc[lied_this_round_20 == TRUE,
+             .(groupmate_lied = TRUE),
+             by = .(session_code, segment, round, group)]
+    dt_before <- dt
+    dt <- merge(dt, gh,
+                by = c("session_code", "segment", "round", "group"),
+                all.x = TRUE)
+    assert_merge_integrity(dt_before, dt, label)
+    dt[is.na(groupmate_lied), groupmate_lied := FALSE]
+    dt[, suckered_this_round := groupmate_lied &
+           (contribution == 25) & (lied_this_round_20 == FALSE)]
+    dt[, groupmate_lied := NULL]
+    dt[, group_segment_round := paste(session_code, segment, round, group,
+                                      sep = "_")]
+    assert_flag_nonzero(dt, "suckered_this_round", label)
     return(dt)
-}
-
-# =====
-# Detrend valence: assign time index per player
-# =====
-assign_time_index <- function(dt) {
-    setorderv(dt, c("session_code", "label", "segment", "round"))
-    dt[, t_index := seq_len(.N), by = .(session_code, label)]
-    return(dt)
-}
-
-# =====
-# Detrend valence: segment-mean (trend across supergame means)
-# =====
-detrend_valence_segmean <- function(dt) {
-    supergames <- paste0("supergame", 1:5)
-    dt[, segment_index := match(segment, supergames)]
-    dt[, valence_segmean_detrended := compute_segmean_residual(
-        emotion_valence, segment_index
-    ), by = .(session_code, label)]
-    return(dt)
-}
-
-compute_segmean_residual <- function(y, seg_idx) {
-    # Compute segment means from this player's data
-    valid <- !is.na(y) & !is.na(seg_idx)
-    if (sum(valid) == 0) return(rep(NA_real_, length(y)))
-    player_dt <- data.table(y = y[valid], si = seg_idx[valid])
-    seg_agg <- player_dt[, .(mean_val = mean(y)), by = si]
-    if (nrow(seg_agg) < 2) return(rep(NA_real_, length(y)))
-    fit <- lm(mean_val ~ si, data = seg_agg)
-    predicted <- coef(fit)[1] + coef(fit)[2] * seg_idx
-    resid <- y - predicted
-    resid[is.na(seg_idx)] <- NA_real_
-    return(resid)
-}
-
-# =====
-# Detrend valence: reverse (train on segments 4+5, extrapolate back)
-# =====
-detrend_valence_reverse <- function(dt) {
-    dt <- assign_time_index(dt)
-    train_segments <- c("supergame4", "supergame5")
-    dt[, valence_reverse_detrended := detrend_residuals(
-        emotion_valence, t_index, t_index[segment %in% train_segments]
-    ), by = .(session_code, label)]
-    return(dt)
-}
-
-# Helper: fit lm on training indices, compute residuals for all
-detrend_residuals <- function(y, t_all, t_train) {
-    train_mask <- t_all %in% t_train
-    y_train <- y[train_mask]
-    t_train_vals <- t_all[train_mask]
-    non_na <- !is.na(y_train)
-    if (sum(non_na) < 2) return(rep(NA_real_, length(y)))
-    fit <- lm(y_train ~ t_train_vals, na.action = na.exclude)
-    predicted <- coef(fit)[1] + coef(fit)[2] * t_all
-    return(y - predicted)
-}
-
-# =====
-# Private helper: load data with linear detrending
-# =====
-load_emotion_data_detrended_by_page <- function(target_page, filepath = INPUT_CSV) {
-    dt <- fread(filepath)
-    dt <- dt[page_type %in% c(target_page, "all_instructions")]
-    dt <- detrend_valence_segmean(dt)
-    dt <- detrend_valence_reverse(dt)
-    dt <- dt[page_type == target_page]
-    dt <- merge_behavior_classifications(dt)
-    dt <- add_readable_labels(dt)
-    dt <- add_first_time_flags(dt)
-    dt <- add_first_time_labels(dt)
-    return(dt)
-}
-
-load_results_emotion_data_detrended <- function(filepath = INPUT_CSV) {
-    return(load_emotion_data_detrended_by_page("ResultsOnly", filepath))
-}
-
-load_chat_emotion_data_detrended <- function(filepath = INPUT_CSV) {
-    return(load_emotion_data_detrended_by_page("Results", filepath))
 }
 
 # =====

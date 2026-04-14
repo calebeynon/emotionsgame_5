@@ -5,41 +5,29 @@
    \tabularnewline \midrule \midrule
    Dependent Variable: & \multicolumn{4}{c}{Emotion Valence}\\
     & \multicolumn{2}{c}{Results Page Face} & \multicolumn{2}{c}{Pre-Decision Chat Face} \\ 
-   Model:       & (1)           & (2)           & (3)           & (4)\\  
+   Model:        & (1)          & (2)     & (3)           & (4)\\  
    \midrule
    \emph{Variables}\\
-   Lied         & 5.487$^{**}$  &               & -2.140$^{**}$ &   \\   
-                & (2.306)       &               & (0.8983)      &   \\   
-   Suckered     &               & 1.885         &               & -1.235\\   
-                &               & (1.520)       &               & (1.214)\\   
-   round $=$ 2  & 0.8229        & 0.9559        &               &   \\   
-                & (0.5443)      & (0.5865)      &               &   \\   
-   round $=$ 3  & 1.477$^{**}$  & 1.601$^{**}$  & 1.880$^{***}$ & 1.860$^{***}$\\   
-                & (0.6226)      & (0.6198)      & (0.5534)      & (0.5352)\\   
-   round $=$ 4  & 1.031         & 1.095         & 1.915$^{**}$  & 1.920$^{**}$\\   
-                & (0.6674)      & (0.6755)      & (0.8082)      & (0.7958)\\   
-   round $=$ 5  & 0.7991        & 0.9200        & 2.653$^{***}$ & 2.620$^{***}$\\   
-                & (0.8011)      & (0.8261)      & (0.9058)      & (0.8968)\\   
-   round $=$ 6  & 4.140$^{***}$ & 4.369$^{***}$ & 4.227$^{***}$ & 4.165$^{***}$\\   
-                & (1.512)       & (1.546)       & (1.208)       & (1.196)\\   
-   round $=$ 7  & 2.318$^{*}$   & 2.472$^{*}$   & 5.762$^{***}$ & 5.724$^{***}$\\   
-                & (1.250)       & (1.252)       & (1.205)       & (1.202)\\   
+   Lied          & 5.346$^{**}$ &         & -2.004$^{**}$ &   \\   
+                 & (2.609)      &         & (0.8246)      &   \\   
+   Suckered      &              & 1.899   &               & -1.064\\   
+                 &              & (1.270) &               & (1.086)\\   
    \midrule
    \emph{Fixed-effects}\\
-   segment      & Yes           & Yes           & Yes           & Yes\\  
-   player\_id   & Yes           & Yes           & Yes           & Yes\\  
+   segment-round & Yes          & Yes     & Yes           & Yes\\  
+   player\_id    & Yes          & Yes     & Yes           & Yes\\  
    \midrule
    \emph{Fit statistics}\\
-   Observations & 2,696         & 2,696         & 2,161         & 2,161\\  
-   R$^2$        & 0.27898       & 0.27549       & 0.42558       & 0.42526\\  
-   Within R$^2$ & 0.01277       & 0.00799       & 0.01695       & 0.01641\\  
+   Observations  & 2,696        & 2,696   & 2,161         & 2,161\\  
+   R$^2$         & 0.28196      & 0.27872 & 0.42833       & 0.42801\\  
+   Within R$^2$  & 0.00544      & 0.00094 & 0.00093       & 0.00037\\  
    \midrule \midrule
-   \multicolumn{5}{l}{\emph{Clustered (player\_id) standard-errors in parentheses}}\\
+   \multicolumn{5}{l}{\emph{Clustered (player\_id \& group\_segment\_round) standard-errors in parentheses}}\\
    \multicolumn{5}{l}{\emph{Signif. Codes: ***: 0.01, **: 0.05, *: 0.1}}\\
 \end{tabular}
  
 \par \raggedright 
-Dependent variable: AFFDEX facial valence. Results Page Face columns measure valence on the post-outcome ResultsOnly page. Pre-Decision Chat Face columns measure valence on the Results chat page at the end of round t-1, shifted forward to round t (the contribution it influenced). Lied = 1 if a player's contribution falls at least 20 tokens below their most recent chat promise; Suckered = 1 if a groupmate lied, the player contributed the full 25-token endowment, and did not lie. The same regression was also estimated for the 12 other AFFDEX emotions (anger, contempt, disgust, fear, joy, sadness, surprise, engagement, sentimentality, confusion, neutral, attention); headline results for joy and engagement appear in the appendix.
+Dependent variable: AFFDEX facial valence. Results Page Face columns measure valence on the post-outcome ResultsOnly page. Pre-Decision Chat Face columns measure valence on the Results chat page at the end of round t-1, shifted forward to round t (the contribution it influenced). Lied = 1 if a player's contribution falls at least 20 tokens below their most recent chat promise; Suckered = 1 if a groupmate lied, the player contributed the full 25-token endowment, and did not lie. Fixed effects are segment$\times$round and player. Standard errors are two-way clustered by player and by session-segment-round-group. The same regression was also estimated for the 12 other AFFDEX emotions (anger, contempt, disgust, fear, joy, sadness, surprise, engagement, sentimentality, confusion, neutral, attention); headline results for joy and engagement appear in the appendix.
 \par\endgroup
 
 

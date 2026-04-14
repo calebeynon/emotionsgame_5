@@ -74,38 +74,21 @@ prepare_pre_chat_face_data_emo <- function(emo_col) {
 }
 
 # =====
-# Derive suckered-this-round from behavior CSV
-# =====
-add_suckered_this_round <- function(dt) {
-    bc <- fread(BEHAVIOR_CSV)
-    gh <- bc[lied_this_round_20 == TRUE,
-             .(groupmate_lied = TRUE),
-             by = .(session_code, segment, round, group)]
-    dt <- merge(dt, gh,
-                by = c("session_code", "segment", "round", "group"),
-                all.x = TRUE)
-    dt[is.na(groupmate_lied), groupmate_lied := FALSE]
-    dt[, suckered_this_round := groupmate_lied &
-           (contribution == 25) & (lied_this_round_20 == FALSE)]
-    dt[, groupmate_lied := NULL]
-    return(dt)
-}
-
-# =====
-# Face-only lied/suckered models for one emotion column
+# Face-only lied/suckered models for one emotion column.
+# Segment-specific round FE via segment^round and two-way clustering by
+# player + group-segment-round (see issue_52_gap_regressions.R for rationale,
+# Issue #52 review #3 and #6).
 # =====
 estimate_face_models_emo <- function(dt, y_col) {
     dt <- copy(dt)
-    dt[, round := factor(round)]
     fml_lied <- as.formula(paste0(
-        y_col, " ~ lied_this_round_20 + i(round)",
-        " | segment + player_id"))
+        y_col, " ~ lied_this_round_20 | segment^round + player_id"))
     fml_suck <- as.formula(paste0(
-        y_col, " ~ suckered_this_round + i(round)",
-        " | segment + player_id"))
+        y_col, " ~ suckered_this_round | segment^round + player_id"))
+    cl <- ~player_id + group_segment_round
     list(
-        lied = feols(fml_lied, cluster = ~player_id, data = dt),
-        suckered = feols(fml_suck, cluster = ~player_id, data = dt)
+        lied = feols(fml_lied, cluster = cl, data = dt),
+        suckered = feols(fml_suck, cluster = cl, data = dt)
     )
 }
 
@@ -130,14 +113,42 @@ build_summary_table_tex <- function(all_results, flag_key, outfile) {
     dir.create(dirname(outfile), recursive = TRUE, showWarnings = FALSE)
     spec_keys <- names(SPEC_LABELS)
     flag_name <- if (flag_key == "lied") "Lied" else "Suckered"
+    qvals <- compute_bh_qvalues(all_results, flag_key, spec_keys)
     lines <- latex_header_lines(flag_name)
     for (emo in names(all_results)) {
         lines <- c(lines, emotion_row_lines(all_results[[emo]], emo,
-                                             flag_key, spec_keys))
+                                             flag_key, spec_keys,
+                                             qvals[[emo]]))
     }
     lines <- c(lines, latex_footer_lines(all_results, flag_key, spec_keys))
     writeLines(lines, outfile)
     message(sprintf("Table saved: %s", outfile))
+}
+
+# =====
+# Compute Benjamini-Hochberg q-values across the 13 emotions separately
+# within each spec (Issue #52 review #4). Returns a named list keyed by
+# emotion, each element a named numeric vector keyed by spec.
+# =====
+compute_bh_qvalues <- function(all_results, flag_key, spec_keys) {
+    flag_token <- if (flag_key == "lied") "lied_this_round_20" else
+                  "suckered_this_round"
+    emo_names <- names(all_results)
+    pvals <- matrix(NA_real_, nrow = length(emo_names),
+                    ncol = length(spec_keys),
+                    dimnames = list(emo_names, spec_keys))
+    for (emo in emo_names) {
+        for (sk in spec_keys) {
+            m <- all_results[[emo]][[sk]][[flag_key]]
+            pvals[emo, sk] <- extract_flag_coef(m, flag_token)$p_value
+        }
+    }
+    q_mat <- pvals
+    for (sk in spec_keys) {
+        q_mat[, sk] <- p.adjust(pvals[, sk], method = "BH")
+    }
+    setNames(lapply(emo_names, function(e) q_mat[e, , drop = TRUE]),
+             emo_names)
 }
 
 latex_header_lines <- function(flag_name) {
@@ -153,18 +164,20 @@ latex_header_lines <- function(flag_name) {
       "   \\midrule")
 }
 
-emotion_row_lines <- function(emo_results, emo_col, flag_key, spec_keys) {
+emotion_row_lines <- function(emo_results, emo_col, flag_key, spec_keys,
+                              qvals) {
     flag_token <- if (flag_key == "lied") "lied_this_round_20" else
                   "suckered_this_round"
     coefs <- lapply(spec_keys, function(sk) {
         extract_flag_coef(emo_results[[sk]][[flag_key]], flag_token)
     })
     pretty <- EMOTION_DISPLAY_NAMES[[emo_col]]
+    coef_strs <- mapply(format_coef_line, coefs, qvals[spec_keys])
+    se_strs <- sapply(coefs, format_se_line)
     coef_row <- sprintf("   %s & %s\\\\", pretty,
-                        paste(sapply(coefs, format_coef_line),
-                              collapse = " & "))
+                        paste(coef_strs, collapse = " & "))
     se_row <- sprintf("    & %s\\\\",
-                      paste(sapply(coefs, format_se_line), collapse = " & "))
+                      paste(se_strs, collapse = " & "))
     c(coef_row, se_row)
 }
 
@@ -181,15 +194,18 @@ latex_footer_lines <- function(all_results, flag_key, spec_keys) {
       nobs_row,
       "   \\midrule \\midrule",
       "\\end{tabular}",
-      sprintf("\\multicolumn{%d}{l}{\\emph{Clustered (player\\_id) SEs in parens}}\\\\",
+      sprintf("\\multicolumn{%d}{l}{\\emph{Two-way clustered (player, group-segment-round) SEs in parens}}\\\\",
+              note_span),
+      sprintf("\\multicolumn{%d}{l}{\\emph{[q=...] = Benjamini-Hochberg q-value across 13 emotions within spec}}\\\\",
               note_span),
       sprintf("\\multicolumn{%d}{l}{\\emph{Signif. Codes: ***: 0.01, **: 0.05, *: 0.1}}",
               note_span),
       "\\par\\endgroup")
 }
 
-format_coef_line <- function(coef) {
-    sprintf("%.3f%s", coef$coef, significance_stars(coef$p_value))
+format_coef_line <- function(coef, qval = NA_real_) {
+    q_str <- if (is.na(qval)) "" else sprintf(" [q=%.3f]", qval)
+    sprintf("%.3f%s%s", coef$coef, significance_stars(coef$p_value), q_str)
 }
 
 format_se_line <- function(coef) {
