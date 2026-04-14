@@ -66,6 +66,25 @@ load_chat_emotion_data <- function(filepath = INPUT_CSV) {
 }
 
 # =====
+# Loads neutral-face baseline from introduction/all_instructions page,
+# used as counterfactual channel in the stacked gap DiD
+# =====
+load_baseline_emotion_data <- function(filepath = INPUT_CSV) {
+    dt <- fread(filepath)
+    dt <- dt[page_type == "all_instructions"]
+    keep_cols <- intersect(c("session_code", "treatment", "label",
+                             "emotion_valence"), names(dt))
+    dt <- dt[, ..keep_cols]
+    dt[, player_id := paste0(session_code, "_", label)]
+    dup_check <- dt[, .N, by = .(session_code, label)]
+    if (any(dup_check$N != 1)) {
+        stop("load_baseline_emotion_data: expected one row per ",
+             "(session_code, label) on all_instructions page; found duplicates")
+    }
+    return(dt)
+}
+
+# =====
 # Readable liar/sucker labels
 # =====
 add_readable_labels <- function(dt) {

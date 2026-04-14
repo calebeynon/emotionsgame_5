@@ -13,14 +13,21 @@ library(fixest)
 GAP_TABLE_FILE <- file.path(TABLE_DIR, "issue_52_valence_sentiment_gap_regressions.tex")
 
 # =====
-# Main function — estimates both specs, exports combined table
+# Main function — estimates all four specs, exports combined table
 # =====
 main <- function() {
     results_models <- estimate_gap_models(prepare_results_stacked_data())
     chat_models <- estimate_gap_models(prepare_chat_stacked_data())
-    export_combined_table(results_models, chat_models)
-    print_gap_summary(results_models, "results-page")
-    print_gap_summary(chat_models, "chat-period")
+    results_vs_baseline_models <- estimate_gap_models(
+        prepare_results_vs_baseline_stacked_data(), ref_channel = "baseline")
+    chat_vs_baseline_models <- estimate_gap_models(
+        prepare_chat_vs_baseline_stacked_data(), ref_channel = "baseline")
+    export_combined_table(results_models, chat_models,
+                          results_vs_baseline_models, chat_vs_baseline_models)
+    print_gap_summary(results_models, "results-page (vs chat)")
+    print_gap_summary(chat_models, "chat-period (vs chat)")
+    print_gap_summary(results_vs_baseline_models, "results-page (vs quiz)")
+    print_gap_summary(chat_vs_baseline_models, "chat-period (vs quiz)")
 }
 
 # =====
@@ -86,6 +93,72 @@ stack_channels <- function(dt, face_col) {
 }
 
 # =====
+# Prepare stacked data: results-page face vs quiz-baseline face
+# =====
+prepare_results_vs_baseline_stacked_data <- function() {
+    dt <- load_results_emotion_data()
+    dt[, player_id := paste0(session_code, "_", label)]
+    dt <- add_suckered_this_round(dt)
+    dt <- dt[!is.na(emotion_valence)]
+    message(sprintf("Results-page (vs baseline) complete cases: %d", nrow(dt)))
+    baseline <- load_baseline_emotion_data()
+    return(stack_face_vs_baseline(dt, baseline, face_col = "emotion_valence"))
+}
+
+# =====
+# Prepare stacked data: chat-period face vs quiz-baseline face
+# =====
+prepare_chat_vs_baseline_stacked_data <- function() {
+    dt <- load_chat_emotion_data()
+    dt[, player_id := paste0(session_code, "_", label)]
+    dt <- add_suckered_this_round(dt)
+    dt <- shift_valence_to_influenced_round(dt)
+    dt <- dt[!is.na(valence_shifted)]
+    message(sprintf("Chat-period (vs baseline) complete cases: %d", nrow(dt)))
+    baseline <- load_baseline_emotion_data()
+    return(stack_face_vs_baseline(dt, baseline, face_col = "valence_shifted"))
+}
+
+# =====
+# Stack face leg against quiz-baseline leg (character segment/round until rbind)
+# =====
+stack_face_vs_baseline <- function(face_dt, baseline_dt, face_col) {
+    face <- build_face_leg(face_dt, face_col)
+    base <- build_baseline_leg(baseline_dt, names(face))
+    stacked <- rbind(face, base)
+    stacked[, channel := factor(channel, levels = c("baseline", "face"))]
+    stacked[, segment := factor(segment)]
+    stacked[, round := factor(round)]
+    message(sprintf("Stacked rows (face + baseline): %d", nrow(stacked)))
+    return(stacked)
+}
+
+# Face leg: project face_dt to shared columns, set Y and channel
+build_face_leg <- function(face_dt, face_col) {
+    id_cols <- c("session_code", "segment", "round", "group",
+                 "label", "player_id", "contribution",
+                 "lied_this_round_20", "suckered_this_round")
+    face <- face_dt[, c(id_cols, face_col), with = FALSE]
+    face[, `:=`(Y = get(face_col), channel = "face")]
+    face[, (face_col) := NULL]
+    face[, segment := as.character(segment)]
+    face[, round := as.character(round)]
+    return(face)
+}
+
+# Baseline leg: 123 neutral-face rows with FALSE flags and "baseline" levels
+build_baseline_leg <- function(baseline_dt, col_order) {
+    base <- baseline_dt[, .(session_code, label, player_id,
+                            Y = emotion_valence)]
+    base[, `:=`(segment = "baseline", round = "baseline",
+                group = NA_integer_, contribution = NA_real_,
+                lied_this_round_20 = FALSE, suckered_this_round = FALSE,
+                channel = "baseline")]
+    setcolorder(base, col_order)
+    return(base)
+}
+
+# =====
 # Derive suckered-this-round from round-level conditions
 # =====
 add_suckered_this_round <- function(dt) {
@@ -106,32 +179,46 @@ add_suckered_this_round <- function(dt) {
 # =====
 # Estimate gap models: channel x flag interactions
 # =====
-estimate_gap_models <- function(stacked) {
+estimate_gap_models <- function(stacked, ref_channel = "chat") {
+    # With ref_channel = "baseline", the reference leg has FALSE flags by
+    # construction, so the main effect is collinear with the interaction.
+    # Drop the main effect in that case to identify the face-side coefficient.
+    main_lied <- if (ref_channel == "baseline") "" else "lied_this_round_20 +"
+    main_suck <- if (ref_channel == "baseline") "" else "suckered_this_round +"
+    q_ref <- paste0('"', ref_channel, '"')
+    fml_lied <- as.formula(paste0(
+        "Y ~ ", main_lied,
+        " i(channel, lied_this_round_20, ref = ", q_ref, ") + round |",
+        " segment + player_id + channel"))
+    fml_suck <- as.formula(paste0(
+        "Y ~ ", main_suck,
+        " i(channel, suckered_this_round, ref = ", q_ref, ") + round |",
+        " segment + player_id + channel"))
     list(
-        lied_gap = feols(
-            Y ~ lied_this_round_20 +
-                i(channel, lied_this_round_20, ref = "chat") + round |
-                segment + player_id + channel,
-            cluster = ~player_id, data = stacked),
-        suckered_gap = feols(
-            Y ~ suckered_this_round +
-                i(channel, suckered_this_round, ref = "chat") + round |
-                segment + player_id + channel,
-            cluster = ~player_id, data = stacked)
+        lied_gap = feols(fml_lied, cluster = ~player_id, data = stacked),
+        suckered_gap = feols(fml_suck, cluster = ~player_id, data = stacked)
     )
 }
 
 # =====
 # Export combined LaTeX table (4 columns: results-page + chat-period)
 # =====
-export_combined_table <- function(results_models, chat_models) {
+export_combined_table <- function(results_models, chat_models,
+                                   results_vs_baseline_models,
+                                   chat_vs_baseline_models) {
     dir.create(dirname(GAP_TABLE_FILE), recursive = TRUE,
                showWarnings = FALSE)
-    coef_names <- build_coef_dict()
+    headers <- list("Results Page Face (vs Chat)" = 2,
+                    "Chat Period Face (vs Chat)" = 2,
+                    "Results Page Face (vs Quiz)" = 2,
+                    "Chat Period Face (vs Quiz)" = 2)
     etable(results_models$lied_gap, results_models$suckered_gap,
            chat_models$lied_gap, chat_models$suckered_gap,
-           headers = list("Results Page Face" = 2, "Chat Period Face" = 2),
-           se.below = TRUE, dict = coef_names,
+           results_vs_baseline_models$lied_gap,
+           results_vs_baseline_models$suckered_gap,
+           chat_vs_baseline_models$lied_gap,
+           chat_vs_baseline_models$suckered_gap,
+           headers = headers, se.below = TRUE, dict = build_coef_dict(),
            signif.code = c("***" = 0.01, "**" = 0.05, "*" = 0.10),
            tex = TRUE, file = GAP_TABLE_FILE)
     message(sprintf("Table saved: %s", GAP_TABLE_FILE))
@@ -143,10 +230,14 @@ export_combined_table <- function(results_models, chat_models) {
 build_coef_dict <- function() {
     lied_i <- 'i(factor_var = channel, var = lied_this_round_20, ref = "chat")'
     suck_i <- 'i(factor_var = channel, var = suckered_this_round, ref = "chat")'
+    lied_b <- 'i(factor_var = channel, var = lied_this_round_20, ref = "baseline")'
+    suck_b <- 'i(factor_var = channel, var = suckered_this_round, ref = "baseline")'
     dict <- c("Lied This Round", "Suckered This Round",
+              "Face $\\times$ Lied", "Face $\\times$ Suckered",
               "Face $\\times$ Lied", "Face $\\times$ Suckered")
     names(dict) <- c("lied_this_round_20TRUE",
-                     "suckered_this_roundTRUE", lied_i, suck_i)
+                     "suckered_this_roundTRUE",
+                     lied_i, suck_i, lied_b, suck_b)
     return(dict)
 }
 
