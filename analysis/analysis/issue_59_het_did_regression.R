@@ -29,6 +29,11 @@ library(fixest)
 INPUT_CSV <- "datastore/derived/issue_20_did_panel.csv"
 OUTPUT_DIR <- "output/tables"
 OUTPUT_TEX <- file.path(OUTPUT_DIR, "issue_59_het_did_contribution.tex")
+OUTPUT_WALD_CSV <- file.path(OUTPUT_DIR, "issue_59_het_did_wald_pretrends.csv")
+
+# Pre-period taus for joint Wald test (reference periods 0 and 999 are omitted by i()).
+# tau=-6 is excluded from the joint test because it is a thinly-supported boundary bin.
+PRE_TAUS <- -5:-1
 
 # =====
 # Main function (FIRST - shows high-level flow)
@@ -36,19 +41,23 @@ OUTPUT_TEX <- file.path(OUTPUT_DIR, "issue_59_het_did_contribution.tex")
 main <- function() {
     dt <- load_and_prepare_data(INPUT_CSV)
     validate_data(dt)
-
-    model_20_main   <- run_het_did_regression(dt, "20", "did_sample_20")
-    model_20_robust <- run_het_did_regression(dt, "20", "did_sample_robust_20")
-    model_5_main    <- run_het_did_regression(dt, "5", "did_sample_5")
-    model_5_robust  <- run_het_did_regression(dt, "5", "did_sample_robust_5")
-
+    models_info <- fit_all_models(dt)
+    models <- lapply(models_info, `[[`, "model")
     print_summary_stats(dt)
-    print_all_models(model_20_main, model_20_robust, model_5_main, model_5_robust)
-
+    print_all_models(models[[1]], models[[2]], models[[3]], models[[4]])
     dir.create(OUTPUT_DIR, recursive = TRUE, showWarnings = FALSE)
-    models <- list(model_20_main, model_20_robust, model_5_main, model_5_robust)
     export_latex_table(models, OUTPUT_TEX)
     cat("\nRegression table exported to:", OUTPUT_TEX, "\n")
+    run_and_save_pretrend_walds(models_info, OUTPUT_WALD_CSV)
+}
+
+fit_all_models <- function(dt) {
+    list(
+        k20_main   = list(model = run_het_did_regression(dt, "20", "did_sample_20"),        threshold = "20"),
+        k20_robust = list(model = run_het_did_regression(dt, "20", "did_sample_robust_20"), threshold = "20"),
+        k5_main    = list(model = run_het_did_regression(dt, "5",  "did_sample_5"),         threshold = "5"),
+        k5_robust  = list(model = run_het_did_regression(dt, "5",  "did_sample_robust_5"),  threshold = "5")
+    )
 }
 
 # =====
@@ -196,6 +205,58 @@ build_coef_dict <- function() {
     }
     dict <- c(dict, "treatment2" = "Treatment 2")
     return(dict)
+}
+
+# =====
+# Joint pre-trend Wald tests per treatment arm
+# =====
+pretrend_coef_pattern <- function(threshold, arm) {
+    # Matches e.g. "tau_20::-6:suckered_t1_20" for tau in -6..-1
+    taus <- paste(PRE_TAUS, collapse = "|")
+    sprintf("^tau_%s::(%s):suckered_%s_%s$", threshold, taus, arm, threshold)
+}
+
+wald_pretrend_one_arm <- function(model, threshold, arm) {
+    # fixest::wald() uses the same vcov the model was fit with (clustered here).
+    # Coefficient names use lowercase arm ("t1"/"t2"); keep that case in the regex.
+    pattern <- pretrend_coef_pattern(threshold, arm)
+    matched <- grep(pattern, names(coef(model)), value = TRUE)
+    # Empty match would make fixest::wald return a bare NA (atomic), so guard here.
+    if (length(matched) == 0L) {
+        return(list(chisq = NA_real_, df = 0L, p_value = NA_real_))
+    }
+    res <- fixest::wald(model, keep = pattern, print = FALSE)
+    list(chisq = unname(res[["stat"]]), df = unname(res[["df1"]]), p_value = unname(res[["p"]]))
+}
+
+build_wald_row <- function(model_label, arm, threshold, model) {
+    res <- wald_pretrend_one_arm(model, threshold, arm)
+    data.table(
+        model = model_label,
+        arm = toupper(arm),
+        chisq = res$chisq,
+        df = res$df,
+        p_value = res$p_value
+    )
+}
+
+run_and_save_pretrend_walds <- function(models_info, filepath) {
+    cat("\n=== Joint Pre-trend Wald Tests (clustered vcov) ===\n")
+    rows <- list()
+    for (label in names(models_info)) {
+        info <- models_info[[label]]
+        for (arm in c("t1", "t2")) {
+            row <- build_wald_row(label, arm, info$threshold, info$model)
+            rows[[length(rows) + 1L]] <- row
+            cat(sprintf(
+                "%s | %s: chisq=%.4f, df=%d, p=%.4f\n",
+                label, toupper(arm), row$chisq, row$df, row$p_value
+            ))
+        }
+    }
+    out <- rbindlist(rows)
+    fwrite(out, filepath)
+    cat("Pre-trend Wald results saved to:", filepath, "\n")
 }
 
 # %%
