@@ -334,9 +334,10 @@ for each round since being suckered. These coefficients are causal effects given
 \end{figure}
 
 Notice that prior to the ``suckering'' event, coefficients are not significantly different between the treated and control groups.
-Coefficients following the event are significantly negative in every round and monotonically decrease. This suggests there is some 
+Coefficients following the event are significantly negative in every round and monotonically decrease. This suggests there is some
 snowball effect, where participants continually decrease their contributions as they lose trust in their group.
-Table \ref{table:issue_59_het_did_contribution} presents these coefficients in tabular form. 
+A model without heterogeneous treatment effects yields strictly negative significant coefficients post suckering-event.
+See Figure \ref{fig:did_contribution_pooled}.
 
 \subsection{Facial Emotions}
 
@@ -374,13 +375,6 @@ Where $\Lambda(\cdot)$ is the logistic function $\frac{e^x}{1+e^x}$, and $\text{
 liar model conditions on the subsample of participant-rounds where a promise was made. After estimation and inference, we find that
 $\hat{\beta_1} = 1.034$ is not significant, failing to demonstrate the ability of the emotion sentiment gap to predict lying, likely
 due to lack of power.
-
-\begin{table}[htbp]
-    \centering
-    \caption{Conditional Probability of Lying (Logistic Regression)}
-    \label{table:liar_conditional_probability}
-    \input{liar_conditional_probability}
-\end{table}
 
 \subsection{Using Text Embeddings for External Validition}
 
@@ -595,12 +589,19 @@ Before proceeding, please complete the quiz.
 \end{enumerate}
 
 \newpage
-\subsection{DiD table}
+\subsection{Pooled DiD (without heterogeneous treatment effects)}
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\linewidth]{issue_20_did_coefplot_20_main.png}
+    \caption{Event-study coefficients from the DiD specification (\ref{eq:did_contribution}) without heterogeneous treatment effects.}
+    \label{fig:did_contribution_pooled}
+\end{figure}
+
 \begin{table}[htbp]
-    \input{issue_59_het_did_contribution.tex}
-    \caption{Heterogeneous treatment effects from the DiD specification (\ref{eq:did_contribution}). T1 and T2 denote treatment-specific event-study coefficients. Standard errors clustered at the group level.}
-    \label{table:issue_59_het_did_contribution}
-    \end{table}
+    \input{issue_20_did_contribution.tex}
+    \caption{OLS results from the DiD specification (\ref{eq:did_contribution}) without heterogeneous treatment effects. Standard errors clustered at the group level.}
+    \label{table:issue_20_did_contribution}
+\end{table}
 
 \end{document}
 
