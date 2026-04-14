@@ -35,6 +35,9 @@ EXPECTED_COLUMNS = [
     'contribution',
     'payoff',
     'role',  # Currently all null - documented in test_role_column_notes
+    'others_contribution_1',
+    'others_contribution_2',
+    'others_contribution_3',
 ]
 REQUIRED_COLUMNS = [
     'session_code',
@@ -113,6 +116,9 @@ class TestContributionsCsvSchema:
             'contribution': 'float64',
             'payoff': 'float64',
             'role': 'float64',  # All NaN, stored as float
+            'others_contribution_1': 'float64',
+            'others_contribution_2': 'float64',
+            'others_contribution_3': 'float64',
         }
         for col, expected_dtype in expected_dtypes.items():
             assert str(contributions_df[col].dtype) == expected_dtype, (

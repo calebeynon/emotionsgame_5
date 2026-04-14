@@ -20,7 +20,8 @@ from experiment_data import Session, Experiment
 # =====
 EXPECTED_CONTRIBUTION_COLUMNS = [
     'session_code', 'treatment', 'segment', 'round', 'group',
-    'label', 'participant_id', 'contribution', 'payoff', 'role'
+    'label', 'participant_id', 'contribution', 'payoff', 'role',
+    'others_contribution_1', 'others_contribution_2', 'others_contribution_3'
 ]
 NUM_SUPERGAMES = 5
 

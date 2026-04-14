@@ -1,6 +1,7 @@
 \documentclass[12pt,letterpaper,english]{article}
 \usepackage[utf8]{inputenc}
 \usepackage[margin=1in]{geometry}
+\usepackage{amssymb}
 \usepackage{amsmath,amsfonts,amssymb}
 \usepackage{graphicx}
 \usepackage{booktabs}
@@ -58,16 +59,18 @@ This paper studies how information structure and emotions affect cooperation in 
 \end{spacing}
 \newpage
 \section{Introduction}
-Cooperation in public-goods environments critically depends on both communication and the information individuals have about one another’s behavior. A large body of experimental literature shows that allowing subjects to communicate can substantially increase contributions relative to settings without communication, even when communication is cheap talk and non-binding. At the same time, the degree of transparency surrounding individual actions—specifically, whether individual contributions are observable or only aggregate outcomes are revealed—has been shown to shape incentives, social norms, and the sustainability of cooperation. Despite extensive study of these two mechanisms independently, less is known about how communication interacts with informational visibility to influence cooperative behavior over time.
+Cooperation in public-goods environments critically depends on both communication as well as the information individuals have about one another’s behavior. A large body of experimental literature shows that allowing subjects to communicate can substantially increase contributions relative to settings without communication, even when communication is cheap talk and non-binding. At the same time, the degree of transparency surrounding individual actions—specifically, whether individual contributions are observable or only aggregate outcomes are revealed—has been shown to shape incentives, social norms, and the sustainability of cooperation. Despite extensive study of these two mechanisms independently, less is known about how communication interacts with informational visibility to influence cooperative behavior over time.
 
 In many real-world collective action problems, individuals can communicate freely while facing varying degrees of transparency about others’ behavior. In some settings, such as small teams or committees, individual contributions are highly visible. In others, such as large organizations or anonymous online platforms, only aggregate outcomes are observed, obscuring individual responsibility. Understanding how cooperation emerges and evolves under these different informational regimes—particularly when communication is present—is essential for explaining variation in cooperative outcomes across institutional environments.
 
-This paper experimentally studies how the visibility of individual contributions affects cooperation, communication, and contribution dynamics in a repeated public-goods game with endogenous communication. We employ a between-subjects design with two treatments that vary informational transparency. In the Information Known treatment, subjects observe the individual contributions of all group members at the end of each period. In the Information Unknown treatment, subjects observe only the aggregate group contribution. In both treatments, subjects can communicate freely via an on-screen chat before each decision. This design allows us to isolate how transparency at the individual versus group level interacts with communication to shape cooperative behavior.
+In this paper, we present a experimental study to explain how the visibility of individual contributions affects cooperation, communication, and contribution dynamics in a repeated public-goods game with endogenous communication. We employ a between-subjects design with two treatments that vary in terms of informational transparency. In the \textbf{Feedback} treatment, subjects observe the individual contributions of all group members at the end of each period. In the \textbf{No Feedback}treatment, subjects observe only the aggregate group contribution. In both treatments, subjects communicate freely via an on-screen chat before each decision. This design allows us to isolate how transparency at the individual versus group level interacts with communication to shape cooperative behavior.
 
 Our experimental environment incorporates several features that reflect realistic collective decision-making settings. Subjects interact repeatedly within segments but are rematched across segments, limiting the scope for long-term reputation building while preserving short-run strategic considerations. Communication is unrestricted and occurs prior to each contribution decision, allowing groups to coordinate, make promises, and express approval or disapproval. Finally, the random-ending structure within each segment mitigates endgame effects and encourages forward-looking behavior throughout the interaction.
 
 The contribution of this paper is threefold. First, we provide causal evidence on how informational visibility alters contribution levels and dynamics when communication is available. While prior studies have examined the effects of communication or visibility in isolation, our design directly compares individual-level and aggregate-level transparency within an otherwise identical communicative environment. Second, we analyze how communication content and patterns differ across informational regimes, shedding light on the mechanisms through which transparency influences cooperation. Third, we examine how cooperation evolves over time within and across segments, highlighting differences in stability, responsiveness to deviations, and decay in contributions.
 
+The emotional state of a player can be a significant driver of how they make certain decisions. With the public good framework, with communication allowed, we are interested in learning two things: Does communication, and subsequent match or mismatch of action trigger emotional response in participants. If emotions are present, do they get reflected in the behavior? We record our participants through the duration of our study and analyze these recorded videos via a facial recognition technology to see if there is any coorelation between verbal communication and facial expressions, and between emotions and contributions in the public goods game.
+%insert more over here discussion on why we use facial recognition and how we intend to combine it with the rest of it.
 
 The remainder of the paper proceeds as follows. Section 2 reviews the related literature. Section 3 describes the experimental design and procedures. Section 4 presents the main results on contributions and communication. Section 5 discusses robustness and additional analyses. Section 6 concludes.
 
@@ -101,31 +104,27 @@ By combining repeated interaction within segments, random rematching across segm
 
 While prior work establishes that both communication and visibility matter for cooperation, we show that the effectiveness of communication critically depends on the ability to attribute behavior to individuals. Moreover, we document how informational transparency shapes not only contribution levels but also the nature and function of communication itself.
 
+%again over here on emotions: 
+
 \section{Experimental Design}
-Our study employs a between-subjects design with two treatments that vary the degree of informational visibility in a standard public-goods environment. Across the two treatments, we manipulate whether subjects can observe both the individual contributions of their group members or only the aggregate contribution of the group. 
+Our study employs a between-subjects design with two treatments that vary the degree of informational visibility in a standard public-goods environment. Across the two treatments, we manipulate whether subjects can observe both the individual contributions of their group members or only the aggregate contribution of the group, i.e. in the "Feedback" treatment, each subject observes the contributions of all of their group members at the end of every round \footnote{Refer to Appendix: Results. Each participant can see their contribution and also exactly how much everyone else in that group contrubuted}, while in the "No Feedback" treatment, subjects see only the total contribution placed into the group account, without any breakdown of who contributed how much. This manipulation allows us to study how transparency—either at the individual or group level—affects cooperative behavior, communication patterns, and contribution dynamics.
 
-We conducted a total of 10 sessions, each with 16 participants, yielding 160 subjects overall. Subjects were randomly assigned to a treatment at the session level. Each participant was assigned a unique letter at the beginning of the session. These letters were used to allow participants to observe individual behavior across their group. Subjects were paired into sets of 4 people. In the Information Known treatment, each subject observes the contributions of all three of their group members at the end of every period. In the Information Unknown treatment, subjects see only the total contribution placed into the group account, without any breakdown of who contributed how much. This manipulation allows us to study how transparency—either at the individual or group level—affects cooperative behavior, communication patterns, and contribution dynamics.
+Participants were paired into groups of 4 people. They were randomly assigned to one of the two treatments and would be in the same treatment for the entire session. Each participant was assigned a unique letter at the beginning of the session. In the "Feedback" treatement, these letters were used to allow participants to observe individual behavior across their group. 
+The experiment consisted of five segments, each made up of varying number of rounds. Groups were re-matched across segments in a way that no subject remained with the same set of partners across segments. Each segment followed a random-ending structure based on the continuation probabilities in \cite{lugovskyy2010experimental} (Sequence 1). The sequence of period lengths was (3, 4, 3, 7, 5), totaling 22 rounds for the duration of a session. Each participant played all 22 rounds, resulting in 110 total rounds across the five segments. 
 
-The experiment consisted of five segments, each made up of varying number of periods. Groups were re-matched across segments in a way that no subject remained with the same set of partners across segments. 
-Each segment followed a random-ending structure based on the continuation probabilities in Lugovskyy et al. (Sequence 1). The sequence of period lengths was (3, 4, 3, 7, 5), totaling 22 periods per segment. Subjects played all 22 periods, resulting in 110 total periods across the five segments. 
+At the beginning of every round, each participant received 25 ECU (experimental currency units) in their private account. Participants decided how many of these points to allocate to the group account. After each round, subjects viewed the earnings from that round alongside the group account total (and individual contributions- in the Feedback treatment). Our unique addition included allowing participants to communicate as they moved through this framework of the public goods game. Each participant would chat with the other members of their group before they decided their contribution to the group vs private account. Chat page restarted for each round, and the total time allocated for chat decreased over the course of a segment \footnote{Initial chat time was set to one minute.}. Subjects could freely exchange messages but were prohibited from sharing identifying information or using profanity. All communication occurred through an on-screen chat box \footnote{Refer to Appendix: Chat Page to see a sample of how the chat box appeared on screen for participants}.
 
-Before each decision, subjects participated in a chat phase with the members of their current group. Chat time decreased over the course of a segment. Subjects could freely exchange messages but were prohibited from sharing identifying information or using profanity. All communication occurred through an on-screen chat box.
+After completing all five segments, one segment was randomly selected to determine each participant’s final payoff. We conducted a total of 10 sessions, each with 16 participants, yielding 160 subjects overall. The average payoff was xxx , converted at the rate of 1 ECU = 0.1 dollars?
 
-At the beginning of every period, each subject received 25 points in a private account. Subjects decided how many of these points to allocate to the group account.
-
-After each period, subjects viewed the earnings from that period alongside the group account total (and individual contributions, when applicable). After completing all five segments, one segment was randomly selected to determine each participant’s final payoff.
 
 \section{Results}
 
 \subsection{Summary Statistics}
 
-To recall, we use a total of 5 segments, each with varying number of rounds. Figures \ref{fig:median_contribution_by_round} and \ref{fig:mean_contribution_by_round} display the 
-median and mean contributions by rounds within segments for the two treatement types. We see a higher contribution in Treatment 2 during the first round, but there is not significant difference in either measure following 
-round 1. Both measures converge to near a near 25 ECU mean and a 25 ECU median, consistent with the continuous,
+Our experimental design consisted of five segments with a varying number of rounds. Among the 160 total subjects x\% were men and women. Our primary composition was xxx ethnicity. We will discuss the differences based on these characteristics, but first, we look at the general contribution pattern across participants when the number of rounds varied. Figures \ref{fig:median_contribution_by_round} and \ref{fig:mean_contribution_by_round} display the 
+median and mean contributions by rounds within segments for the two treatment types. We observe a higher contribution during the very first round in the Feedback Treatment (- Treatment 2 hereon) compared to the No Feedback Treatment (- Treatment 1 hereon), but there is not significant difference in the overall contribution across treatments based on the number of rounds: Both measures converge to a near 25 ECU mean and a 25 ECU median, consistent with the continuous
 chat treatment in [CITE needed, I forget which paper had this]. Figure \ref{fig:contribution_cdf_by_treatment}
-displays the contribution CDF by treatment. The CDF from treatment 1 first-order stochastically dominates that of treatment 2 which implies overall lower contributions in treatment 1. 
-
-
+displays the contribution CDF by treatment. The CDF from Treatment 1 first-order stochastically dominates that of Treatment 2, implying overall lower contributions in Treatment 1. 
 
 
 \begin{figure}[htbp]
@@ -145,6 +144,7 @@ displays the contribution CDF by treatment. The CDF from treatment 1 first-order
     \end{minipage}
 \end{figure}
 
+\newpage
 \begin{figure}[htbp]
     \centering
     \includegraphics[width=\linewidth]{contribution_cdf_by_treatment.png}
@@ -152,25 +152,96 @@ displays the contribution CDF by treatment. The CDF from treatment 1 first-order
     \label{fig:contribution_cdf_by_treatment}
 \end{figure}
 
+\subsection{Regression Analysis}
+
+We start by analyzing the dynamic effect of individual contributions across treatments. We estimate the following model subsetted
+by treatment using two-step difference GMM[CITE Arrellano and Bond].  
+\begin{equation}
+\begin{split}
+    \Delta Contribution_{i,t}
+    &= \beta_1 \Delta Contribution_{i,t-1} + \beta_2 \Delta Contribution_{i,t-2} \\
+    &\quad + \beta_{pos} \Delta D^+_{i,t-1} + \beta_{neg} \Delta D^-_{i,t-1}
+    + \sum_{r=1}^{5} \beta_{Rr} \cdot 1\{Round_{t} = r\} \\
+    &\quad + \psi \Delta Segment_{t} + \varepsilon_{i,t}
+\end{split}
+\label{eq:dynamic_reg}
+\end{equation}
+Where $\Delta Contribution_{i,t} = Contribution_{i,t} - Contribution_{i,t-1}$ and $Contribution_{i,t}$ is the 
+round level individual contribution to the group account. $D^+_{i,t}$ and $D^-_{i,t}$ are binary variables indicating
+whether the individual contribution was greater or less than the group mean for round $t$. $Round_t$ and $Segment_t$
+are variables for position in time within the experiment. We use $\Delta Contribution_{i,t-2}$, $\Delta Contribution_{i,t-3}$, and $\Delta Contribution_{i,t-4}$ 
+as the lagged instruments. 
+
+
+
+\begin{table}
+    \centering \footnotesize
+    \input{dynamic_regression.tex}
+    \caption{Dynamic Panel Regression Analysis. Arellano-Bond two-step GMM with Windmeijer-corrected robust standard errors in parentheses. Instruments: lags 2--4 of contribution.}
+    \label{tab:dynamic_regression}
+\end{table}
+
+Table \ref{tab:dynamic_regression} presents the results from this specification. 
+
+
+\bigskip
+\noindent\fcolorbox{red}{yellow!10}{%
+\parbox{\dimexpr\textwidth-2\fboxsep-2\fboxrule}{%
+\textbf{Note (to be excluded from the paper):} I tried to add my own interpretation but I think Paan's explanation of this
+made a lot more sense to me. Perhaps you could fill out the results from the dynamic model.
+}}
+\bigskip
+
 
 \subsection{Classifying Behavior}
 
-During the study, participants were able to communicate freely with very little restriction. This allowed for text analysis across many dimensions.
+During the experiment, we allowed participants to communicate freely with little restriction. This allowed for text analysis across several dimensions.
 We first start by presenting a classification of text and corresponding behavior that relates to our hypotheses. Historically, classifying text has been arduous. However, we utilize recent advancements in large language models
 to perform this task. Specifically, we are interested in identifying whether a participant makes a promise to other group members.
-Using OpenAI's GPT-5-mini model, we classify a participant's message as a promise or not a promise \footnote{ We use the same prompt for all participants. This prompt includes the following elements: a brief explanation of the public goods game, a list of examples of promises, a message to classify, and the 
+Using \cite{openai_gpt5mini_2025}'s GPT-5-mini model, we classify a participant's message as a promise or not a promise \footnote{ We use the same prompt for all participants. This prompt includes the following elements: a brief explanation of the public goods game, a list of examples of promises, a message to classify, and the 
 preceding messages in the conversation. The model is explicitly told to take the participant's message in the context of the whole conversation.}
 
 By classifying the messages from participants, we can classify their behavior as well. We create two separate classifications at the participant-round level.
 First, we classify a participant as a ``liar'' if they made a promise, but later failed to contribute more than 20 ECUs in the next contribution decision. Each participant begins each segment without the ``liar'' label, but the label persists for the rest of the segment once they first become a liar. We then classify a participant as a ``sucker'' if they contributed the maximum (25 points) in a round where a groupmate lied. Similar to the liar label, the sucker label persists for the rest of the segment once they first become a sucker.
-Table \ref{table:behavior_summary_aggregate} presents the number of suckers and liars by treatment and segment. 
+%Table \ref{table:behavior_summary_aggregate} presents the number of suckers and liars by treatment and segment. 
+
+We examine the persistence of liars throughout the experiment. We use the following logit fixed effects specification,
+\begin{equation}
+    \Pr(\text{Lied}_{i,t} = 1) = \Lambda\left(\beta_1 \cdot \text{Lied}_{i,t-1} + \beta_2 \cdot \text{Female}_i + \beta_3 \cdot \text{Treatment}_i + \alpha_s\right) 
+    \label{eq:liar_logit}
+\end{equation}
+where $\Lambda(\cdot)$ is the logitistic function, $Lied{i,t}$ is a binary variable indicating whether they
+lied during the communication phase of round $t$, $Female_i$ is a binary variable for gender, and $Treatment_i$ is a binary
+variable for treatment 2, and $\alpha_s$ are segment fixed effects. We use fixed effects
+to examine the probability absent regrouping effects. Table \ref{table:logit_liar_results} presents the results from this specification.
+Both gender and treatment are not significant predictors of the probability of lying at the individual-round level.
+Lying in the previous round is a significant, positive predictor of lying in the current round. This indicates that
+lying is a persistent behavior. While this describes behavior conditional on being a liar, figure \ref{fig:liar_dist} presents
+the distribution of lying frequency. 105 out of 160 participants never lie throughout the entire experiment. Lying is an uncommon, but persistent behavior. 
+
+
 
 \begin{table}
-\centering
-\input{behavior_summary_aggregate.tex}
-\caption{Summary of sucker and liar counts by treatment and segment}
-\label{table:behavior_summary_aggregate}
+    \centering
+    \input{liar_conditional_probability.tex}
+    \caption{Logit regression for the probability of lying. Standard errors clustered at the individual level.}
+    \label{table:logit_liar_results}
 \end{table}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\linewidth]{liar_count_distribution.png}
+    \caption{The distribution of liars at the participant-round level.}
+    \label{fig:liar_dist}
+\end{figure}
+
+
+%\begin{table}
+%\centering
+%\input{behavior_summary_aggregate.tex}
+%\caption{Summary of sucker and liar counts by treatment and segment}
+%\label{table:behavior_summary_aggregate}
+%\end{table}
 
 While creating binary classifications based on communication and contributions is helpful, it fails to
 analyze the emotions and sentiment present in the communication between subjects. Hence, we use the VADER sentiment
@@ -206,7 +277,7 @@ We analyze the effect of communication sentiment on individual contributions. We
 \end{equation}
 
 where $Contribution_{i,t}$ is the round level individual contribution, $treatment_{i}$ is a binary variable for treatment 2,
-$sentiment_{i,t}$ is the mean sentiment for participant $i$ in round, segment $t$, $n_messages_{i,t}$ is the number of messages sent
+$sentiment_{i,t}$ is the mean sentiment for participant $i$ in round, segment $t$, $n\_messages_{i,t}$ is the number of messages sent
 by participant $i$ in $t$, $\alpha_r$ are round fixed effects and $\gamma_s$ are segment fixed effects. Table \ref{table:contribution_regression}
 presents the results from this regression. Sentiment has a positive and significant coefficient of 2.182, indicating that a positive valence
 is associated with higher contributions in expectation. The number of messages sent by an individual is not significant. A limitation of our experimental design
@@ -240,13 +311,17 @@ We use participants who were ``suckered'' as a treated group. The control group 
 excluding variation from rounds and segments via fixed effects. The specification is given by
 
 \begin{equation}
-    Contribution_{i,t} = \sum_{\substack{k = -K \\ k \neq 0}}^{K} \beta_k \left( 1\{\tau_{i,t} = k\} \times \text{sucker}_i \right) + \gamma \, \text{Treatment}_i + \alpha_r + \gamma_s +    
-    \varepsilon_{it} 
-    \label{eq:did_contribution}
+\begin{split}
+    Contribution_{i,t} = \sum_{\substack{k = -K \\ k \neq 0}}^{K} \Big[ &\beta_k^{T1} \left( 1\{\tau_{i,t} = k\} \times \text{sucker}_i \times \text{T1}_i \right) \\
+    + &\beta_k^{T2} \left( 1\{\tau_{i,t} = k\} \times \text{sucker}_i \times \text{T2}_i \right) \Big] \\
+    + &\gamma \, \text{Treatment}_i + \alpha_r + \gamma_s + \varepsilon_{it}
+\end{split}
+\label{eq:did_contribution}
 \end{equation}
 
-Where $\tau_{i,t}$ is the relative round since being suckered. This specification allows us to recover a coefficient
-for each round since being suckered. These coefficients are causal effects given the following assumptions:
+Where $\tau_{i,t}$ is the relative round since being suckered, and $\text{T1}_i$ and $\text{T2}_i$ are indicators for
+treatment assignment. This specification allows us to recover separate event-time coefficients for each treatment arm. These
+coefficients are causal effects given the following assumptions:
 \begin{enumerate}
     \item Parallel Trends: Absent the suckering event, suckers and control subjects would have followed the same contribution trajectory.
     While this is fundamentally untestable, pre-trends show no significant differences in trajectory between groups. 
@@ -257,15 +332,16 @@ for each round since being suckered. These coefficients are causal effects given
 
 \begin{figure}[htbp]
     \centering
-    \includegraphics[width=\linewidth]{issue_20_did_coefplot_20_main.png}
-    \caption{The effect of a ``suckering'' event on future contributions.}
+    \includegraphics[width=\linewidth]{issue_59_het_did_coefplot_20_main.pdf}
+    \caption{Heterogeneous treatment effects of a ``suckering'' event on future contributions, with separate coefficients for Treatment 1 and Treatment 2.}
     \label{fig:did_contribution}
 \end{figure}
 
 Notice that prior to the ``suckering'' event, coefficients are not significantly different between the treated and control groups.
-Coefficients following the event are significantly negative in every round and monotonically decrease. This suggests there is some 
+Coefficients following the event are significantly negative in every round and monotonically decrease. This suggests there is some
 snowball effect, where participants continually decrease their contributions as they lose trust in their group.
-Table \ref{table:issue_20_did_contribution} presents these coefficients in tabular form. 
+A model without heterogeneous treatment effects yields strictly negative significant coefficients post suckering-event.
+See Figure \ref{fig:did_contribution_pooled}.
 
 \subsection{Facial Emotions}
 
@@ -397,12 +473,133 @@ that would fit this analysis.]
 
 \newpage
 \section{Appendix}
+\subsection{Instructions for the Experiment}
+\begin{center}
+\textbf{Welcome}\\
+\end{center}
+Welcome to our study. At this time, please make sure you have turned off and put away all personal electronic devices. This study will take no more than 75 minutes. You will be paid your earnings from the study in addition to the \$7.50 participation payment in cash. Your earnings will depend on the decisions you and others make in this study, so it is important that you fully understand these instructions. These earnings will be denominated in Experimental Currency Units (or ECUs for short). At the end of the study, ECUs will be converted into dollars at the exchange rate of 10 ECUs for \$1.00 and will be paid to you privately in cash. If you have a question at any point, please raise your hand.\\
 
-\begin{table}
+
+\textbf{Structure}\\
+You will interact with other participants in this session through a computer program. Your personal identifying information will not be revealed to anyone. To the participants that you will interact with, you will be referred to as a unique alphabet letter randomly assigned to you. For this session, you will be referred to as
+
+\begin{center}
+    \textbf{“Participant None”}
+\end{center}
+
+This study consists of 5 \textbf{segments}. At the beginning of each segment, all participants will be randomly placed in a group of 4. Each group will remain the same throughout the segment. When a new segment begins, all participants will be randomly placed in a new group of 4. In these 5 segments, you will be placed in 5 different groups and will not interact with the same persons in different segments.\\
+\textbf{Ending of Segments}
+Each segment consists of an uncertain number of rounds. The number of rounds in a segment is randomly selected by the computer in the following manner: after each round, there is an 80\% chance that another round of the same segment will follow and there is a 20\% chance that the segment will end after that round. You can think about this in the following way:
+
+
+
+In each round, the computer will randomly select a number from 1 to 5, if the selected number is from 1 to 4, the next round will follow. If the selected number is 5, the segment will end.\\
+
+\textbf{Tokens and allocation}
+\begin{itemize}
+    \item Each participant is endowed with 25 tokens at the beginning of each round and has to allocate these tokens between a \textbf{Private Account} and a \textbf{Group Account}. Each participant has their own Private Account and there is only one Group Account for each group.
+\item You will earn 1.0 ECU for each token you allocate to your Private Account. Each token allocated to the Group Account yields a return of 1.6 ECUs. Everyone in the group will receive an equal share of earnings from the Group Account. Since there are 4 participants in a group, each participant will receive
+
+\begin{center}
+    \textbf{$\frac{1}{4}$ x 1.6 x the total number of tokens in the the Group Account}
+\end{center}
+
+in ECUs.
+
+\item We would like to emphasize each participant in a group will receive the same amount of ECUs from the Group Account, even though each allocated a different number of tokens to the Group Account
+\end{itemize}
+\textbf{Decisions}\\
+Each round consists of 2 stages.
+
+\begin{itemize}
+    \item In stage 1, you will divide your 25 tokens between the Private Account and the Group Account. Below, you will enter the number of tokens you want to allocate to the Group Account. (Enter a whole number between 0 and 25 to allocate to the Group Account). The computer will automatically show how many tokens are allocated to the Private Account.
+\item In stage 2, you will view the results of the round and chat with your group members.
+\item You will be able to see \textbf{the total number of tokens in the group account} and \textbf{each group member's allocation to the group account}.
+\item You will be able to chat with your group members for up to 90 seconds. Please avoid profanities and offensive language. This will not be tolerated. Do not use any language other than English. Also, avoid revealing your current seating location or personal identifying information about yourself such as your name, age, major, gender, etc.
+\item Even though you will make decisions in many rounds and the computer will calculate your earnings in ECUs for all of these rounds, the computer will randomly select only 1 segment to calculate your cash payment. The computer will use the sum of your earnings from all rounds in the selected segment and convert it into dollars at the exchange rate of 10 ECUs for \$1.00. You will know which segment is selected for your cash earnings at the end of the study.
+\end{itemize}
+\subsection{Pratice Page}
+\includegraphics[width=1\textwidth]{practice.png}
+\newpage
+\subsection{Quiz Page}
+
+Before proceeding, please complete the quiz.
+\begin{enumerate}
+    \item How many participants are in a group? $\Box$
+    \item How many segments are in this study?$\Box$
+
+\item The number of rounds in each segment is uncertain. 
+\begin{itemize}
+    \item True/False
+\end{itemize}
+
+\item  During each round, the probability that it is the last round is 80%.
+\begin{itemize}
+    \item True/False
+\end{itemize}
+
+\item  Between segments, your group members change.
+
+\begin{itemize}
+    \item True/False
+\end{itemize}
+
+\item Between rounds of the same segment, your group members change.
+
+ \begin{itemize}
+    \item True/False
+\end{itemize}
+
+\item Each participant starts with how many tokens per round? $\Box$
+\item If everybody in a group, including yourself, allocate 10 tokens to the Group Account, each member's earnings are? (you may use the practice calculator above)$\Box$
+
+
+\item If you allocate 25 tokens to the group account and all others allocate 0, your earnings are? (you may use the practice calculator above)$\Box$
+
+\item If you allocate 0 tokens to the group account and all others allocate 25, your earnings are? (you may use the practice calculator above)$\Box$
+
+\item Your total earnings are the sum of the earnings from all segments. 
+
+\begin{itemize}
+    \item True/False
+\end{itemize}
+\end{enumerate}
+\newpage
+\subsection{Results}
+\includegraphics[width =1\textwidth]{resultspagefeedback.png}
+\newpage
+\subsection{Chat Page}
+
+\includegraphics[width =1\textwidth]{chatfeedback.png}
+
+\newpage
+\subsection{Survey Questions}
+\begin{enumerate}
+    \item What gender do you identify as?
+    \item What is your ethnicity?
+\item Your Age:
+
+\item Your Major:
+
+\item How many siblings did you have growing up?
+
+\item How important is religion in your daily life?
+\end{enumerate}
+
+\newpage
+\subsection{Pooled DiD (without heterogeneous treatment effects)}
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\linewidth]{issue_20_did_coefplot_20_main.png}
+    \caption{Event-study coefficients from the DiD specification (\ref{eq:did_contribution}) without heterogeneous treatment effects.}
+    \label{fig:did_contribution_pooled}
+\end{figure}
+
+\begin{table}[htbp]
     \input{issue_20_did_contribution.tex}
-    \caption{OLS results from the DiD specification (\ref{eq:did_contribution}). Standard errors clustered at the group level.}
+    \caption{OLS results from the DiD specification (\ref{eq:did_contribution}) without heterogeneous treatment effects. Standard errors clustered at the group level.}
     \label{table:issue_20_did_contribution}
-    \end{table}
+\end{table}
 
 \end{document}
 
