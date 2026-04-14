@@ -1,47 +1,45 @@
 
 \begingroup
 \centering
-\begin{tabular}{lcccccccc}
+\begin{tabular}{lcccc}
    \tabularnewline \midrule \midrule
-   Dependent Variable: & \multicolumn{8}{c}{Y}\\
-    & \multicolumn{2}{c}{Results Page Face (vs Chat)} & \multicolumn{2}{c}{Chat Period Face (vs Chat)} & \multicolumn{2}{c}{Results Page Face (vs Quiz)} & \multicolumn{2}{c}{Chat Period Face (vs Quiz)} \\ 
-   Model:                  & (1)          & (2)         & (3)           & (4)           & (5)           & (6)           & (7)           & (8)\\  
+   Dependent Variable: & \multicolumn{4}{c}{Emotion Valence}\\
+    & \multicolumn{2}{c}{Results Page Face} & \multicolumn{2}{c}{Pre-Decision Chat Face} \\ 
+   Model:       & (1)           & (2)           & (3)           & (4)\\  
    \midrule
    \emph{Variables}\\
-   Lied This Round         & -1.140       &             & -1.971        &               &               &               &               &   \\   
-                           & (0.7803)     &             & (1.318)       &               &               &               &               &   \\   
-   Face $\times$ Lied      & 7.596$^{**}$ &             & 1.382         &               & 5.595$^{**}$  &               & -1.898$^{**}$ &   \\   
-                           & (2.925)      &             & (2.825)       &               & (2.312)       &               & (0.9294)      &   \\   
-   round3                  & 0.2519       & 0.2355      & 1.255$^{***}$ & 1.243$^{***}$ & 1.474$^{**}$  & 1.600$^{**}$  & 1.884$^{***}$ & 1.864$^{***}$\\   
-                           & (0.3083)     & (0.3172)    & (0.3058)      & (0.2961)      & (0.6228)      & (0.6192)      & (0.5539)      & (0.5360)\\   
-   round4                  & 0.0959       & 0.0636      & 1.264$^{***}$ & 1.269$^{***}$ & 1.029         & 1.094         & 1.918$^{**}$  & 1.920$^{**}$\\   
-                           & (0.4369)     & (0.4474)    & (0.4632)      & (0.4596)      & (0.6675)      & (0.6752)      & (0.8092)      & (0.7966)\\   
-   round5                  & 0.1715       & 0.1661      & 1.465$^{***}$ & 1.450$^{***}$ & 0.7955        & 0.9194        & 2.651$^{***}$ & 2.620$^{***}$\\   
-                           & (0.4569)     & (0.4691)    & (0.5129)      & (0.5108)      & (0.8009)      & (0.8256)      & (0.9060)      & (0.8979)\\   
-   round6                  & 1.539$^{*}$  & 1.612$^{*}$ & 1.623$^{***}$ & 1.570$^{***}$ & 4.134$^{***}$ & 4.368$^{***}$ & 4.221$^{***}$ & 4.164$^{***}$\\   
-                           & (0.8584)     & (0.8877)    & (0.5965)      & (0.5892)      & (1.512)       & (1.547)       & (1.207)       & (1.197)\\   
-   round7                  & 0.9967       & 1.013       & 3.554$^{***}$ & 3.533$^{***}$ & 2.314$^{*}$   & 2.472$^{*}$   & 5.760$^{***}$ & 5.723$^{***}$\\   
-                           & (0.8467)     & (0.8404)    & (0.7387)      & (0.7370)      & (1.251)       & (1.252)       & (1.204)       & (1.202)\\   
-   Suckered This Round     &              & -0.3268     &               & -0.3583       &               &               &               &   \\   
-                           &              & (0.5055)    &               & (0.7256)      &               &               &               &   \\   
-   Face $\times$ Suckered  &              & 1.765       &               & -0.7439       &               & 1.906         &               & -1.164\\   
-                           &              & (1.563)     &               & (1.585)       &               & (1.540)       &               & (1.200)\\   
-   round2                  &              &             &               &               & 0.8176        & 0.9544        &               &   \\   
-                           &              &             &               &               & (0.5457)      & (0.5860)      &               &   \\   
+   Lied         & 5.487$^{**}$  &               & -2.140$^{**}$ &   \\   
+                & (2.306)       &               & (0.8983)      &   \\   
+   Suckered     &               & 1.885         &               & -1.235\\   
+                &               & (1.520)       &               & (1.214)\\   
+   round $=$ 2  & 0.8229        & 0.9559        &               &   \\   
+                & (0.5443)      & (0.5865)      &               &   \\   
+   round $=$ 3  & 1.477$^{**}$  & 1.601$^{**}$  & 1.880$^{***}$ & 1.860$^{***}$\\   
+                & (0.6226)      & (0.6198)      & (0.5534)      & (0.5352)\\   
+   round $=$ 4  & 1.031         & 1.095         & 1.915$^{**}$  & 1.920$^{**}$\\   
+                & (0.6674)      & (0.6755)      & (0.8082)      & (0.7958)\\   
+   round $=$ 5  & 0.7991        & 0.9200        & 2.653$^{***}$ & 2.620$^{***}$\\   
+                & (0.8011)      & (0.8261)      & (0.9058)      & (0.8968)\\   
+   round $=$ 6  & 4.140$^{***}$ & 4.369$^{***}$ & 4.227$^{***}$ & 4.165$^{***}$\\   
+                & (1.512)       & (1.546)       & (1.208)       & (1.196)\\   
+   round $=$ 7  & 2.318$^{*}$   & 2.472$^{*}$   & 5.762$^{***}$ & 5.724$^{***}$\\   
+                & (1.250)       & (1.252)       & (1.205)       & (1.202)\\   
    \midrule
    \emph{Fixed-effects}\\
-   segment                 & Yes          & Yes         & Yes           & Yes           & Yes           & Yes           & Yes           & Yes\\  
-   player\_id              & Yes          & Yes         & Yes           & Yes           & Yes           & Yes           & Yes           & Yes\\  
-   channel                 & Yes          & Yes         & Yes           & Yes           & Yes           & Yes           & Yes           & Yes\\  
+   segment      & Yes           & Yes           & Yes           & Yes\\  
+   player\_id   & Yes           & Yes           & Yes           & Yes\\  
    \midrule
    \emph{Fit statistics}\\
-   Observations            & 3,582        & 3,582       & 3,690         & 3,690         & 2,819         & 2,819         & 2,284         & 2,284\\  
-   R$^2$                   & 0.17096      & 0.16221     & 0.25931       & 0.25893       & 0.26957       & 0.26594       & 0.40583       & 0.40561\\  
-   Within R$^2$            & 0.01288      & 0.00245     & 0.00898       & 0.00848       & 0.01276       & 0.00784       & 0.01596       & 0.01559\\  
+   Observations & 2,696         & 2,696         & 2,161         & 2,161\\  
+   R$^2$        & 0.27898       & 0.27549       & 0.42558       & 0.42526\\  
+   Within R$^2$ & 0.01277       & 0.00799       & 0.01695       & 0.01641\\  
    \midrule \midrule
-   \multicolumn{9}{l}{\emph{Clustered (player\_id) standard-errors in parentheses}}\\
-   \multicolumn{9}{l}{\emph{Signif. Codes: ***: 0.01, **: 0.05, *: 0.1}}\\
+   \multicolumn{5}{l}{\emph{Clustered (player\_id) standard-errors in parentheses}}\\
+   \multicolumn{5}{l}{\emph{Signif. Codes: ***: 0.01, **: 0.05, *: 0.1}}\\
 \end{tabular}
+ 
+\par \raggedright 
+Dependent variable: AFFDEX facial valence. Results Page Face columns measure valence on the post-outcome ResultsOnly page. Pre-Decision Chat Face columns measure valence on the Results chat page at the end of round t-1, shifted forward to round t (the contribution it influenced). Lied = 1 if a player's contribution falls at least 20 tokens below their most recent chat promise; Suckered = 1 if a groupmate lied, the player contributed the full 25-token endowment, and did not lie. The same regression was also estimated for the 12 other AFFDEX emotions (anger, contempt, disgust, fear, joy, sadness, surprise, engagement, sentimentality, confusion, neutral, attention); headline results for joy and engagement appear in the appendix.
 \par\endgroup
 
 

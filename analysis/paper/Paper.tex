@@ -277,9 +277,23 @@ One could typically expect facial emotions and communication sentiment to be pos
 In the case where a participant is lying, it seems plausible that sentiment and emotion could differ as they attempt to deceive their groupmates.
 We only analyze sentiment and emotions during the communication \textit{prior} to the contribution, and viewing the group contribution results.
 
+\begin{align}
+    Y_{ist} &= \beta^{L}\, \text{Lied}_{ist} + \sum_{r=2}^{R_s} \gamma_r^{L}\, \mathbf{1}[t=r] + \alpha_s + \mu_i + \varepsilon_{ist} \label{eq:gap_lied}\\
+    Y_{ist} &= \beta^{S}\, \text{Suckered}_{ist} + \sum_{r=2}^{R_s} \gamma_r^{S}\, \mathbf{1}[t=r] + \alpha_s + \mu_i + \varepsilon_{ist} \label{eq:gap_suckered}
+\end{align}
+\noindent where
+\begin{itemize}\setlength\itemsep{0pt}
+    \item $i$ indexes player, $s$ segment (supergame), $t$ round.
+    \item $Y_{ist}$ is AFFDEX facial valence for player $i$ in segment $s$, round $t$. In the \emph{Results Page Face} columns, $Y$ is measured on the post-outcome \texttt{ResultsOnly} page of round $t$. In the \emph{Pre-Decision Chat Face} columns, $Y$ is measured on the Results/chat page at the end of round $t{-}1$, lagged forward within player-segment so it aligns with the round-$t$ contribution it influenced.
+    \item $\text{Lied}_{ist} = 1$ if player $i$'s round-$t$ contribution is at least $20$ tokens below their most recent chat promise, $0$ otherwise.
+    \item $\text{Suckered}_{ist} = 1$ if a groupmate of $i$ satisfies $\text{Lied} = 1$ in round $t$, player $i$ contributed the full $25$-token endowment, and $\text{Lied}_{ist} = 0$; $0$ otherwise.
+    \item $\mathbf{1}[t=r]$ are round dummies ($r = 2,\dots,R_s$; round $1$ is the omitted category within each segment).
+    \item $\alpha_s$ and $\mu_i$ are segment and player fixed effects. Standard errors are clustered at the player level.
+\end{itemize}
+
 \begin{table}[htbp]
     \centering
-    \caption{Facial Valence--Chat Sentiment Gap Regressions}
+    \caption{Facial Valence Regressions: Liars and Suckers}
     \label{table:valence_sentiment_gap}
     \input{issue_52_valence_sentiment_gap_regressions}
 \end{table}
