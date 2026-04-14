@@ -182,25 +182,36 @@ emotion_row_lines <- function(emo_results, emo_col, flag_key, spec_keys,
 }
 
 latex_footer_lines <- function(all_results, flag_key, spec_keys) {
-    first_emo <- names(all_results)[1]
-    nobs_vec <- sapply(spec_keys, function(sk) {
-        all_results[[first_emo]][[sk]][[flag_key]]$nobs
-    })
-    nobs_row <- sprintf("   Observations & %s\\\\",
-                        paste(format(nobs_vec, big.mark = ","),
-                              collapse = " & "))
+    nobs_row <- build_nobs_row(all_results, flag_key, spec_keys)
     note_span <- length(SPEC_LABELS) + 1
     c("   \\midrule",
       nobs_row,
       "   \\midrule \\midrule",
+      sprintf("   \\multicolumn{%d}{l}{\\emph{Two-way clustered (player, group-segment-round) SEs in parens}}\\\\",
+              note_span),
+      sprintf("   \\multicolumn{%d}{l}{\\emph{[q=...] = Benjamini-Hochberg q-value across 13 emotions within spec}}\\\\",
+              note_span),
+      sprintf("   \\multicolumn{%d}{l}{\\emph{Signif. Codes: ***: 0.01, **: 0.05, *: 0.1}}\\\\",
+              note_span),
       "\\end{tabular}",
-      sprintf("\\multicolumn{%d}{l}{\\emph{Two-way clustered (player, group-segment-round) SEs in parens}}\\\\",
-              note_span),
-      sprintf("\\multicolumn{%d}{l}{\\emph{[q=...] = Benjamini-Hochberg q-value across 13 emotions within spec}}\\\\",
-              note_span),
-      sprintf("\\multicolumn{%d}{l}{\\emph{Signif. Codes: ***: 0.01, **: 0.05, *: 0.1}}",
-              note_span),
       "\\par\\endgroup")
+}
+
+build_nobs_row <- function(all_results, flag_key, spec_keys) {
+    emo_names <- names(all_results)
+    nobs_cells <- sapply(spec_keys, function(sk) {
+        ns <- sapply(emo_names, function(emo) {
+            all_results[[emo]][[sk]][[flag_key]]$nobs
+        })
+        if (length(unique(ns)) == 1L) {
+            format(ns[1], big.mark = ",")
+        } else {
+            sprintf("%s--%s",
+                    format(min(ns), big.mark = ","),
+                    format(max(ns), big.mark = ","))
+        }
+    })
+    sprintf("   Observations & %s\\\\", paste(nobs_cells, collapse = " & "))
 }
 
 format_coef_line <- function(coef, qval = NA_real_) {
