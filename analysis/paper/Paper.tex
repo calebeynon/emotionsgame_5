@@ -311,13 +311,17 @@ We use participants who were ``suckered'' as a treated group. The control group 
 excluding variation from rounds and segments via fixed effects. The specification is given by
 
 \begin{equation}
-    Contribution_{i,t} = \sum_{\substack{k = -K \\ k \neq 0}}^{K} \beta_k \left( 1\{\tau_{i,t} = k\} \times \text{sucker}_i \right) + \gamma \, \text{Treatment}_i + \alpha_r + \gamma_s +    
-    \varepsilon_{it} 
-    \label{eq:did_contribution}
+\begin{split}
+    Contribution_{i,t} = \sum_{\substack{k = -K \\ k \neq 0}}^{K} \Big[ &\beta_k^{T1} \left( 1\{\tau_{i,t} = k\} \times \text{sucker}_i \times \text{T1}_i \right) \\
+    + &\beta_k^{T2} \left( 1\{\tau_{i,t} = k\} \times \text{sucker}_i \times \text{T2}_i \right) \Big] \\
+    + &\gamma \, \text{Treatment}_i + \alpha_r + \gamma_s + \varepsilon_{it}
+\end{split}
+\label{eq:did_contribution}
 \end{equation}
 
-Where $\tau_{i,t}$ is the relative round since being suckered. This specification allows us to recover a coefficient
-for each round since being suckered. These coefficients are causal effects given the following assumptions:
+Where $\tau_{i,t}$ is the relative round since being suckered, and $\text{T1}_i$ and $\text{T2}_i$ are indicators for
+treatment assignment. This specification allows us to recover separate event-time coefficients for each treatment arm. These
+coefficients are causal effects given the following assumptions:
 \begin{enumerate}
     \item Parallel Trends: Absent the suckering event, suckers and control subjects would have followed the same contribution trajectory.
     While this is fundamentally untestable, pre-trends show no significant differences in trajectory between groups. 
