@@ -205,27 +205,15 @@ By classifying the messages from participants, we can classify their behavior as
 First, we classify a participant as a ``liar'' if they made a promise, but later failed to contribute more than 20 ECUs in the next contribution decision. Each participant begins each segment without the ``liar'' label, but the label persists for the rest of the segment once they first become a liar. We then classify a participant as a ``sucker'' if they contributed the maximum (25 points) in a round where a groupmate lied. Similar to the liar label, the sucker label persists for the rest of the segment once they first become a sucker.
 %Table \ref{table:behavior_summary_aggregate} presents the number of suckers and liars by treatment and segment. 
 
-We examine the persistence of liars throughout the experiment. We use the following logit fixed effects specification,
-\begin{equation}
-    \Pr(\text{Lied}_{i,t} = 1) = \Lambda\left(\beta_1 \cdot \text{Lied}_{i,t-1} + \beta_2 \cdot \text{Female}_i + \beta_3 \cdot \text{Treatment}_i + \alpha_s\right) 
-    \label{eq:liar_logit}
-\end{equation}
-where $\Lambda(\cdot)$ is the logitistic function, $Lied{i,t}$ is a binary variable indicating whether they
-lied during the communication phase of round $t$, $Female_i$ is a binary variable for gender, and $Treatment_i$ is a binary
-variable for treatment 2, and $\alpha_s$ are segment fixed effects. We use fixed effects
-to examine the probability absent regrouping effects. Table \ref{table:logit_liar_results} presents the results from this specification.
-Both gender and treatment are not significant predictors of the probability of lying at the individual-round level.
-Lying in the previous round is a significant, positive predictor of lying in the current round. This indicates that
-lying is a persistent behavior. While this describes behavior conditional on being a liar, figure \ref{fig:liar_dist} presents
-the distribution of lying frequency. 105 out of 160 participants never lie throughout the entire experiment. Lying is an uncommon, but persistent behavior. 
+Because treatment was randomly assigned, we examine whether the share of participants who ever lied during the experiment differs by treatment and by gender using Welch's two-sample $t$-tests at the participant level. Table \ref{table:liar_diff_in_means} reports the comparisons. Treatment 1 participants are significantly more likely to ever lie than Treatment 2 participants (42.5\% vs.\ 26.2\%, a 16.2 percentage point difference, $p = 0.031$). Liar rates do not differ significantly by gender. Figure \ref{fig:liar_dist} shows the distribution of lying frequency: 105 out of 160 participants never lie throughout the entire experiment. Lying is an uncommon behavior whose prevalence on the extensive margin is sensitive to treatment.
 
 
 
 \begin{table}
     \centering
-    \input{liar_conditional_probability.tex}
-    \caption{Logit regression for the probability of lying. Standard errors clustered at the individual level.}
-    \label{table:logit_liar_results}
+    \input{liar_diff_in_means.tex}
+    \caption{Share of participants who ever lied, compared across treatments and genders. Each row reports the two group means (in parentheses), their difference in percentage points, and the $p$-value from Welch's two-sample $t$-test.}
+    \label{table:liar_diff_in_means}
 \end{table}
 
 \begin{figure}[htbp]
