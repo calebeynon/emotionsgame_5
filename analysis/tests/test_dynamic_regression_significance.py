@@ -100,10 +100,15 @@ def _run_validate_r():
             f"Missing R validate script: {VALIDATE_R}. "
             "Create dynamic_regression_validate.R before running these tests."
         )
-    subprocess.run(
+    result = subprocess.run(
         ["Rscript", "analysis/dynamic_regression_validate.R"],
-        check=True, cwd=ANALYSIS_DIR,
+        cwd=ANALYSIS_DIR, capture_output=True, text=True,
     )
+    if result.returncode != 0:
+        raise RuntimeError(
+            f"dynamic_regression_validate.R failed (exit {result.returncode}).\n"
+            f"STDOUT:\n{result.stdout}\nSTDERR:\n{result.stderr}"
+        )
 
 
 # =====

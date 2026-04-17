@@ -161,7 +161,7 @@ by treatment using two-step difference GMM[CITE Arrellano and Bond].
     \Delta Contribution_{i,t}
     &= \beta_1 \Delta Contribution_{i,t-1} + \beta_2 \Delta Contribution_{i,t-2} \\
     &\quad + \beta_{pos} \Delta D^+_{i,t-1} + \beta_{neg} \Delta D^-_{i,t-1}
-    + \sum_{r=1}^{5} \beta_{Rr} \cdot 1\{Round_{t} = r\} \\
+    + \sum_{r=1}^{2} \beta_{Rr} \cdot 1\{Round_{t} = r\} \\
     &\quad + \psi \Delta Segment_{t} + \varepsilon_{i,t}
 \end{split}
 \label{eq:dynamic_reg}
@@ -169,8 +169,8 @@ by treatment using two-step difference GMM[CITE Arrellano and Bond].
 Where $\Delta Contribution_{i,t} = Contribution_{i,t} - Contribution_{i,t-1}$ and $Contribution_{i,t}$ is the 
 round level individual contribution to the group account. $D^+_{i,t}$ and $D^-_{i,t}$ are binary variables indicating
 whether the individual contribution was greater or less than the group mean for round $t$. $Round_t$ and $Segment_t$
-are variables for position in time within the experiment. We use $\Delta Contribution_{i,t-2}$, $\Delta Contribution_{i,t-3}$, and $\Delta Contribution_{i,t-4}$ 
-as the lagged instruments. 
+are variables for position in time within the experiment. We use lags 2 through 5 of
+$Contribution_{i,t}$ as the GMM instruments for the differenced equation.
 
 
 

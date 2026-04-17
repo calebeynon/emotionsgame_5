@@ -11,11 +11,12 @@
 # Windmeijer (2005) finite-sample-corrected robust SEs via plm::vcovHC.pgmm.
 #
 # Stata comparison (xtabond twostep vce(robust), log.rtf):
-# - All coefficients and SEs match Stata to 3 decimals on T1 and T2 baseline.
-# - All 7 baseline signs match Stata; all 7 significance stars match.
+# - All baseline coefficient signs + significance buckets match Stata; point
+#   estimates agree to ~2 decimals (largest gap ~0.04 on round2).
 # - All 4 Wald tests (pos+neg=0 and R1+R2=0 for both treatments) match
 #   Stata on sign and significance bucket.
-# - AR(1), AR(2), and Sargan diagnostics match Stata to 3 decimals.
+# - AR(1), AR(2), and Sargan diagnostics agree with Stata at the reported
+#   3-decimal precision of log.rtf; pytest asserts sign+bucket parity only.
 
 # nolint start
 library(data.table)
@@ -188,7 +189,11 @@ wald_test_pvalue <- function(model, coef_names) {
     beta <- coef(model)
     V <- vcovHC(model)
     idx <- match(coef_names, names(beta))
-    if (any(is.na(idx))) return(NA)
+    if (any(is.na(idx))) {
+        missing <- coef_names[is.na(idx)]
+        stop(sprintf("wald_test_pvalue: coef(s) not in model: %s",
+                     paste(missing, collapse = ", ")))
+    }
     r <- beta[idx]
     W <- sum(r)^2 / sum(V[idx, idx])
     pchisq(W, df = 1, lower.tail = FALSE)
@@ -240,26 +245,34 @@ clean_tex_gof <- function(tex_output) {
     lines <- lines[keep]
     # Move the long footnote out of the tabular so it doesn't force overflow
     note_idx <- grep("\\\\multicolumn\\{7\\}\\{l\\}\\{\\\\scriptsize", lines)
-    note_para <- NULL
-    if (length(note_idx) == 1) {
-        note_content <- sub(".*\\\\scriptsize\\{(.*)\\}\\}\\s*$", "\\1", lines[note_idx])
-        note_para <- paste0("\n\\begin{minipage}{\\textwidth}\\scriptsize ",
-                            note_content, "\\end{minipage}")
-        lines <- lines[-note_idx]
-    }
+    stopifnot(
+        "clean_tex_gof: expected exactly one scriptsize footnote row" =
+            length(note_idx) == 1
+    )
+    note_content <- sub(".*\\\\scriptsize\\{(.*)\\}\\}\\s*$", "\\1", lines[note_idx])
+    note_para <- paste0("\n\\begin{minipage}{\\textwidth}\\scriptsize ",
+                        note_content, "\\end{minipage}")
+    lines <- lines[-note_idx]
     # Insert treatment group header after \toprule
     toprule_idx <- grep("\\\\toprule", lines)
+    stopifnot(
+        "clean_tex_gof: expected exactly one toprule line" =
+            length(toprule_idx) == 1
+    )
     treatment_header <- paste0(
         " & \\multicolumn{3}{c}{Treatment 1} & \\multicolumn{3}{c}{Treatment 2} \\\\",
         "\n\\cmidrule(lr){2-4} \\cmidrule(lr){5-7}")
     lines <- append(lines, treatment_header, after = toprule_idx)
     result <- paste(lines, collapse = "\n")
     # Wrap tabular in resizebox so it shrinks-to-fit within \textwidth
-    result <- sub("(?s)(\\\\begin\\{tabular\\}.*?\\\\end\\{tabular\\})",
-                  "\\\\resizebox{\\\\textwidth}{!}{%\n\\1%\n}",
-                  result, perl = TRUE)
-    if (!is.null(note_para)) result <- paste0(result, note_para)
-    result
+    wrapped <- sub("(?s)(\\\\begin\\{tabular\\}.*?\\\\end\\{tabular\\})",
+                   "\\\\resizebox{\\\\textwidth}{!}{%\n\\1%\n}",
+                   result, perl = TRUE)
+    stopifnot(
+        "clean_tex_gof: resizebox wrap regex failed to match tabular" =
+            !identical(wrapped, result)
+    )
+    paste0(wrapped, note_para)
 }
 
 # %%
