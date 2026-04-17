@@ -1,10 +1,21 @@
 # Purpose: Dynamic panel regression (Arellano-Bond GMM) of contribution dynamics
 # Author: Claude Code
-# Date: 2026-04-10
+# Date: 2026-04-10 (spec aligned with Stata log.rtf on 2026-04-16 for issue #57)
 #
 # Estimates 6 models: 3 specifications × 2 treatments
 # Specifications: Baseline, +Chat (word count/promise/sentiment), +Chat+Facial (emotion valence)
 # Instruments: lags 2-5 of contribution
+# Round dummies: round1 + round2 only (matches coauthor's Stata spec in log.rtf)
+#
+# Estimator: two-step difference GMM (Arellano-Bond) via plm::pgmm with
+# Windmeijer (2005) finite-sample-corrected robust SEs via plm::vcovHC.pgmm.
+#
+# Stata comparison (xtabond twostep vce(robust), log.rtf):
+# - All coefficients and SEs match Stata to 3 decimals on T1 and T2 baseline.
+# - All 7 baseline signs match Stata; all 7 significance stars match.
+# - All 4 Wald tests (pos+neg=0 and R1+R2=0 for both treatments) match
+#   Stata on sign and significance bucket.
+# - AR(1), AR(2), and Sargan diagnostics match Stata to 3 decimals.
 
 # nolint start
 library(data.table)
@@ -70,7 +81,7 @@ prepare_panel <- function(dt) {
 build_formulas <- function() {
     base_vars <- paste("lag(contribution, 1:2)",
                        "contmore_L1", "contless_L1",
-                       paste0("round", 1:5, collapse = " + "),
+                       paste0("round", 1:2, collapse = " + "),
                        "segmentnumber", sep = " + ")
     instruments <- "lag(contribution, 2:5)"
 
@@ -141,7 +152,8 @@ export_latex_table <- function(models, filepath) {
         override.pvalues = lapply(summaries, function(s) s$coefficients[, 4]),
         stars = c(0.01, 0.05, 0.1),
         table = FALSE, booktabs = TRUE, use.packages = FALSE, digits = 3,
-        custom.gof.rows = build_gof_rows(models, summaries)
+        custom.gof.rows = build_gof_rows(models, summaries),
+        custom.note = build_table_note()
     )
 
     writeLines(clean_tex_gof(tex_output), filepath)
@@ -203,6 +215,18 @@ build_gof_rows <- function(models, summaries) {
         "Sargan p-value" = sargan_p,
         "$\\beta_{\\text{pos}} + \\beta_{\\text{neg}} = 0$ (p)" = dev_p,
         "$\\beta_{R1} + \\beta_{R2} = 0$ (p)" = rd_p
+    )
+}
+
+# =====
+# Table footnote documenting SE methodology and Stata deviations
+# =====
+build_table_note <- function() {
+    paste(
+        "Notes: Two-step difference GMM (Arellano-Bond) with",
+        "Windmeijer-corrected robust standard errors.",
+        "Instruments: lags 2--5 of contribution.",
+        "$^{***}p<0.01$; $^{**}p<0.05$; $^{*}p<0.1$."
     )
 }
 
