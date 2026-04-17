@@ -238,13 +238,28 @@ clean_tex_gof <- function(tex_output) {
     drop <- c("^n ", "^T ", "^Num\\.", "^Sargan Test:", "^Wald Test")
     keep <- !grepl(paste(drop, collapse = "|"), trimws(lines))
     lines <- lines[keep]
+    # Move the long footnote out of the tabular so it doesn't force overflow
+    note_idx <- grep("\\\\multicolumn\\{7\\}\\{l\\}\\{\\\\scriptsize", lines)
+    note_para <- NULL
+    if (length(note_idx) == 1) {
+        note_content <- sub(".*\\\\scriptsize\\{(.*)\\}\\}\\s*$", "\\1", lines[note_idx])
+        note_para <- paste0("\n\\begin{minipage}{\\textwidth}\\scriptsize ",
+                            note_content, "\\end{minipage}")
+        lines <- lines[-note_idx]
+    }
     # Insert treatment group header after \toprule
     toprule_idx <- grep("\\\\toprule", lines)
     treatment_header <- paste0(
         " & \\multicolumn{3}{c}{Treatment 1} & \\multicolumn{3}{c}{Treatment 2} \\\\",
         "\n\\cmidrule(lr){2-4} \\cmidrule(lr){5-7}")
     lines <- append(lines, treatment_header, after = toprule_idx)
-    paste(lines, collapse = "\n")
+    result <- paste(lines, collapse = "\n")
+    # Wrap tabular in resizebox so it shrinks-to-fit within \textwidth
+    result <- sub("(?s)(\\\\begin\\{tabular\\}.*?\\\\end\\{tabular\\})",
+                  "\\\\resizebox{\\\\textwidth}{!}{%\n\\1%\n}",
+                  result, perl = TRUE)
+    if (!is.null(note_para)) result <- paste0(result, note_para)
+    result
 }
 
 # %%

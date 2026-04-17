@@ -1,4 +1,5 @@
 
+\resizebox{\textwidth}{!}{%
 \begin{tabular}{l c c c c c c}
 \toprule
  & \multicolumn{3}{c}{Treatment 1} & \multicolumn{3}{c}{Treatment 2} \\
@@ -35,5 +36,6 @@ Sargan p-value                                    & $0.237$         & $0.252$   
 $\beta_{\text{pos}} + \beta_{\text{neg}} = 0$ (p) & $0.199$         & $0.122$         & $0.016$         & $0.016$        & $0.011$        & $0.022$        \\
 $\beta_{R1} + \beta_{R2} = 0$ (p)                 & $0.328$         & $0.479$         & $0.955$         & $0.436$        & $0.468$        & $0.058$        \\
 \bottomrule
-\multicolumn{7}{l}{\scriptsize{Notes: Two-step difference GMM (Arellano-Bond) with Windmeijer-corrected robust standard errors. Instruments: lags 2--5 of contribution. $^{***}p<0.01$; $^{**}p<0.05$; $^{*}p<0.1$.}}
-\end{tabular}
+\end{tabular}%
+}
+\begin{minipage}{\textwidth}\scriptsize Notes: Two-step difference GMM (Arellano-Bond) with Windmeijer-corrected robust standard errors. Instruments: lags 2--5 of contribution. $^{***}p<0.01$; $^{**}p<0.05$; $^{*}p<0.1$.\end{minipage}
