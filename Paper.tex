@@ -176,7 +176,7 @@ as the lagged instruments.
 
 \begin{table}
     \centering \footnotesize
-    \input{dynamic_regression.tex}
+    \input{dynamic_regression_stata.tex}
     \caption{Dynamic Panel Regression Analysis. Arellano-Bond two-step GMM with Windmeijer-corrected robust standard errors in parentheses. Instruments: lags 2--4 of contribution.}
     \label{tab:dynamic_regression}
 \end{table}
@@ -311,13 +311,17 @@ We use participants who were ``suckered'' as a treated group. The control group 
 excluding variation from rounds and segments via fixed effects. The specification is given by
 
 \begin{equation}
-    Contribution_{i,t} = \sum_{\substack{k = -K \\ k \neq 0}}^{K} \beta_k \left( 1\{\tau_{i,t} = k\} \times \text{sucker}_i \right) + \gamma \, \text{Treatment}_i + \alpha_r + \gamma_s +    
-    \varepsilon_{it} 
-    \label{eq:did_contribution}
+\begin{split}
+    Contribution_{i,t} = \sum_{\substack{k = -K \\ k \neq 0}}^{K} \Big[ &\beta_k^{T1} \left( 1\{\tau_{i,t} = k\} \times \text{sucker}_i \times \text{T1}_i \right) \\
+    + &\beta_k^{T2} \left( 1\{\tau_{i,t} = k\} \times \text{sucker}_i \times \text{T2}_i \right) \Big] \\
+    + &\gamma \, \text{Treatment}_i + \alpha_r + \gamma_s + \varepsilon_{it}
+\end{split}
+\label{eq:did_contribution}
 \end{equation}
 
-Where $\tau_{i,t}$ is the relative round since being suckered. This specification allows us to recover a coefficient
-for each round since being suckered. These coefficients are causal effects given the following assumptions:
+Where $\tau_{i,t}$ is the relative round since being suckered, and $\text{T1}_i$ and $\text{T2}_i$ are indicators for
+treatment assignment. This specification allows us to recover separate event-time coefficients for each treatment arm. These
+coefficients are causal effects given the following assumptions:
 \begin{enumerate}
     \item Parallel Trends: Absent the suckering event, suckers and control subjects would have followed the same contribution trajectory.
     While this is fundamentally untestable, pre-trends show no significant differences in trajectory between groups. 
@@ -328,15 +332,16 @@ for each round since being suckered. These coefficients are causal effects given
 
 \begin{figure}[htbp]
     \centering
-    \includegraphics[width=\linewidth]{issue_20_did_coefplot_20_main.png}
-    \caption{The effect of a ``suckering'' event on future contributions.}
+    \includegraphics[width=\linewidth]{issue_59_het_did_coefplot_20_main.pdf}
+    \caption{Heterogeneous treatment effects of a ``suckering'' event on future contributions, with separate coefficients for Treatment 1 and Treatment 2.}
     \label{fig:did_contribution}
 \end{figure}
 
 Notice that prior to the ``suckering'' event, coefficients are not significantly different between the treated and control groups.
-Coefficients following the event are significantly negative in every round and monotonically decrease. This suggests there is some 
+Coefficients following the event are significantly negative in every round and monotonically decrease. This suggests there is some
 snowball effect, where participants continually decrease their contributions as they lose trust in their group.
-Table \ref{table:issue_20_did_contribution} presents these coefficients in tabular form. 
+A model without heterogeneous treatment effects yields strictly negative significant coefficients post suckering-event.
+See Figure \ref{fig:did_contribution_pooled}.
 
 \subsection{Facial Emotions}
 
@@ -346,40 +351,26 @@ We observe continuous emotion variables, such as valence, anger, or frustration,
 
 One could typically expect facial emotions and communication sentiment to be positively correlated in cases where someone is telling the truth.
 In the case where a participant is lying, it seems plausible that sentiment and emotion could differ as they attempt to deceive their groupmates.
-To create the comparison between emotions and sentiment, we first normalize each observation using the min-max normalization method across the entire sample.
-We only analyze sentiment and emotions during the communication \textit{prior} to the contribution, and the contribution itself. Differences are not taken
-across rounds. 
+We only analyze sentiment and emotions during the communication \textit{prior} to the contribution, and viewing the group contribution results.
 
-Figure \ref{fig:emotion_sentiment_gap_by_liar_status} displays the normalized valence emotion and sentiment split by liar status.
-In the case where a participant is not lying, there is no significant difference between the facial emotions and communication sentiment. 
-However, when a participant is lying, their communication sentiment is significantly lower than facial emotions. One possible explanation is that
-liars try to communicate similarly to everyone else (typically very neutral), but know that they will defect and receive a higher payoff. This 
-would be observable in their facial expression, but not in their public communication.
-\begin{figure}[htbp]
-    \centering
-    \includegraphics[width=\linewidth]{emotion_sentiment_gap_by_liar_status.png}
-    \caption{Comparison of normalized emotions and sentiment by liar status.}
-    \label{fig:emotion_sentiment_gap_by_liar_status}
-\end{figure}
-
-Additionally, we test whether the gap in emotions and sentiment is predictive of a participant lying. We use
-the following logit specification,
-
-\begin{equation}
-    \Pr(\text{Lied}_{it} = 1 \mid \text{Promise}_{it} = 1) = \Lambda\left(\beta_1 \, \text{Gap}_{it} + \alpha_r + \gamma_s\right)
-    \label{eq:logit_liar}
-\end{equation}
-
-Where $\Lambda(\cdot)$ is the logistic function $\frac{e^x}{1+e^x}$, and $\text{Gap}_{it}$ is the min-max normalized emotion-sentiment gap (facial valence minus chat sentiment). The
-liar model conditions on the subsample of participant-rounds where a promise was made. After estimation and inference, we find that
-$\hat{\beta_1} = 1.034$ is not significant, failing to demonstrate the ability of the emotion sentiment gap to predict lying, likely
-due to lack of power.
+\begin{align}
+    Y_{ist} &= \beta^{L}\, \text{Lied}_{ist} + \alpha_{st} + \mu_i + \varepsilon_{ist} \label{eq:gap_lied}\\
+    Y_{ist} &= \beta^{S}\, \text{Suckered}_{ist} + \alpha_{st} + \mu_i + \varepsilon_{ist} \label{eq:gap_suckered}
+\end{align}
+\noindent where
+\begin{itemize}\setlength\itemsep{0pt}
+    \item $i$ indexes player, $s$ segment (supergame), $t$ round.
+    \item $Y_{ist}$ is AFFDEX facial valence for player $i$ in segment $s$, round $t$. In the \emph{Results Page Face} columns, $Y$ is measured on the post-outcome \texttt{ResultsOnly} page of round $t$. In the \emph{Pre-Decision Chat Face} columns, $Y$ is measured on the Results/chat page at the end of round $t{-}1$, lagged forward within player-segment so it aligns with the round-$t$ contribution it influenced.
+    \item $\text{Lied}_{ist} = 1$ if player $i$'s round-$t$ contribution is at least $20$ tokens below their most recent chat promise, $0$ otherwise.
+    \item $\text{Suckered}_{ist} = 1$ if a groupmate of $i$ satisfies $\text{Lied} = 1$ in round $t$, player $i$ contributed the full $25$-token endowment, and $\text{Lied}_{ist} = 0$; $0$ otherwise.
+    \item $\alpha_{st}$ is a segment-by-round fixed effect absorbing a separate intercept for every (segment, round) cell, and $\mu_i$ is a player fixed effect. Standard errors are two-way clustered at the player level and at the group-segment-round level to account for the mechanical group dependence induced by the \text{Suckered} treatment.
+\end{itemize}
 
 \begin{table}[htbp]
     \centering
-    \caption{Conditional Probability of Lying (Logistic Regression)}
-    \label{table:liar_conditional_probability}
-    \input{liar_conditional_probability}
+    \caption{Facial Valence Regressions: Liars and Suckers}
+    \label{table:valence_sentiment_gap}
+    \input{issue_52_valence_sentiment_gap_regressions}
 \end{table}
 
 \subsection{Using Text Embeddings for External Validition}
@@ -595,12 +586,19 @@ Before proceeding, please complete the quiz.
 \end{enumerate}
 
 \newpage
-\subsection{DiD table}
+\subsection{Pooled DiD (without heterogeneous treatment effects)}
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\linewidth]{issue_20_did_coefplot_20_main.png}
+    \caption{Event-study coefficients from the DiD specification (\ref{eq:did_contribution}) without heterogeneous treatment effects.}
+    \label{fig:did_contribution_pooled}
+\end{figure}
+
 \begin{table}[htbp]
     \input{issue_20_did_contribution.tex}
-    \caption{OLS results from the DiD specification (\ref{eq:did_contribution}). Standard errors clustered at the group level.}
+    \caption{OLS results from the DiD specification (\ref{eq:did_contribution}) without heterogeneous treatment effects. Standard errors clustered at the group level.}
     \label{table:issue_20_did_contribution}
-    \end{table}
+\end{table}
 
 \end{document}
 
