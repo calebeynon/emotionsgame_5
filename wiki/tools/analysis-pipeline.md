@@ -96,5 +96,5 @@ Participant mapping: IDs 1-16 → labels A1-R1 (skipping I, O).
 
 ## Related
 
-- [Project Architecture](wiki/tools/architecture.md)
-- [oTree Experiment Apps](wiki/tools/otree-apps.md)
+- [Project Architecture](architecture.md)
+- [oTree Experiment Apps](otree-apps.md)

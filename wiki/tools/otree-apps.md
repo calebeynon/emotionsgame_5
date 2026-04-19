@@ -64,5 +64,5 @@ Each supergame round follows this page sequence:
 
 ## Related
 
-- [Project Architecture](wiki/tools/architecture.md)
-- [Analysis Pipeline](wiki/tools/analysis-pipeline.md)
+- [Project Architecture](architecture.md)
+- [Analysis Pipeline](analysis-pipeline.md)

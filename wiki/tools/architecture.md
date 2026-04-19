@@ -69,5 +69,5 @@ emotionsgame_5/
 
 ## Related
 
-- [oTree Experiment Apps](wiki/tools/otree-apps.md)
-- [Analysis Pipeline](wiki/tools/analysis-pipeline.md)
+- [oTree Experiment Apps](otree-apps.md)
+- [Analysis Pipeline](analysis-pipeline.md)

@@ -170,5 +170,41 @@ Two-stage process for behavioral video annotation:
 ## Issue Documentation
 - All issue documentation (`.md` files) goes in `analysis/issues/`
 
+## Wiki Maintenance (REQUIRED before pushing or opening a PR to main)
+
+The project wiki at `wiki/` is the authoritative knowledge base for AI agents working on this repo. **Before any `git push` to main or `gh pr create` targeting main**, Claude must update the wiki to reflect the changes in the push/PR.
+
+### What to do
+
+1. **Diff the changes** about to be pushed/PR'd: `git diff main...HEAD` (or `git diff origin/main...HEAD`).
+2. **Identify wiki articles affected** by those changes — check `wiki/_index.md` and skim relevant articles in `wiki/concepts/`, `wiki/methods/`, `wiki/tools/`, and `wiki/papers/`.
+3. **Update, create, or delete** wiki articles so they remain accurate:
+   - **Update** an existing article when its claims (results, file paths, sample sizes, script names, coefficients, etc.) are no longer correct.
+   - **Create** a new article when the change introduces a new method, dataset, script, or major concept that an AI agent would need to know about.
+   - **Delete** an article when the thing it documents has been removed from the codebase.
+4. **Bump `last_verified`** in the frontmatter of any article you touch to today's date (use the current date from the environment).
+5. **Regenerate `_index.md`** so article counts and listings stay in sync.
+6. **Commit the wiki changes in the same push/PR** as the code changes — never as a follow-up.
+7. **Run `/kb sync`** after the push/PR is merged to mirror to the GitHub Wiki.
+
+### When to skip
+
+Skip wiki updates only for:
+- Pure formatting / typo fixes with no functional change.
+- Changes to files the wiki does not document (e.g., `.claude/`, `.gitignore`, lockfile-only updates).
+- Work-in-progress branches that won't merge to main.
+
+### How to check wiki coverage
+
+Run `/kb search <keyword>` to find articles related to the change. If a non-trivial change has no matching article, that's a signal to **create** one rather than skip the update.
+
+### Article style for AI consumption
+
+Wiki articles are read by AI agents, not just humans. Prefer:
+- Concrete file paths, script names, output filenames, and sample sizes.
+- Tables over prose where the content is enumerable.
+- A "Related" section linking sibling articles via relative paths (`../tools/foo.md`, never `wiki/...`).
+- Keep `summary:` in frontmatter to one line — it shows up in search results.
+
 
 # Repo Owner Github: calebeynon

@@ -1,0 +1,53 @@
+---
+title: "Dynamic Panel Regression (Arellano-Bond)"
+type: method
+tags: [regression, panel, arellano-bond, gmm, dynamic, issue-57]
+summary: "Two-step difference GMM model of contribution dynamics, extended with chat and facial-emotion regressors (issue #57)"
+status: active
+last_verified: "2026-04-19"
+---
+
+## Summary
+
+The headline dynamic specification in the paper (`Paper.tex` §4.2). Estimates how a player's change in contribution depends on their own lagged changes and on whether they were above or below the group mean previously. Issue #57 extended it to include chat characteristics (word count, promises, sentiment) and facial valence as additional regressors. Final output is a 6-column LaTeX table: 3 specifications (baseline / +chat / +chat+facial) × 2 treatments.
+
+## Model
+
+Two-step difference GMM with Windmeijer-corrected robust SEs:
+
+$$
+\Delta C_{i,t} = \beta_1 \Delta C_{i,t-1} + \beta_2 \Delta C_{i,t-2}
++ \beta_{pos} \Delta D^+_{i,t-1} + \beta_{neg} \Delta D^-_{i,t-1}
++ \sum_{r=1}^{2} \beta_{Rr} \mathbf{1}\{\text{Round}_t=r\}
++ \psi \Delta \text{Segment}_t + \varepsilon_{i,t}
+$$
+
+where $D^+$ / $D^-$ flag contributions above / below the group mean. Instruments: lags 2-5 of $C_{i,t}$.
+
+## Pipeline
+
+1. **Build panel** (Python): `derived/build_dynamic_regression_panel.py` merges `contributions.csv`, `behavior_classifications.csv`, and `merged_panel.csv` → `datastore/derived/dynamic_regression_panel.csv`.
+   - Chat NaN (no message rounds) filled with 0.
+   - Emotion NaN left as-is; +facial models use the emotion-complete subsample.
+2. **Estimate** (R): `analysis/dynamic_regression.R` reads the pre-built panel, estimates 6 GMM models, exports the LaTeX table.
+3. **(Reference) Stata**: `analysis/dynamic_regression.do` — original Stata implementation, kept for reproducibility/comparison.
+
+## Output
+
+- `output/tables/dynamic_regression.tex` — 6-column landscape table consumed by `Paper.tex`.
+- N = 1,520 per treatment in the baseline column (verified pre-merge).
+
+## Design Notes
+
+- Python handles all merging/derivation; R only estimates and exports. Keeps R scripts pure-statistics.
+- Wald tests on coefficient differences use robust `vcovHC()`, not the model vcov (fixed in commit 35b801f).
+- "Supergame" was renamed to "Segment" in the codebase (commit 561ad25); the paper uses "Segment" throughout.
+
+## Test Coverage
+
+- `tests/test_dynamic_regression_merged_panel.py` — 51 tests pinning row counts, merge integrity, NaN patterns, lag correctness, deviation roundtrips, and known values.
+
+## Related
+
+- [Merged Panel Construction](merged-panel.md)
+- [Main Paper Overview](../papers/main-paper.md)

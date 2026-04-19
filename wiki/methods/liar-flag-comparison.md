@@ -28,4 +28,4 @@ Both versions have been implemented in the R dot plot scripts. Compare outputs t
 
 ## Related
 
-- [Analysis Pipeline](wiki/tools/analysis-pipeline.md)
+- [Analysis Pipeline](../tools/analysis-pipeline.md)
