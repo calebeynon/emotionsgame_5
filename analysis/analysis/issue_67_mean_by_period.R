@@ -47,11 +47,15 @@ load_contributions <- function(file_path) {
     if (!file.exists(file_path)) {
         stop(sprintf("load_contributions: %s not found.", file_path))
     }
-    dt <- as.data.table(read.csv(file_path))
+    dt <- fread(file_path)
     missing <- setdiff(REQUIRED_COLS, names(dt))
     if (length(missing) > 0) {
         stop(sprintf("load_contributions: %s missing columns: %s",
                      file_path, paste(missing, collapse = ", ")))
+    }
+    if (anyNA(dt$contribution)) {
+        stop(sprintf("load_contributions: %d NA in contribution; clean upstream.",
+                     sum(is.na(dt$contribution))))
     }
     return(dt)
 }
@@ -85,7 +89,7 @@ aggregate_by_treatment_period <- function(dt) {
     dt_agg[, ci_lower := mean_contribution - 1.96 * se]
     dt_agg[, ci_upper := mean_contribution + 1.96 * se]
 
-    dt_agg <- dt_agg[order(treatment, period)]
+    setorder(dt_agg, treatment, period)
     return(dt_agg)
 }
 
