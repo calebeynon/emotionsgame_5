@@ -16,6 +16,7 @@
 \usepackage{array}
 \usepackage{xcolor}
 \usepackage{subcaption}
+\usepackage{adjustbox}
 
 %%%%%%%%% Path resolution (Overleaf: tables/, plots/; Local: ../output/) %%%%%%%%%
 \graphicspath{{plots/}{../output/plots/}}
@@ -163,9 +164,11 @@ $Contribution_{i,t}$ as the GMM instruments for the differenced equation.
 
 
 
-\begin{table}[H]
+\begin{table}[t]
     \centering \footnotesize
+    \begin{spacing}{1}
     \input{dynamic_regression.tex}
+    \end{spacing}
     \caption{Dynamic Panel Regression Analysis. Arellano-Bond two-step GMM with Windmeijer-corrected robust standard errors in parentheses. Instruments: lags 2--5 of contribution.}
     \label{tab:dynamic_regression}
 \end{table}

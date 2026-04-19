@@ -264,12 +264,14 @@ clean_tex_gof <- function(tex_output) {
         "\n\\cmidrule(lr){2-4} \\cmidrule(lr){5-7}")
     lines <- append(lines, treatment_header, after = toprule_idx)
     result <- paste(lines, collapse = "\n")
-    # Wrap tabular in resizebox so it shrinks-to-fit within \textwidth
+    # Wrap tabular in adjustbox: caps at \textwidth but never scales up
+    # (avoids blowing up a narrow-but-tall tabular in a double-spaced doc).
+    # Requires \usepackage{adjustbox} in the paper preamble.
     wrapped <- sub("(?s)(\\\\begin\\{tabular\\}.*?\\\\end\\{tabular\\})",
-                   "\\\\resizebox{\\\\textwidth}{!}{%\n\\1%\n}",
+                   "\\\\begin{adjustbox}{max width=\\\\textwidth}\n\\1\n\\\\end{adjustbox}",
                    result, perl = TRUE)
     stopifnot(
-        "clean_tex_gof: resizebox wrap regex failed to match tabular" =
+        "clean_tex_gof: adjustbox wrap regex failed to match tabular" =
             !identical(wrapped, result)
     )
     paste0(wrapped, note_para)
