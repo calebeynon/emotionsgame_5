@@ -18,10 +18,14 @@
 \usepackage{subcaption}
 \usepackage{adjustbox}
 
-%%%%%%%%% Path resolution (Overleaf: tables/, plots/; Local: ../output/) %%%%%%%%%
-\graphicspath{{plots/}{../output/plots/}}
+%%%%%%%%% Path resolution: prefer ../output/ locally so committed paper/tables/%
+%%%%%%%%% and paper/plots/ copies (Action-managed, may be stale) never shadow %
+%%%%%%%%% the canonical generated output. On Overleaf ../output/ is absent,   %
+%%%%%%%%% so LaTeX falls through to tables/ and plots/ which the sync Action  %
+%%%%%%%%% populates from analysis/output/.                                    %
+\graphicspath{{../output/plots/}{plots/}}
 \makeatletter
-\def\input@path{{tables/}{../output/tables/}}
+\def\input@path{{../output/tables/}{tables/}}
 \makeatother
 
 \doublespacing

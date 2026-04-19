@@ -20,12 +20,14 @@ TREATMENT_SHAPES <- c("1" = 16, "2" = 17)
 # Horizontal dodge so overlapping error bars stay readable
 DODGE_WIDTH <- 0.35
 
+REQUIRED_COLS <- c("segment", "round", "treatment", "contribution")
+
 # Literal segment lengths; do NOT infer from data
 SEGMENT_ROUNDS <- c(supergame1 = 3, supergame2 = 4, supergame3 = 3,
                     supergame4 = 7, supergame5 = 5)
 
-# Vertical dashed lines between segments
-SEGMENT_BOUNDARIES <- c(3.5, 7.5, 10.5, 17.5)
+# Vertical dashed lines halfway between segments (derived, not hand-maintained)
+SEGMENT_BOUNDARIES <- head(cumsum(SEGMENT_ROUNDS), -1) + 0.5
 
 # =====
 # Main function
@@ -42,14 +44,27 @@ main <- function() {
 # Data loading
 # =====
 load_contributions <- function(file_path) {
-    as.data.table(read.csv(file_path))
+    if (!file.exists(file_path)) {
+        stop(sprintf("load_contributions: %s not found.", file_path))
+    }
+    dt <- as.data.table(read.csv(file_path))
+    missing <- setdiff(REQUIRED_COLS, names(dt))
+    if (length(missing) > 0) {
+        stop(sprintf("load_contributions: %s missing columns: %s",
+                     file_path, paste(missing, collapse = ", ")))
+    }
+    return(dt)
 }
 
 # =====
 # Period mapping
 # =====
 add_period_column <- function(dt) {
-    # Cumulative offset for each segment: period = offset[segment] + round
+    unknown <- setdiff(unique(dt$segment), names(SEGMENT_ROUNDS))
+    if (length(unknown) > 0) {
+        stop(sprintf("add_period_column: segment(s) not in SEGMENT_ROUNDS: %s",
+                     paste(unknown, collapse = ", ")))
+    }
     offsets <- c(0, head(cumsum(SEGMENT_ROUNDS), -1))
     names(offsets) <- names(SEGMENT_ROUNDS)
     dt[, period := offsets[segment] + round]
