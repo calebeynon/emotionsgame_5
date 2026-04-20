@@ -2,11 +2,15 @@
 \scriptsize
 
 \begin{tabular*}{\textwidth}{@{\extracolsep{\fill}} l c c c c}
-\toprule
+\tabularnewline \midrule \midrule
+Dependent Variable: & \multicolumn{4}{c}{Contribution}\\
+Model: & (1) & (2) & (3) & (4)\\
+\midrule
  & \multicolumn{2}{c}{Mean deviation} & \multicolumn{2}{c}{Min/Med/Max deviation} \\
 \cmidrule(lr){2-3} \cmidrule(lr){4-5}
  & T1 & T2 & T1 & T2 \\
 \midrule
+\emph{Variables}\\
 Contribution$_{t-1}$            & $-0.070^{***}$  & $0.085$        & $-0.055$        & $0.473^{**}$   \\
                                 & $(0.027)$       & $(0.080)$      & $(0.038)$       & $(0.190)$      \\
 Contribution$_{t-2}$            & $-0.181^{***}$  & $-0.243^{***}$ & $-0.177^{***}$  & $-0.268^{***}$ \\
@@ -30,6 +34,7 @@ Below peer mean$_{t-1}$         & $0.269^{***}$   & $0.552^{***}$  &            
 Round 1                         & $-12.721^{***}$ & $-5.585^{***}$ & $-12.806^{***}$ & $-5.221^{***}$ \\
                                 & $(0.742)$       & $(0.785)$      & $(0.730)$       & $(0.782)$      \\
 \midrule
+\emph{Fit statistics}\\
 Observations                    & $1520$          & $1520$         & $1520$          & $1520$         \\
 AR(1) p-value                   & $0.000$         & $0.000$        & $0.000$         & $0.000$        \\
 AR(2) p-value                   & $0.183$         & $0.309$        & $0.193$         & $0.644$        \\
@@ -38,7 +43,8 @@ Peer mean pair sum = 0 (p)      & $0.137$         & $0.006$        & $$         
 Max peer pair sum = 0 (p)       & $$              & $$             & $0.206$         & $0.000$        \\
 Median peer pair sum = 0 (p)    & $$              & $$             & $0.827$         & $0.199$        \\
 Min peer pair sum = 0 (p)       & $$              & $$             & $0.059$         & $0.661$        \\
-\bottomrule
+\midrule \midrule
+\multicolumn{5}{l}{\emph{Windmeijer-corrected robust SEs in parentheses}}\\
+\multicolumn{5}{l}{\emph{Signif. Codes: $^{***}p<0.01$; $^{**}p<0.05$; $^{*}p<0.1$}}\\
 \end{tabular*}
-\begin{minipage}{\textwidth}\scriptsize Notes: Two-step difference GMM (Arellano-Bond) with Windmeijer-corrected robust standard errors. Instruments: lags 2--5 of contribution. $^{***}p<0.01$; $^{**}p<0.05$; $^{*}p<0.1$.\end{minipage}
 \end{minipage}

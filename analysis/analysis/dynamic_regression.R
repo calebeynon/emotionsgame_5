@@ -254,81 +254,75 @@ build_table_note <- function() {
 }
 
 extended_group_header <- function() {
-    paste0(
-        " & \\multicolumn{3}{c}{T1 (mean)} & \\multicolumn{3}{c}{T2 (mean)}",
-        " & \\multicolumn{3}{c}{T1 (min/med/max)}",
-        " & \\multicolumn{3}{c}{T2 (min/med/max)} \\\\",
-        "\n\\cmidrule(lr){2-4} \\cmidrule(lr){5-7}",
-        " \\cmidrule(lr){8-10} \\cmidrule(lr){11-13}")
+    paste0(" & \\multicolumn{3}{c}{T1 (mean)} & \\multicolumn{3}{c}{T2 (mean)}",
+           " & \\multicolumn{3}{c}{T1 (min/med/max)} & \\multicolumn{3}{c}{T2 (min/med/max)} \\\\\n",
+           "\\cmidrule(lr){2-4} \\cmidrule(lr){5-7} \\cmidrule(lr){8-10} \\cmidrule(lr){11-13}")
 }
 
-# Baseline has 4 cols ordered [T1 mean, T2 mean, T1 mmm, T2 mmm]. Groups on the
-# deviation spec (mean vs. min/med/max) so individual col labels shrink to T1/T2,
-# which equalizes column widths instead of letting the wide "(min/med/max)"
-# label stretch cols 3-4.
+# Groups baseline on deviation spec so col labels shrink to T1/T2; otherwise
+# the wide "(min/med/max)" label stretches cols 3-4.
 baseline_group_header <- function() {
-    paste0(
-        " & \\multicolumn{2}{c}{Mean deviation}",
-        " & \\multicolumn{2}{c}{Min/Med/Max deviation} \\\\",
-        "\n\\cmidrule(lr){2-3} \\cmidrule(lr){4-5}")
+    paste0(" & \\multicolumn{2}{c}{Mean deviation} & \\multicolumn{2}{c}{Min/Med/Max deviation} \\\\\n",
+           "\\cmidrule(lr){2-3} \\cmidrule(lr){4-5}")
 }
 
 finalize_tex <- function(tex_output, ncol, group_header, strategy) {
     lines <- strsplit(tex_output, "\n")[[1]]
-    drop <- c("^n ", "^T ", "^Num\\.", "^Sargan Test:", "^Wald Test")
+    drop <- c("^n ", "^T ", "^Num\\.", "^Sargan Test:", "^Wald Test",
+              "\\\\scriptsize")
     lines <- lines[!grepl(paste(drop, collapse = "|"), trimws(lines))]
-    parts <- extract_footnote(lines, ncol)
-    body_lines <- parts$body
-    if (!is.null(group_header)) body_lines <- insert_after_toprule(body_lines, group_header)
-    body <- paste(body_lines, collapse = "\n")
-    body <- if (strategy == "resizebox") wrap_tabular(body) else convert_to_tabularx(body)
-    wrap_scriptsize_minipage(paste0(body, parts$note))
+    body <- paste(transform_to_etable_style(lines, ncol, group_header), collapse = "\n")
+    body <- wrap_body(body, strategy)
+    sprintf("\\begin{minipage}{\\textwidth}\n\\scriptsize\n%s\n\\end{minipage}", body)
 }
 
-# Wraps the whole tabular + notes in a \scriptsize minipage so the baseline
-# table fits on one page. Overrides Paper.tex's \footnotesize sizing for the
-# table while keeping the caption at its parent size.
-wrap_scriptsize_minipage <- function(body) {
-    sprintf("\\begin{minipage}{\\textwidth}\n\\scriptsize\n%s\n\\end{minipage}",
-            body)
+# Reshapes texreg booktabs into the fixest-etable style used by the other
+# paper regression tables. Long methodology belongs in Paper.tex's \caption.
+transform_to_etable_style <- function(lines, ncol, group_header) {
+    top_i <- grep("\\\\toprule", lines)
+    mid_idx <- grep("^\\s*\\\\midrule\\s*$", lines)
+    bot_i <- grep("\\\\bottomrule", lines)
+    stopifnot("transform_to_etable_style: expected 1 toprule, >=2 midrule, 1 bottomrule" =
+              length(top_i) == 1 && length(mid_idx) >= 2 && length(bot_i) == 1)
+    lines[top_i] <- build_header_block(ncol, group_header)
+    lines[mid_idx[1]] <- "\\midrule\n\\emph{Variables}\\\\"
+    lines[mid_idx[length(mid_idx)]] <- "\\midrule\n\\emph{Fit statistics}\\\\"
+    lines[bot_i] <- build_footer_block(ncol)
+    lines
 }
 
-# Converts texreg's `\begin{tabular}{l c c ...}` into
-# `\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}} l c c ...}` so the
-# tabular always fills \textwidth with evenly distributed inter-column gaps.
-# This avoids \resizebox (which inflates height when natural width < textwidth)
-# while still giving visually even column spacing regardless of label widths.
-convert_to_tabularx <- function(body) {
-    opened <- sub("\\\\begin\\{tabular\\}\\{([^}]+)\\}",
-                  "\\\\begin{tabular*}{\\\\textwidth}{@{\\\\extracolsep{\\\\fill}} \\1}",
-                  body)
-    closed <- sub("\\\\end\\{tabular\\}", "\\\\end{tabular*}", opened)
-    stopifnot("convert_to_tabularx: tabular regex failed" = !identical(closed, body))
-    closed
+build_header_block <- function(ncol, group_header) {
+    model_cols <- paste(sprintf("(%d)", seq_len(ncol)), collapse = " & ")
+    dep_row <- sprintf("Dependent Variable: & \\multicolumn{%d}{c}{Contribution}\\\\",
+                       ncol)
+    model_row <- sprintf("Model: & %s\\\\", model_cols)
+    parts <- c("\\tabularnewline \\midrule \\midrule", dep_row, model_row, "\\midrule")
+    if (!is.null(group_header)) parts <- c(parts, group_header)
+    paste(parts, collapse = "\n")
 }
 
-extract_footnote <- function(lines, ncol) {
-    pat <- sprintf("\\\\multicolumn\\{%d\\}\\{l\\}\\{\\\\scriptsize", ncol + 1)
-    note_idx <- grep(pat, lines)
-    stopifnot("extract_footnote: expected one footnote row" = length(note_idx) == 1)
-    note_content <- sub(".*\\\\scriptsize\\{(.*)\\}\\}\\s*$", "\\1", lines[note_idx])
-    note <- paste0("\n\\begin{minipage}{\\textwidth}\\scriptsize ",
-                   note_content, "\\end{minipage}")
-    list(body = lines[-note_idx], note = note)
+build_footer_block <- function(ncol) {
+    ncells <- ncol + 1
+    se_note <- "Windmeijer-corrected robust SEs in parentheses"
+    signif <- "Signif. Codes: $^{***}p<0.01$; $^{**}p<0.05$; $^{*}p<0.1$"
+    se_row <- sprintf("\\multicolumn{%d}{l}{\\emph{%s}}\\\\", ncells, se_note)
+    signif_row <- sprintf("\\multicolumn{%d}{l}{\\emph{%s}}\\\\", ncells, signif)
+    paste(c("\\midrule \\midrule", se_row, signif_row), collapse = "\n")
 }
 
-insert_after_toprule <- function(lines, header) {
-    toprule_idx <- grep("\\\\toprule", lines)
-    stopifnot("insert_after_toprule: expected one toprule" = length(toprule_idx) == 1)
-    append(lines, header, after = toprule_idx)
-}
-
-wrap_tabular <- function(body) {
-    wrapped <- sub("(?s)(\\\\begin\\{tabular\\}.*?\\\\end\\{tabular\\})",
-                   "\\\\resizebox{\\\\textwidth}{!}{%\n\\1%\n}",
-                   body, perl = TRUE)
-    stopifnot("wrap_tabular: resizebox regex failed" = !identical(wrapped, body))
-    wrapped
+# "extracolsep" -> tabular* fills \textwidth with even gaps (for narrow tables).
+# "resizebox"   -> scale tabular down to \textwidth (for tables naturally wider).
+wrap_body <- function(body, strategy) {
+    if (strategy == "extracolsep") {
+        out <- sub("\\\\begin\\{tabular\\}\\{([^}]+)\\}",
+                   "\\\\begin{tabular*}{\\\\textwidth}{@{\\\\extracolsep{\\\\fill}} \\1}", body)
+        out <- sub("\\\\end\\{tabular\\}", "\\\\end{tabular*}", out)
+    } else {
+        out <- sub("(?s)(\\\\begin\\{tabular\\}.*?\\\\end\\{tabular\\})",
+                   "\\\\resizebox{\\\\textwidth}{!}{%\n\\1%\n}", body, perl = TRUE)
+    }
+    stopifnot("wrap_body: tabular regex failed" = !identical(out, body))
+    out
 }
 
 # Stata Table DP1 reference values from analysis/issues/issue_68_table_dp1_reference.txt.

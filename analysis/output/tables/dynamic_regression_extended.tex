@@ -3,11 +3,15 @@
 
 \resizebox{\textwidth}{!}{%
 \begin{tabular}{l c c c c c c c c c c c c}
-\toprule
+\tabularnewline \midrule \midrule
+Dependent Variable: & \multicolumn{12}{c}{Contribution}\\
+Model: & (1) & (2) & (3) & (4) & (5) & (6) & (7) & (8) & (9) & (10) & (11) & (12)\\
+\midrule
  & \multicolumn{3}{c}{T1 (mean)} & \multicolumn{3}{c}{T2 (mean)} & \multicolumn{3}{c}{T1 (min/med/max)} & \multicolumn{3}{c}{T2 (min/med/max)} \\
 \cmidrule(lr){2-4} \cmidrule(lr){5-7} \cmidrule(lr){8-10} \cmidrule(lr){11-13}
  & Base & +Chat & +Chat+Facial & Base & +Chat & +Chat+Facial & Base & +Chat & +Chat+Facial & Base & +Chat & +Chat+Facial \\
 \midrule
+\emph{Variables}\\
 Contribution$_{t-1}$            & $-0.070^{***}$  & $0.008$         & $0.027$         & $0.085$        & $0.175^{*}$    & $0.083$        & $-0.055$        & $0.019$         & $0.003$         & $0.473^{**}$   & $0.485^{**}$   & $0.252^{*}$    \\
                                 & $(0.027)$       & $(0.034)$       & $(0.044)$       & $(0.080)$      & $(0.091)$      & $(0.089)$      & $(0.038)$       & $(0.045)$       & $(0.063)$       & $(0.190)$      & $(0.189)$      & $(0.149)$      \\
 Contribution$_{t-2}$            & $-0.181^{***}$  & $-0.158^{***}$  & $-0.158^{***}$  & $-0.243^{***}$ & $-0.226^{***}$ & $-0.244^{***}$ & $-0.177^{***}$  & $-0.153^{***}$  & $-0.158^{***}$  & $-0.268^{***}$ & $-0.261^{***}$ & $-0.287^{***}$ \\
@@ -39,6 +43,7 @@ Emotion Valence                 &                 &                 & $-0.043^{*
 Round 1                         & $-12.721^{***}$ & $-11.611^{***}$ & $-10.641^{***}$ & $-5.585^{***}$ & $-5.038^{***}$ & $-5.041^{***}$ & $-12.806^{***}$ & $-11.702^{***}$ & $-11.041^{***}$ & $-5.221^{***}$ & $-4.716^{***}$ & $-4.849^{***}$ \\
                                 & $(0.742)$       & $(0.834)$       & $(1.145)$       & $(0.785)$      & $(0.837)$      & $(0.988)$      & $(0.730)$       & $(0.858)$       & $(1.235)$       & $(0.782)$      & $(0.857)$      & $(0.990)$      \\
 \midrule
+\emph{Fit statistics}\\
 Observations                    & $1520$          & $1520$          & $1064$          & $1520$         & $1520$         & $1273$         & $1520$          & $1520$          & $1064$          & $1520$         & $1520$         & $1273$         \\
 AR(1) p-value                   & $0.000$         & $0.000$         & $0.000$         & $0.000$        & $0.000$        & $0.000$        & $0.000$         & $0.000$         & $0.000$         & $0.000$        & $0.000$        & $0.000$        \\
 AR(2) p-value                   & $0.183$         & $0.173$         & $0.620$         & $0.309$        & $0.449$        & $0.214$        & $0.193$         & $0.156$         & $0.308$         & $0.644$        & $0.758$        & $0.405$        \\
@@ -47,8 +52,9 @@ Peer mean pair sum = 0 (p)      & $0.137$         & $0.066$         & $0.043$   
 Max peer pair sum = 0 (p)       & $$              & $$              & $$              & $$             & $$             & $$             & $0.206$         & $0.176$         & $0.554$         & $0.000$        & $0.000$        & $0.000$        \\
 Median peer pair sum = 0 (p)    & $$              & $$              & $$              & $$             & $$             & $$             & $0.827$         & $0.816$         & $0.436$         & $0.199$        & $0.156$        & $0.187$        \\
 Min peer pair sum = 0 (p)       & $$              & $$              & $$              & $$             & $$             & $$             & $0.059$         & $0.041$         & $0.378$         & $0.661$        & $0.586$        & $0.446$        \\
-\bottomrule
+\midrule \midrule
+\multicolumn{13}{l}{\emph{Windmeijer-corrected robust SEs in parentheses}}\\
+\multicolumn{13}{l}{\emph{Signif. Codes: $^{***}p<0.01$; $^{**}p<0.05$; $^{*}p<0.1$}}\\
 \end{tabular}%
 }
-\begin{minipage}{\textwidth}\scriptsize Notes: Two-step difference GMM (Arellano-Bond) with Windmeijer-corrected robust standard errors. Instruments: lags 2--5 of contribution. $^{***}p<0.01$; $^{**}p<0.05$; $^{*}p<0.1$.\end{minipage}
 \end{minipage}
