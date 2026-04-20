@@ -64,13 +64,53 @@ def load_source() -> pd.DataFrame:
 
 
 def add_lied(df: pd.DataFrame) -> pd.DataFrame:
-    """Cast lied_this_round_20 to 0/1 int (handles bool or 'True'/'False' strings)."""
+    """Cast lied_this_round_20 to 0/1 int via explicit dtype dispatch."""
     raw = df['lied_this_round_20']
-    if raw.dtype == bool:
-        df['lied'] = raw.astype(int)
-    else:
-        df['lied'] = (raw.astype(str) == 'True').astype(int)
+    if raw.isna().any():
+        raise ValueError(
+            "lied_this_round_20 contains NaN; refusing to silently coerce. "
+            "Fix the upstream behavior classifier to emit bool/0/1 only."
+        )
+    df['lied'] = _coerce_lied(raw)
     return df
+
+
+# Accepted dtypes + string literals for lied_this_round_20.
+STRING_TRUE = {'True', True}
+STRING_FALSE = {'False', False}
+
+
+def _coerce_lied(raw: pd.Series) -> pd.Series:
+    """Dispatch bool/int/object dtypes to a clean int 0/1 series."""
+    if raw.dtype == bool:
+        return raw.astype(int)
+    if pd.api.types.is_integer_dtype(raw):
+        extra = set(raw.unique().tolist()) - {0, 1}
+        if extra:
+            raise ValueError(
+                f"lied_this_round_20 integer values outside {{0,1}}: {sorted(extra)}"
+            )
+        return raw.astype(int)
+    if pd.api.types.is_object_dtype(raw):
+        return _coerce_object_lied(raw)
+    raise ValueError(
+        f"lied_this_round_20 has unsupported dtype {raw.dtype}; "
+        f"expected bool, int, or string 'True'/'False'. "
+        f"Values sample: {raw.head().tolist()}"
+    )
+
+
+def _coerce_object_lied(raw: pd.Series) -> pd.Series:
+    """Map object-dtype 'True'/'False' (capitalized only) to int 0/1."""
+    allowed = STRING_TRUE | STRING_FALSE
+    extra = set(raw.unique().tolist()) - allowed
+    if extra:
+        raise ValueError(
+            f"lied_this_round_20 object values outside whitelist "
+            f"{{'True','False',True,False}}: {sorted(map(repr, extra))}. "
+            "Lowercase 'true'/'false' are NOT accepted."
+        )
+    return raw.isin(STRING_TRUE).astype(int)
 
 
 # =====

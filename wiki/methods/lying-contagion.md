@@ -64,6 +64,7 @@ var = k' V k                     # V = clustered vcov
 
 - Source panel: `datastore/derived/issue_72_panel.csv` (2,720 rows, 13 columns)
 - Builder: `derived/build_issue_72_panel.py` — reads `behavior_classifications.csv`, drops round 1 of each segment (no lag available), applies session-code remap
+- `add_lied()` enforces a dtype/value whitelist: bool, integer ⊆ {0,1}, or object ⊆ {True, False, 'True', 'False'}. NaN and any other dtype/value raise `ValueError` rather than silently coercing to 0
 - Regression driver: `analysis/analysis/issue_72_lying_contagion_regression.R`
 - Sample: 160 individuals × ~17 round-segments = 2,720 obs
 
@@ -132,8 +133,9 @@ The negative interaction roughly cancels the positive main effect in both specs.
 
 ## Testing
 
-- Test file: `analysis/tests/test_issue_72_panel.py` — 23 tests
-- Covers: schema and dtypes, round-1 exclusion, lag correctness (single-participant traces through a full segment), sum-minus-self semantics for `group_lied_lag` / `any_group_lied_prior` (including cases where the focal player lied themselves), segment-reset of cumulative flags, session-level row counts, and cluster-id stability
+- Test file: `analysis/tests/test_issue_72_panel.py` — 26 tests
+- Manually-traced case constants live in `analysis/tests/fixtures/issue_72_cases.py`
+- Covers: schema and dtypes (including binary-column integer-dtype enforcement), round-1 exclusion, lag correctness (single-participant traces through a full segment), sum-minus-self semantics for `group_lied_lag` / `any_group_lied_prior` (including cases where the focal player lied themselves), segment-reset of cumulative flags, session-level row counts, and cluster-id stability within `(session, segment, group)`
 - Run: `cd analysis && uv run pytest tests/test_issue_72_panel.py`
 
 ## Paper

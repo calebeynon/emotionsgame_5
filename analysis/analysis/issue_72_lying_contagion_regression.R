@@ -48,15 +48,38 @@ main <- function() {
 # =====
 # Data loading
 # =====
+REQUIRED_PANEL_COLS <- c("session_code", "treatment", "segment", "round",
+                         "cluster_group", "label_session", "lied",
+                         "group_lied_lag", "self_lied_lag",
+                         "any_group_lied_prior", "any_self_lied_prior")
+
 load_panel <- function(path) {
+    if (!file.exists(path)) {
+        stop(sprintf(
+            "Panel CSV not found: %s. Run analysis/derived/build_issue_72_panel.py first.",
+            path))
+    }
     dt <- as.data.table(read.csv(path))
+    validate_panel(dt, path)
     # Treatment 2 as reference → interaction reports Treatment-1 contrast.
     dt[, treatment_f := relevel(factor(treatment), ref = "2")]
     return(dt)
 }
 
+validate_panel <- function(dt, path) {
+    missing_cols <- setdiff(REQUIRED_PANEL_COLS, names(dt))
+    if (length(missing_cols) > 0) {
+        stop(sprintf("Panel missing required columns: %s. Available: %s",
+                     paste(missing_cols, collapse = ", "),
+                     paste(names(dt), collapse = ", ")))
+    }
+    if (nrow(dt) == 0) {
+        stop(sprintf("Panel has zero rows: %s", path))
+    }
+}
+
 # =====
-# Regression models (pooled logit: no individual FE, keeps all 160 individuals)
+# Regression models (pooled logit: no individual FE)
 # =====
 estimate_all_models <- function(dt) {
     list(
@@ -107,12 +130,13 @@ compute_joint_tests <- function(models) {
 joint_test <- function(model, main_var, int_var) {
     b <- coef(model)
     V <- vcov(model)
-    stopifnot(main_var %in% names(b), int_var %in% names(b))
+    check_coefs_present(b, c(main_var, int_var))
     k <- rep(0, length(b))
     k[names(b) == main_var] <- 1
     k[names(b) == int_var]  <- 1
     est <- sum(k * b)
     var_est <- as.numeric(t(k) %*% V %*% k)
+    check_variance(var_est, main_var, int_var)
     chi2 <- (est^2) / var_est
     list(
         estimate = est,
@@ -120,6 +144,24 @@ joint_test <- function(model, main_var, int_var) {
         chi2     = chi2,
         pvalue   = pchisq(chi2, df = 1, lower.tail = FALSE)
     )
+}
+
+check_coefs_present <- function(b, requested_vars) {
+    missing_vars <- setdiff(requested_vars, names(b))
+    if (length(missing_vars) > 0) {
+        stop(sprintf("joint_test: missing coefficients: %s. Available: %s",
+                     paste(missing_vars, collapse = ", "),
+                     paste(names(b), collapse = ", ")))
+    }
+}
+
+check_variance <- function(var_est, main_var, int_var) {
+    if (!is.finite(var_est) || var_est <= 0) {
+        stop(sprintf(paste0("joint_test: non-positive/NA variance (%.6g) ",
+                            "for contrast (%s + %s). ",
+                            "Possible rank deficiency or singular vcov."),
+                     var_est, main_var, int_var))
+    }
 }
 
 # =====
