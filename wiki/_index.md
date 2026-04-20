@@ -1,7 +1,7 @@
 # Project Wiki
 
 <!-- AUTO:stats -->
-Total articles: 19
+Total articles: 20
 <!-- /AUTO:stats -->
 
 ## Articles by Type
@@ -19,6 +19,7 @@ Total articles: 19
 - [Facial Valence Regressions for Liars and Suckers](methods/facial-valence-regressions.md) — Issue #52: AFFDEX facial valence regressed on liar and sucker flags, two face windows
 - [Liar Diff-in-Means by Treatment and Gender (Issue #64)](methods/liar-diff-in-means.md) — Welch t-tests on participant-level 'ever lied' indicator — replaces earlier logit (issue #53)
 - [Liar Flag: Cumulative vs Round-Specific](methods/liar-flag-comparison.md) — Comparison of cumulative (is_liar_20) and round-specific (lied_this_round_20) liar flag approaches for analysis
+- [Lying Contagion Regression (Issue #72)](methods/lying-contagion.md) — Tests whether own lying responds to group lying in prior round/supergame, especially under feedback treatment
 - [Merged Panel Construction](methods/merged-panel.md) — How the unified merged_panel.csv (10,683 rows × 34 cols) is built from oTree state, VADER sentiment, and AFFDEX emotion sources
 - [Sentiment Analysis & Sentiment-Contribution Regressions](methods/sentiment-analysis.md) — VADER sentiment scoring of chat plus the regressions that link it to contributions and to facial emotion
 - [Promise, Sucker, and Treatment Effects on Contributions](methods/sentiment-and-promise-regressions.md) — OLS panel regressions of contribution on promise/sucker flags and treatment, with two threshold specifications

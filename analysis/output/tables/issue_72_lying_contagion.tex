@@ -1,0 +1,38 @@
+
+\begingroup
+\centering
+\begin{tabular}{lcccccc}
+   \tabularnewline \midrule \midrule
+   Dependent Variable: & \multicolumn{6}{c}{lied}\\
+                                                  & LPM A (grp) & LPM A (ses) & LPM B (grp)   & LPM B (ses) & Logit A (grp) & Logit B (grp) \\   
+   Model:                                         & (1)         & (2)         & (3)           & (4)         & (5)           & (6)\\  
+                                                  &  OLS        & OLS         & OLS           & OLS         & Logit         & Logit\\  
+   \midrule
+   \emph{Variables}\\
+   Group Lied (t-1)                               & 0.0164      & 0.0164      &               &             & 0.6401        &   \\   
+                                                  & (0.0320)    & (0.0473)    &               &             & (0.6406)      &   \\   
+   Self Lied (t-1)                                & -0.0475     & -0.0475     &               &             & -0.3345       &   \\   
+                                                  & (0.0405)    & (0.0544)    &               &             & (0.4214)      &   \\   
+   Group Lied (t-1) $\times$ Treatment $=$ 1      & 0.0303      & 0.0303      &               &             & 0.3703        &   \\   
+                                                  & (0.0444)    & (0.0542)    &               &             & (0.8402)      &   \\   
+   Any Group Lied Prior                           &             &             & 0.0133        & 0.0133      &               & 0.7186\\   
+                                                  &             &             & (0.0315)      & (0.0424)    &               & (0.7701)\\   
+   Any Self Lied Prior                            &             &             & -0.0730$^{*}$ & -0.0730     &               & -0.8190\\   
+                                                  &             &             & (0.0397)      & (0.0529)    &               & (0.5445)\\   
+   Any Group Lied Prior $\times$ Treatment $=$ 1  &             &             & 0.0449        & 0.0449      &               & 0.6655\\   
+                                                  &             &             & (0.0429)      & (0.0489)    &               & (0.8786)\\   
+   \midrule
+   \emph{Fixed-effects}\\
+   Session                                        & Yes         & Yes         & Yes           & Yes         & Yes           & Yes\\  
+   Segment                                        & Yes         & Yes         & Yes           & Yes         & Yes           & Yes\\  
+   Round                                          & Yes         & Yes         & Yes           & Yes         & Yes           & Yes\\  
+   Individual                                     & Yes         & Yes         & Yes           & Yes         & Yes           & Yes\\  
+   \midrule
+   \emph{Fit statistics}\\
+   Observations                                   & 2,720       & 2,720       & 2,720         & 2,720       & 935           & 935\\  
+   \midrule \midrule
+   \multicolumn{7}{l}{\emph{Signif. Codes: ***: 0.01, **: 0.05, *: 0.1}}\\
+\end{tabular}
+\par\endgroup
+
+
