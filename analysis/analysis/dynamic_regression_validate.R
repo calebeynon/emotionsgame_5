@@ -1,6 +1,6 @@
-# Purpose: Dump coefficient + Wald results for pytest validation (issue #57)
-# Author: Claude Code (test-writer)
-# Date: 2026-04-16
+# Purpose: Dump coefficient + Wald results for pytest validation
+# Author: Claude Code
+# Date: 2026-04-19 (issue #68: 4 baseline + 12 extended models)
 # nolint start
 library(data.table)
 library(plm)
@@ -11,48 +11,22 @@ OUTPUT_DIR <- "output/tables"
 COEFS_CSV <- file.path(OUTPUT_DIR, "dynamic_regression_coefs.csv")
 WALD_CSV <- file.path(OUTPUT_DIR, "dynamic_regression_wald.csv")
 
-MODEL_LABELS <- c("T1_baseline", "T1_chat", "T1_chatfacial",
-                  "T2_baseline", "T2_chat", "T2_chatfacial")
-
-# =====
-# Main function (FIRST - shows high-level flow)
-# =====
 main <- function() {
     TESTING <<- TRUE
     source("analysis/dynamic_regression.R", local = FALSE)
 
     dt <- load_and_prepare_data(INPUT_CSV)
+    panels <- build_all_panels(dt)
     formulas <- build_formulas()
+    models <- c(fit_baseline_models(panels, formulas),
+                fit_extended_models(panels, formulas))
 
-    panels_t1 <- list(prepare_panel(dt[treatment == 1]),
-                      prepare_panel(dt[treatment == 1]),
-                      prepare_panel(dt[treatment == 1 & !is.na(emotion_valence)]))
-    panels_t2 <- list(prepare_panel(dt[treatment == 2]),
-                      prepare_panel(dt[treatment == 2]),
-                      prepare_panel(dt[treatment == 2 & !is.na(emotion_valence)]))
-
-    models <- estimate_labeled_models(panels_t1, panels_t2, formulas)
     dir.create(OUTPUT_DIR, recursive = TRUE, showWarnings = FALSE)
     write_coefs_csv(models, COEFS_CSV)
     write_wald_csv(models, WALD_CSV)
     cat("Wrote:", COEFS_CSV, "and", WALD_CSV, "\n")
 }
 
-# =====
-# Estimate 6 models and return named list (T1_baseline, ..., T2_chatfacial)
-# =====
-estimate_labeled_models <- function(panels_t1, panels_t2, formulas) {
-    models <- list()
-    for (i in seq_along(formulas)) {
-        models[[MODEL_LABELS[i]]]     <- run_arellano_bond(panels_t1[[i]], formulas[[i]])
-        models[[MODEL_LABELS[i + 3]]] <- run_arellano_bond(panels_t2[[i]], formulas[[i]])
-    }
-    return(models)
-}
-
-# =====
-# Write coefficients CSV: model, term, coef, se, pvalue
-# =====
 write_coefs_csv <- function(models, filepath) {
     rows <- list()
     for (label in names(models)) {
@@ -71,26 +45,41 @@ write_coefs_csv <- function(models, filepath) {
     fwrite(rbindlist(rows), filepath)
 }
 
-# =====
-# Write Wald tests CSV: model, test_name, pvalue
-# =====
+WALD_PAIRS <- list(
+    pos_plus_neg = c("contmore_L1", "contless_L1"),
+    max_pos_plus_neg = c("contmoremax_L1", "contlessmax_L1"),
+    med_pos_plus_neg = c("contmoremed_L1", "contlessmed_L1"),
+    min_pos_plus_neg = c("contmoremin_L1", "contlessmin_L1")
+)
+
 write_wald_csv <- function(models, filepath) {
-    dev_vars <- c("contmore_L1", "contless_L1")
-    rd_vars <- c("round1", "round2")
     rows <- list()
     for (label in names(models)) {
-        rows[[length(rows) + 1]] <- data.table(
-            model = label,
-            test_name = "pos_plus_neg",
-            pvalue = wald_test_pvalue(models[[label]], dev_vars)
-        )
-        rows[[length(rows) + 1]] <- data.table(
-            model = label,
-            test_name = "R1_plus_R2",
-            pvalue = wald_test_pvalue(models[[label]], rd_vars)
-        )
+        for (test_name in names(WALD_PAIRS)) {
+            row <- wald_row_for(models, label, test_name)
+            if (!is.null(row)) rows[[length(rows) + 1]] <- row
+        }
     }
     fwrite(rbindlist(rows), filepath)
+}
+
+wald_row_for <- function(models, label, test_name) {
+    pair <- WALD_PAIRS[[test_name]]
+    present <- pair %in% names(coef(models[[label]]))
+    # Warn on partial presence only; both-absent means the pair belongs to a
+    # different family (mean vs min/med/max) and is expected to skip silently.
+    if (any(present) && !all(present)) {
+        warning(sprintf(
+            "Wald test '%s' for model '%s' partially present: %s",
+            test_name, label, paste(pair, collapse = "+")
+        ))
+    }
+    if (!all(present)) return(NULL)
+    data.table(
+        model = label,
+        test_name = test_name,
+        pvalue = wald_test_pvalue(models[[label]], pair)
+    )
 }
 
 # %%

@@ -12,9 +12,16 @@ import sys
 
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
+# Tests directory for importing sibling helper modules (_dynreg_tex, _helpers).
+sys.path.insert(0, str(Path(__file__).parent))
 
 from experiment_data import (
     Experiment, Group, Player, Round, Segment, Session, load_experiment_data,
+)
+from _dynreg_tex import (
+    BASELINE_TEX, EXTENDED_TEX,
+    ensure_tex_outputs_current,
+    parse_tex_coefficients, parse_tex_with_details, parse_tex_gof_rows,
 )
 
 # FILE PATHS
@@ -285,3 +292,54 @@ def chat_pairing_helper():
             }
 
     return ChatPairingHelper()
+
+
+# =====
+# Dynamic regression tex-parsing fixtures
+# =====
+@pytest.fixture(scope="session")
+def baseline_coefs():
+    """Parse dynamic_regression_baseline.tex -> {label: [coef per column]}."""
+    ensure_tex_outputs_current()
+    if not BASELINE_TEX.exists():
+        raise FileNotFoundError(
+            f"Missing baseline table: {BASELINE_TEX}. "
+            f"Run: cd analysis && Rscript analysis/dynamic_regression.R"
+        )
+    return parse_tex_coefficients(BASELINE_TEX, num_data_cols=4)
+
+
+@pytest.fixture(scope="session")
+def extended_coefs():
+    """Parse dynamic_regression_extended.tex -> {label: [coef per column]}."""
+    ensure_tex_outputs_current()
+    if not EXTENDED_TEX.exists():
+        raise FileNotFoundError(
+            f"Missing extended table: {EXTENDED_TEX}. "
+            f"Run: cd analysis && Rscript analysis/dynamic_regression.R"
+        )
+    return parse_tex_coefficients(EXTENDED_TEX, num_data_cols=12)
+
+
+@pytest.fixture(scope="session")
+def baseline_details():
+    """Parse baseline .tex with SE+stars: {label: [(coef, se, stars), ...]}."""
+    ensure_tex_outputs_current()
+    if not BASELINE_TEX.exists():
+        raise FileNotFoundError(
+            f"Missing baseline table: {BASELINE_TEX}. "
+            f"Run: cd analysis && Rscript analysis/dynamic_regression.R"
+        )
+    return parse_tex_with_details(BASELINE_TEX, num_data_cols=4)
+
+
+@pytest.fixture(scope="session")
+def baseline_gof():
+    """Parse the GoF rows (Observations, AR/Sargan/Wald p-values) from baseline.tex."""
+    ensure_tex_outputs_current()
+    if not BASELINE_TEX.exists():
+        raise FileNotFoundError(
+            f"Missing baseline table: {BASELINE_TEX}. "
+            f"Run: cd analysis && Rscript analysis/dynamic_regression.R"
+        )
+    return parse_tex_gof_rows(BASELINE_TEX, num_data_cols=4)

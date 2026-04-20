@@ -1,23 +1,13 @@
 # Purpose: Dynamic panel regression (Arellano-Bond GMM) of contribution dynamics
 # Author: Claude Code
-# Date: 2026-04-10 (spec aligned with Stata log.rtf on 2026-04-16 for issue #57)
+# Date: 2026-04-19 (issue #68: aligned with Stata issue_68_do1.do)
 #
-# Estimates 6 models: 3 specifications × 2 treatments
-# Specifications: Baseline, +Chat (word count/promise/sentiment), +Chat+Facial (emotion valence)
-# Instruments: lags 2-5 of contribution
-# Round dummies: round1 + round2 only (matches coauthor's Stata spec in log.rtf)
+# Produces two LaTeX tables:
+#   dynamic_regression_baseline.tex  - 4 cols: T1/T2 x {mean, min/med/max}
+#   dynamic_regression_extended.tex  - 12 cols: 4 baselines x {Base, +Chat, +Chat+Facial}
 #
-# Estimator: two-step difference GMM (Arellano-Bond) via plm::pgmm with
-# Windmeijer (2005) finite-sample-corrected robust SEs via plm::vcovHC.pgmm.
-#
-# Stata comparison (xtabond twostep vce(robust), log.rtf):
-# - All baseline coefficient signs + significance buckets match Stata; point
-#   estimates agree to ~2 decimals (largest gap ~0.04 on round2).
-# - All 4 Wald tests (pos+neg=0 and R1+R2=0 for both treatments) match
-#   Stata on sign and significance bucket.
-# - AR(1), AR(2), and Sargan diagnostics agree with Stata at the reported
-#   3-decimal precision of log.rtf; pytest asserts sign+bucket parity only.
-
+# Instruments: lag(contribution, 2:5). Estimator: two-step difference GMM (pgmm)
+# with Windmeijer-corrected robust SEs (vcovHC.pgmm).
 # nolint start
 library(data.table)
 library(plm)
@@ -26,165 +16,172 @@ library(texreg)
 # FILE PATHS
 INPUT_CSV <- "datastore/derived/dynamic_regression_panel.csv"
 OUTPUT_DIR <- "output/tables"
-OUTPUT_TEX <- file.path(OUTPUT_DIR, "dynamic_regression.tex")
+BASELINE_TEX <- file.path(OUTPUT_DIR, "dynamic_regression_baseline.tex")
+EXTENDED_TEX <- file.path(OUTPUT_DIR, "dynamic_regression_extended.tex")
 
-# =====
-# Main function (FIRST - shows high-level flow)
-# =====
+FAMILY_LABELS <- c(mean = "mean", order = "min/med/max")
+SPEC_LABELS <- c("Base", "+Chat", "+Chat+Facial")
+
+# Upper bound on no-message NaN fills per chat column; exceeding it signals drift.
+# Baseline is 800 round-1 rows (chat hasn't happened yet); 50-row headroom lets the
+# guard fire on real regressions without tripping on the exact-baseline case.
+MAX_NO_MESSAGE_ROUNDS <- 850
+
 main <- function() {
     dt <- load_and_prepare_data(INPUT_CSV)
+    panels <- build_all_panels(dt)
     formulas <- build_formulas()
-
-    pdata_t1 <- prepare_panel(dt[treatment == 1])
-    pdata_t2 <- prepare_panel(dt[treatment == 2])
-    # +Facial models need panels without NA emotion_valence
-    pdata_t1_emo <- prepare_panel(dt[treatment == 1 & !is.na(emotion_valence)])
-    pdata_t2_emo <- prepare_panel(dt[treatment == 2 & !is.na(emotion_valence)])
-
-    models <- estimate_all_models(pdata_t1, pdata_t2, pdata_t1_emo, pdata_t2_emo, formulas)
-
-    for (i in seq_along(models)) {
-        print_diagnostics(models[[i]], names(models)[i])
-    }
-
+    baseline_models <- fit_baseline_models(panels, formulas)
+    extended_models <- fit_extended_models(panels, formulas)
     dir.create(OUTPUT_DIR, recursive = TRUE, showWarnings = FALSE)
-    export_latex_table(models, OUTPUT_TEX)
-    cat("\nTable exported to:", OUTPUT_TEX, "\n")
+    baseline_col_names <- c("T1", "T2", "T1", "T2")
+    export_table(baseline_models, BASELINE_TEX,
+                 baseline_col_names, baseline_group_header())
+    export_table(extended_models, EXTENDED_TEX,
+                 rep(SPEC_LABELS, times = 4), extended_group_header())
+    cat("\nTables written to:", BASELINE_TEX, "and", EXTENDED_TEX, "\n")
+    compare_to_reference(baseline_models)
 }
 
-# =====
-# Data loading (panel CSV has all derived variables pre-computed)
-# =====
 load_and_prepare_data <- function(filepath) {
+    if (!file.exists(filepath)) {
+        stop(sprintf(
+            "Missing panel CSV: %s. Run build_dynamic_regression_panel.py first.",
+            filepath
+        ))
+    }
     dt <- as.data.table(read.csv(filepath))
     dt[, made_promise := as.integer(made_promise)]
-    int_cols <- c("treatment", "subject_id", "period", "segmentnumber",
-                  paste0("round", 1:7))
+    int_cols <- c("treatment", "subject_id", "period", paste0("round", 1:7))
     for (col in int_cols) {
         if (col %in% names(dt)) dt[, (col) := as.integer(get(col))]
     }
-    # Round 1 has no prior chat: fill NAs with 0 (semantically correct)
-    chat_cols <- c("word_count", "sentiment_compound_mean")
-    for (col in chat_cols) dt[is.na(get(col)), (col) := 0]
+    report_chat_nan_counts(dt)
+    for (col in c("word_count", "sentiment_compound_mean")) {
+        dt[is.na(get(col)), (col) := 0]
+    }
     return(dt)
 }
 
-# =====
-# Panel data preparation
-# =====
+report_chat_nan_counts <- function(dt) {
+    for (col in c("word_count", "sentiment_compound_mean")) {
+        n_nan <- sum(is.na(dt[[col]]))
+        message(sprintf("  %s NaN count: %d (bound=%d)",
+                        col, n_nan, MAX_NO_MESSAGE_ROUNDS))
+        if (n_nan > MAX_NO_MESSAGE_ROUNDS) {
+            stop(sprintf(
+                "%s has %d NaN, exceeding no-message bound %d.",
+                col, n_nan, MAX_NO_MESSAGE_ROUNDS
+            ))
+        }
+    }
+}
+
 prepare_panel <- function(dt) {
     pdata.frame(as.data.frame(dt), index = c("subject_id", "period"))
 }
 
-# =====
-# Build model formulas: Baseline, +Chat, +Chat+Facial
-# =====
-build_formulas <- function() {
-    base_vars <- paste("lag(contribution, 1:2)",
-                       "contmore_L1", "contless_L1",
-                       paste0("round", 1:2, collapse = " + "),
-                       "segmentnumber", sep = " + ")
-    instruments <- "lag(contribution, 2:5)"
-
-    chat_vars <- "word_count + made_promise + sentiment_compound_mean"
-    facial_vars <- "emotion_valence"
-
+# t1_emo / t2_emo drop rows where emotion_valence is NA (AFFDEX unavailable);
+# this reduces N from 1520 to ~1064 (T1) / ~1273 (T2) — used for +Chat+Facial specs only.
+build_all_panels <- function(dt) {
     list(
-        baseline     = as.formula(paste("contribution ~", base_vars, "|", instruments)),
-        plus_chat    = as.formula(paste("contribution ~", base_vars, "+",
-                                        chat_vars, "|", instruments)),
-        plus_facial  = as.formula(paste("contribution ~", base_vars, "+",
-                                        chat_vars, "+", facial_vars, "|", instruments))
+        t1     = prepare_panel(dt[treatment == 1]),
+        t2     = prepare_panel(dt[treatment == 2]),
+        t1_emo = prepare_panel(dt[treatment == 1 & !is.na(emotion_valence)]),
+        t2_emo = prepare_panel(dt[treatment == 2 & !is.na(emotion_valence)])
     )
 }
 
-# =====
-# Arellano-Bond estimation with flexible formula
-# =====
+# Formula RHS builders. round1 is the only time dummy
+# (per Stata Table DP1 xtabond spec in issue_68_do1.do; round2 and segmentnumber were dropped).
+mean_base_rhs <- function() {
+    paste("lag(contribution, 1:2)", "contmore_L1", "contless_L1", "round1",
+          sep = " + ")
+}
+
+order_base_rhs <- function() {
+    paste("lag(contribution, 1:2)",
+          "contmoremax_L1", "contlessmax_L1",
+          "contmoremed_L1", "contlessmed_L1",
+          "contmoremin_L1", "contlessmin_L1",
+          "round1", sep = " + ")
+}
+
+build_formulas <- function() {
+    # lag(contribution, 2:5) as instruments matches Stata's maxldep(4) maxlags(4)
+    # (see analysis/issues/issue_68_do1.do lines 112-114).
+    instr <- "lag(contribution, 2:5)"
+    chat <- "word_count + made_promise + sentiment_compound_mean"
+    facial <- "emotion_valence"
+    list(
+        mean  = assemble_spec_formulas(mean_base_rhs(), chat, facial, instr),
+        order = assemble_spec_formulas(order_base_rhs(), chat, facial, instr)
+    )
+}
+
+assemble_spec_formulas <- function(base_rhs, chat, facial, instr) {
+    f <- function(rhs) as.formula(paste("contribution ~", rhs, "|", instr))
+    list(
+        base   = f(base_rhs),
+        chat   = f(paste(base_rhs, "+", chat)),
+        facial = f(paste(base_rhs, "+", chat, "+", facial))
+    )
+}
+
 run_arellano_bond <- function(pdata, formula) {
-    pgmm(
-        formula,
-        data = pdata,
-        effect = "individual",
-        model = "twosteps",
-        transformation = "d"
+    pgmm(formula, data = pdata, effect = "individual",
+         model = "twosteps", transformation = "d")
+}
+
+fit_baseline_models <- function(panels, formulas) {
+    list(
+        "T1 (mean)"        = run_arellano_bond(panels$t1, formulas$mean$base),
+        "T2 (mean)"        = run_arellano_bond(panels$t2, formulas$mean$base),
+        "T1 (min/med/max)" = run_arellano_bond(panels$t1, formulas$order$base),
+        "T2 (min/med/max)" = run_arellano_bond(panels$t2, formulas$order$base)
     )
 }
 
-# =====
-# Estimate all 6 models (3 specs × 2 treatments, grouped by treatment)
-# =====
-estimate_all_models <- function(pdata_t1, pdata_t2, pdata_t1_emo, pdata_t2_emo, formulas) {
-    spec_labels <- c("Baseline", "+Chat", "+Chat+Facial")
-    # +Facial specs use emotion-complete panels; others use full panels
-    panels_t1 <- list(pdata_t1, pdata_t1, pdata_t1_emo)
-    panels_t2 <- list(pdata_t2, pdata_t2, pdata_t2_emo)
+fit_extended_models <- function(panels, formulas) {
     models <- list()
-    for (i in seq_along(formulas)) {
-        models[[paste("T1", spec_labels[i])]] <- run_arellano_bond(panels_t1[[i]], formulas[[i]])
-    }
-    for (i in seq_along(formulas)) {
-        models[[paste("T2", spec_labels[i])]] <- run_arellano_bond(panels_t2[[i]], formulas[[i]])
+    for (fam in c("mean", "order")) {
+        fam_tag <- FAMILY_LABELS[[fam]]
+        for (treat in c("t1", "t2")) {
+            t_tag <- toupper(sub("t", "T", treat))
+            emo_panel <- panels[[paste0(treat, "_emo")]]
+            panel_list <- list(panels[[treat]], panels[[treat]], emo_panel)
+            for (i in seq_along(SPEC_LABELS)) {
+                spec_tag <- names(formulas[[fam]])[i]
+                label <- sprintf("%s %s %s", t_tag, fam_tag, SPEC_LABELS[i])
+                models[[label]] <- run_arellano_bond(
+                    panel_list[[i]], formulas[[fam]][[spec_tag]]
+                )
+            }
+        }
     }
     return(models)
 }
 
-# =====
-# Print diagnostic tests
-# =====
-print_diagnostics <- function(model, label) {
-    cat("\n===", label, "===\n")
-    print(summary(model, robust = TRUE))
-}
-
-# =====
-# LaTeX table export for 6 models
-# =====
-export_latex_table <- function(models, filepath) {
-    summaries <- lapply(models, summary, robust = TRUE)
-    col_names <- c("Baseline", "+Chat", "+Chat+Facial",
-                   "Baseline", "+Chat", "+Chat+Facial")
-
-    tex_output <- texreg(
-        models,
-        custom.model.names = col_names,
-        custom.coef.map = build_coef_names(),
-        override.se = lapply(summaries, function(s) s$coefficients[, 2]),
-        override.pvalues = lapply(summaries, function(s) s$coefficients[, 4]),
-        stars = c(0.01, 0.05, 0.1),
-        table = FALSE, booktabs = TRUE, use.packages = FALSE, digits = 3,
-        custom.gof.rows = build_gof_rows(models, summaries),
-        custom.note = build_table_note()
-    )
-
-    writeLines(clean_tex_gof(tex_output), filepath)
-}
-
-# =====
-# Build coefficient display name mapping
-# =====
 build_coef_names <- function() {
     list(
         "lag(contribution, 1:2)1" = "Contribution$_{t-1}$",
         "lag(contribution, 1:2)2" = "Contribution$_{t-2}$",
-        "contmore_L1"             = "Positive Deviation$_{t-1}$",
-        "contless_L1"             = "Negative Deviation$_{t-1}$",
+        "contmoremax_L1"          = "Above max peer$_{t-1}$",
+        "contlessmax_L1"          = "Below max peer$_{t-1}$",
+        "contmoremed_L1"          = "Above median peer$_{t-1}$",
+        "contlessmed_L1"          = "Below median peer$_{t-1}$",
+        "contmoremin_L1"          = "Above min peer$_{t-1}$",
+        "contlessmin_L1"          = "Below min peer$_{t-1}$",
+        "contmore_L1"             = "Above peer mean$_{t-1}$",
+        "contless_L1"             = "Below peer mean$_{t-1}$",
         "word_count"              = "Word Count",
         "made_promise"            = "Made Promise",
         "sentiment_compound_mean" = "Sentiment (compound)",
         "emotion_valence"         = "Emotion Valence",
-        "round1"                  = "Round 1",
-        "round2"                  = "Round 2",
-        "round3"                  = "Round 3",
-        "round4"                  = "Round 4",
-        "round5"                  = "Round 5",
-        "segmentnumber"           = "Segment"
+        "round1"                  = "Round 1"
     )
 }
 
-# =====
-# Wald test for linear hypothesis H0: sum(beta) = 0 using robust vcov
-# =====
 wald_test_pvalue <- function(model, coef_names) {
     beta <- coef(model)
     V <- vcovHC(model)
@@ -199,85 +196,172 @@ wald_test_pvalue <- function(model, coef_names) {
     pchisq(W, df = 1, lower.tail = FALSE)
 }
 
-# =====
-# Build custom GOF rows for 6 models
-# =====
+model_wald_sum <- function(model, pair) {
+    present <- pair %in% names(coef(model))
+    # Warn only on partial presence (one coef but not both); both-absent means the
+    # pair belongs to a different family (e.g., min/med/max pair in a mean model).
+    if (any(present) && !all(present)) {
+        warning(sprintf("Wald pair %s partially present in model coefficients",
+                        paste(pair, collapse = "+")))
+    }
+    if (!all(present)) return(NA_real_)
+    wald_test_pvalue(model, pair)
+}
+
 build_gof_rows <- function(models, summaries) {
     n_obs <- sapply(models, function(m) sum(sapply(m$residuals, length)))
     ar1_p <- sapply(summaries, function(s) s$m1$p.value)
     ar2_p <- sapply(summaries, function(s) s$m2$p.value)
     sargan_p <- sapply(summaries, function(s) s$sargan$p.value)
-
-    dev_vars <- c("contmore_L1", "contless_L1")
-    rd_vars <- c("round1", "round2")
-    dev_p <- sapply(models, wald_test_pvalue, coef_names = dev_vars)
-    rd_p <- sapply(models, wald_test_pvalue, coef_names = rd_vars)
-
+    pair_wald <- function(pair) sapply(models, model_wald_sum, pair = pair)
     list(
-        "Observations" = n_obs,
-        "AR(1) p-value" = ar1_p,
-        "AR(2) p-value" = ar2_p,
-        "Sargan p-value" = sargan_p,
-        "$\\beta_{\\text{pos}} + \\beta_{\\text{neg}} = 0$ (p)" = dev_p,
-        "$\\beta_{R1} + \\beta_{R2} = 0$ (p)" = rd_p
+        "Observations"       = n_obs,
+        "AR(1) p-value"      = ar1_p,
+        "AR(2) p-value"      = ar2_p,
+        "Sargan p-value"     = sargan_p,
+        "Peer mean pair sum = 0 (p)"   = pair_wald(c("contmore_L1", "contless_L1")),
+        "Max peer pair sum = 0 (p)"    = pair_wald(c("contmoremax_L1", "contlessmax_L1")),
+        "Median peer pair sum = 0 (p)" = pair_wald(c("contmoremed_L1", "contlessmed_L1")),
+        "Min peer pair sum = 0 (p)"    = pair_wald(c("contmoremin_L1", "contlessmin_L1"))
     )
 }
 
-# =====
-# Table footnote documenting SE methodology and Stata deviations
-# =====
+export_table <- function(models, filepath, col_names, group_header) {
+    summaries <- lapply(models, summary, robust = TRUE)
+    tex <- texreg(
+        models,
+        custom.model.names = col_names,
+        custom.coef.map = build_coef_names(),
+        override.se = lapply(summaries, function(s) s$coefficients[, 2]),
+        override.pvalues = lapply(summaries, function(s) s$coefficients[, 4]),
+        stars = c(0.01, 0.05, 0.1),
+        table = FALSE, booktabs = TRUE, use.packages = FALSE, digits = 3,
+        custom.gof.rows = build_gof_rows(models, summaries),
+        custom.note = build_table_note()
+    )
+    # Narrow tables (<8 cols) use tabular* + \extracolsep{\fill} to fill
+    # \textwidth with evenly distributed column gaps. Wide tables (>=8 cols)
+    # would overflow \textwidth naturally, so wrap in \resizebox instead.
+    strategy <- if (length(models) >= 8) "resizebox" else "extracolsep"
+    writeLines(finalize_tex(tex, length(models), group_header, strategy), filepath)
+}
+
 build_table_note <- function() {
-    paste(
-        "Notes: Two-step difference GMM (Arellano-Bond) with",
-        "Windmeijer-corrected robust standard errors.",
-        "Instruments: lags 2--5 of contribution.",
-        "$^{***}p<0.01$; $^{**}p<0.05$; $^{*}p<0.1$."
-    )
+    paste("Notes: Two-step difference GMM (Arellano-Bond) with",
+          "Windmeijer-corrected robust standard errors.",
+          "Instruments: lags 2--5 of contribution.",
+          "$^{***}p<0.01$; $^{**}p<0.05$; $^{*}p<0.1$.")
 }
 
-# =====
-# Remove default texreg GOF rows, keep only custom ones
-# =====
-clean_tex_gof <- function(tex_output) {
+extended_group_header <- function() {
+    paste0(" & \\multicolumn{3}{c}{T1 (mean)} & \\multicolumn{3}{c}{T2 (mean)}",
+           " & \\multicolumn{3}{c}{T1 (min/med/max)} & \\multicolumn{3}{c}{T2 (min/med/max)} \\\\\n",
+           "\\cmidrule(lr){2-4} \\cmidrule(lr){5-7} \\cmidrule(lr){8-10} \\cmidrule(lr){11-13}")
+}
+
+# Groups baseline on deviation spec so col labels shrink to T1/T2; otherwise
+# the wide "(min/med/max)" label stretches cols 3-4.
+baseline_group_header <- function() {
+    paste0(" & \\multicolumn{2}{c}{Mean deviation} & \\multicolumn{2}{c}{Min/Med/Max deviation} \\\\\n",
+           "\\cmidrule(lr){2-3} \\cmidrule(lr){4-5}")
+}
+
+finalize_tex <- function(tex_output, ncol, group_header, strategy) {
     lines <- strsplit(tex_output, "\n")[[1]]
-    drop <- c("^n ", "^T ", "^Num\\.", "^Sargan Test:", "^Wald Test")
-    keep <- !grepl(paste(drop, collapse = "|"), trimws(lines))
-    lines <- lines[keep]
-    # Move the long footnote out of the tabular so it doesn't force overflow
-    note_idx <- grep("\\\\multicolumn\\{7\\}\\{l\\}\\{\\\\scriptsize", lines)
-    stopifnot(
-        "clean_tex_gof: expected exactly one scriptsize footnote row" =
-            length(note_idx) == 1
-    )
-    note_content <- sub(".*\\\\scriptsize\\{(.*)\\}\\}\\s*$", "\\1", lines[note_idx])
-    note_para <- paste0("\n\\begin{minipage}{\\textwidth}\\scriptsize ",
-                        note_content, "\\end{minipage}")
-    lines <- lines[-note_idx]
-    # Insert treatment group header after \toprule
-    toprule_idx <- grep("\\\\toprule", lines)
-    stopifnot(
-        "clean_tex_gof: expected exactly one toprule line" =
-            length(toprule_idx) == 1
-    )
-    treatment_header <- paste0(
-        " & \\multicolumn{3}{c}{Treatment 1} & \\multicolumn{3}{c}{Treatment 2} \\\\",
-        "\n\\cmidrule(lr){2-4} \\cmidrule(lr){5-7}")
-    lines <- append(lines, treatment_header, after = toprule_idx)
-    result <- paste(lines, collapse = "\n")
-    # Wrap tabular in adjustbox: caps at \textwidth but never scales up
-    # (avoids blowing up a narrow-but-tall tabular in a double-spaced doc).
-    # Requires \usepackage{adjustbox} in the paper preamble.
-    wrapped <- sub("(?s)(\\\\begin\\{tabular\\}.*?\\\\end\\{tabular\\})",
-                   "\\\\begin{adjustbox}{max width=\\\\textwidth}\n\\1\n\\\\end{adjustbox}",
-                   result, perl = TRUE)
-    stopifnot(
-        "clean_tex_gof: adjustbox wrap regex failed to match tabular" =
-            !identical(wrapped, result)
-    )
-    paste0(wrapped, note_para)
+    drop <- c("^n ", "^T ", "^Num\\.", "^Sargan Test:", "^Wald Test",
+              "\\\\scriptsize")
+    lines <- lines[!grepl(paste(drop, collapse = "|"), trimws(lines))]
+    body <- paste(transform_to_etable_style(lines, ncol, group_header), collapse = "\n")
+    body <- wrap_body(body, strategy)
+    sprintf("\\begin{minipage}{\\textwidth}\n\\scriptsize\n%s\n\\end{minipage}", body)
+}
+
+# Reshapes texreg booktabs into the fixest-etable style used by the other
+# paper regression tables. Long methodology belongs in Paper.tex's \caption.
+transform_to_etable_style <- function(lines, ncol, group_header) {
+    top_i <- grep("\\\\toprule", lines)
+    mid_idx <- grep("^\\s*\\\\midrule\\s*$", lines)
+    bot_i <- grep("\\\\bottomrule", lines)
+    if (!(length(top_i) == 1 && length(mid_idx) >= 2 && length(bot_i) == 1))
+        stop(sprintf("transform_to_etable_style: expected 1/>=2/1 rules, got %d/%d/%d", length(top_i), length(mid_idx), length(bot_i)))
+    lines[top_i] <- build_header_block(ncol, group_header)
+    lines[mid_idx[1]] <- "\\midrule\n\\emph{Variables}\\\\"
+    lines[mid_idx[length(mid_idx)]] <- "\\midrule\n\\emph{Fit statistics}\\\\"
+    lines[bot_i] <- build_footer_block(ncol)
+    lines
+}
+
+build_header_block <- function(ncol, group_header) {
+    model_cols <- paste(sprintf("(%d)", seq_len(ncol)), collapse = " & ")
+    dep_row <- sprintf("Dependent Variable: & \\multicolumn{%d}{c}{Contribution}\\\\",
+                       ncol)
+    model_row <- sprintf("Model: & %s\\\\", model_cols)
+    parts <- c("\\tabularnewline \\midrule \\midrule", dep_row, model_row, "\\midrule")
+    if (!is.null(group_header)) parts <- c(parts, group_header)
+    paste(parts, collapse = "\n")
+}
+
+build_footer_block <- function(ncol) {
+    ncells <- ncol + 1
+    se_note <- "Windmeijer-corrected robust SEs in parentheses"
+    signif <- "Signif. Codes: $^{***}p<0.01$; $^{**}p<0.05$; $^{*}p<0.1$"
+    se_row <- sprintf("\\multicolumn{%d}{l}{\\emph{%s}}\\\\", ncells, se_note)
+    signif_row <- sprintf("\\multicolumn{%d}{l}{\\emph{%s}}\\\\", ncells, signif)
+    paste(c("\\midrule \\midrule", se_row, signif_row), collapse = "\n")
+}
+
+# "extracolsep" -> tabular* fills \textwidth with even gaps (for narrow tables).
+# "resizebox"   -> scale tabular down to \textwidth (for tables naturally wider).
+wrap_body <- function(body, strategy) {
+    if (strategy == "extracolsep") {
+        out <- sub("\\\\begin\\{tabular\\}\\{([^}]+)\\}",
+                   "\\\\begin{tabular*}{\\\\textwidth}{@{\\\\extracolsep{\\\\fill}} \\1}", body)
+        out <- sub("\\\\end\\{tabular\\}", "\\\\end{tabular*}", out)
+    } else if (strategy == "resizebox") {
+        out <- sub("(?s)(\\\\begin\\{tabular\\}.*?\\\\end\\{tabular\\})",
+                   "\\\\resizebox{\\\\textwidth}{!}{%\n\\1%\n}", body, perl = TRUE)
+    } else stop(sprintf("wrap_body: unknown strategy '%s'; expected 'extracolsep' or 'resizebox'", strategy))
+    stopifnot("wrap_body: tabular regex failed" = !identical(out, body))
+    out
+}
+
+# Stata Table DP1 reference values from analysis/issues/issue_68_table_dp1_reference.txt.
+# Tolerance below (0.01) matches Stata's 3-decimal log output precision.
+REFERENCE_ROWS <- list(
+    c("T1 (min/med/max)", "contmoremax_L1", 0.064),
+    c("T1 (min/med/max)", "contlessmax_L1", 0.071),
+    c("T1 (min/med/max)", "contmoremed_L1", -0.179),
+    c("T1 (min/med/max)", "contlessmed_L1", 0.201),
+    c("T1 (min/med/max)", "contmoremin_L1", -0.160),
+    c("T1 (min/med/max)", "contlessmin_L1", -0.016),
+    c("T1 (mean)", "contmore_L1", -0.406),
+    c("T1 (mean)", "contless_L1", 0.268),
+    c("T2 (mean)", "contmore_L1", -0.263),
+    c("T2 (mean)", "contless_L1", 0.553),
+    c("T1 (mean)", "round1", -12.715),
+    c("T2 (mean)", "round1", -5.591)
+)
+
+compare_to_reference <- function(baseline_models) {
+    cat("\n=== Baseline vs Stata Table DP1 (tol=0.01) ===\n")
+    any_miss <- FALSE
+    for (row in REFERENCE_ROWS) {
+        model_label <- row[[1]]; term <- row[[2]]; ref <- as.numeric(row[[3]])
+        coef_val <- coef(baseline_models[[model_label]])[term]
+        diff <- abs(coef_val - ref)
+        status <- if (diff <= 0.01) "OK" else "MISS"
+        if (status == "MISS") any_miss <- TRUE
+        cat(sprintf("  [%s] %-20s %-18s coef=%7.3f ref=%7.3f diff=%6.3f\n",
+                    status, model_label, term, coef_val, ref, diff))
+    }
+    if (any_miss) {
+        stop("Reference comparison failed: see MISS rows above")
+    }
 }
 
 # %%
+# TESTING is set via <<- TRUE by dynamic_regression_validate.R before source()-ing
+# this file; that suppresses main() so helper functions can be loaded for validation.
 if (interactive() || !exists("TESTING")) {
     main()
 }
