@@ -16,6 +16,9 @@ import pandas as pd
 import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
+sys.path.insert(0, str(Path(__file__).parent))
+
+from _helpers import validate_lag_column
 
 # FILE PATHS
 CONTRIBUTIONS_CSV = (
@@ -40,7 +43,10 @@ EXPECTED_LAST_PERIODS = {1: 3, 2: 7, 3: 10, 4: 17, 5: 22}
 def raw_df() -> pd.DataFrame:
     """Load raw contributions.csv."""
     if not CONTRIBUTIONS_CSV.exists():
-        pytest.skip(f"contributions.csv not found: {CONTRIBUTIONS_CSV}")
+        pytest.fail(
+            f"contributions.csv not found at {CONTRIBUTIONS_CSV}. "
+            f"Run: uv run python analysis/derived/build_dynamic_regression_panel.py"
+        )
     return pd.read_csv(CONTRIBUTIONS_CSV)
 
 
@@ -51,7 +57,10 @@ def panel_df() -> pd.DataFrame:
     Replicates the full load_and_prepare_data() pipeline from R.
     """
     if not CONTRIBUTIONS_CSV.exists():
-        pytest.skip(f"contributions.csv not found: {CONTRIBUTIONS_CSV}")
+        pytest.fail(
+            f"contributions.csv not found at {CONTRIBUTIONS_CSV}. "
+            f"Run: uv run python analysis/derived/build_dynamic_regression_panel.py"
+        )
     df = pd.read_csv(CONTRIBUTIONS_CSV)
     df = _derive_all_variables(df)
     return df
@@ -111,29 +120,6 @@ def _derive_all_variables(df: pd.DataFrame) -> pd.DataFrame:
     df = _derive_deviation_variables(df)
     df = _create_panel_variables(df)
     return df
-
-
-# =====
-# Lag validation helper
-# =====
-def _validate_lag_column(df, source_col, lag_col):
-    """Check that lag_col[t] == source_col[t-1] within each subject.
-
-    Returns list of error strings (empty if all correct).
-    """
-    sorted_df = df.sort_values(["subject_id", "period"])
-    expected = sorted_df.groupby("subject_id")[source_col].shift(1)
-    expected[sorted_df["period"].values == 1] = np.nan
-    actual = sorted_df[lag_col]
-    # Compare non-NaN positions
-    mask = expected.notna()
-    mismatches = mask & ((actual - expected).abs() > 1e-10)
-    bad = sorted_df[mismatches].head(10)
-    return [
-        f"subject={r['subject_id']} period={r['period']}: "
-        f"expected={expected.iloc[i]}, got={r[lag_col]}"
-        for i, (_, r) in enumerate(bad.iterrows())
-    ]
 
 
 # =====
@@ -222,12 +208,12 @@ class TestLagVariables:
 
     def test_contmore_lag_value_correctness(self, panel_df):
         """contmore_L1[t] == contmore[t-1] for each subject."""
-        errors = _validate_lag_column(panel_df, "contmore", "contmore_L1")
+        errors = validate_lag_column(panel_df, "contmore", "contmore_L1")
         assert len(errors) == 0, f"contmore_L1 errors:\n" + "\n".join(errors)
 
     def test_contless_lag_value_correctness(self, panel_df):
         """contless_L1[t] == contless[t-1] for each subject."""
-        errors = _validate_lag_column(panel_df, "contless", "contless_L1")
+        errors = validate_lag_column(panel_df, "contless", "contless_L1")
         assert len(errors) == 0, f"contless_L1 errors:\n" + "\n".join(errors)
 
     def test_lag_nan_count(self, panel_df):
@@ -357,7 +343,7 @@ class TestMinMaxMedDeviationLags:
     def test_lag_values_match_within_subject(self, panel_df, tag):
         """Each *_L1 value equals previous-period value within subject."""
         for kind in ["contmore", "contless"]:
-            errors = _validate_lag_column(
+            errors = validate_lag_column(
                 panel_df, f"{kind}{tag}", f"{kind}{tag}_L1"
             )
             assert len(errors) == 0, f"{kind}{tag}_L1 errors:\n" + "\n".join(errors)

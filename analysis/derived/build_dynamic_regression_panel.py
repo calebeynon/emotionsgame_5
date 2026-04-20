@@ -42,12 +42,23 @@ OUTPUT_COLUMNS = [
     'contmoremax', 'contlessmax', 'contmoremax_L1', 'contlessmax_L1',
     'morethanmed', 'lessthanmed', 'diffcontmed',
     'contmoremed', 'contlessmed', 'contmoremed_L1', 'contlessmed_L1',
+    # round1 is the only dummy used in regressions (Stata Table DP1 spec).
+    # round2..round7 are retained for schema stability: dynamic_regression.R coerces
+    # them to int if present (load_and_prepare_data), and the merged-panel test pins
+    # the full column set.
     'round1', 'round2', 'round3', 'round4', 'round5', 'round6', 'round7',
     'word_count', 'made_promise', 'sentiment_compound_mean', 'emotion_valence',
 ]
 
 # Deviation tags for per-peer min/max/med derivations
 DEVIATION_TAGS = ['min', 'max', 'med']
+
+# Upper bound on no-message rounds (r>1 rows with empty chat).
+# Observed round>1 NaN count is 422; 800 gives headroom.
+# Round-1 NaN is filtered out by the mask in fill_no_message_rounds before this
+# check (those rows legitimately have no prior chat). R's bound (850) covers
+# total NaN across all rows — hence the different magnitude.
+MAX_NO_MESSAGE_ROUNDS = 800
 
 
 # =====
@@ -80,9 +91,22 @@ def merge_all_sources(base_df: pd.DataFrame) -> pd.DataFrame:
     behavior_df = pd.read_csv(BEHAVIOR_FILE)[MERGE_KEYS + ['made_promise']]
     panel_df = load_filtered_panel()
 
-    merged = base_df.merge(behavior_df, on=MERGE_KEYS, how='left')
-    merged = merged.merge(panel_df, on=MERGE_KEYS, how='left')
+    merged = safe_left_merge(base_df, behavior_df, 'behavior_classifications')
+    merged = safe_left_merge(merged, panel_df, 'merged_panel')
     print(f"After merge: {len(merged):,} rows")
+    return merged
+
+
+def safe_left_merge(left: pd.DataFrame, right: pd.DataFrame,
+                    right_name: str) -> pd.DataFrame:
+    """Left-merge with one_to_one validation and row-count guard."""
+    base_rows = len(left)
+    merged = left.merge(right, on=MERGE_KEYS, how='left', validate='one_to_one')
+    if len(merged) != base_rows:
+        raise ValueError(
+            f"Row count changed merging {right_name}: "
+            f"{base_rows} -> {len(merged)}. Check key uniqueness in {right_name}."
+        )
     return merged
 
 
@@ -101,8 +125,15 @@ def load_filtered_panel() -> pd.DataFrame:
 def fill_no_message_rounds(df: pd.DataFrame) -> pd.DataFrame:
     """Fill word_count and sentiment NaN with 0 for rounds > 1 (no messages sent)."""
     mask = df['round'] > 1
-    df.loc[mask, 'word_count'] = df.loc[mask, 'word_count'].fillna(0)
-    df.loc[mask, 'sentiment_compound_mean'] = df.loc[mask, 'sentiment_compound_mean'].fillna(0)
+    for col in ('word_count', 'sentiment_compound_mean'):
+        nan_count = df.loc[mask, col].isna().sum()
+        print(f"  {col} NaN in rounds>1 (no-message rounds): {nan_count}")
+        if nan_count > MAX_NO_MESSAGE_ROUNDS:
+            raise ValueError(
+                f"{col} NaN count {nan_count} exceeds bound {MAX_NO_MESSAGE_ROUNDS}. "
+                f"Check upstream chat aggregation for missing keys."
+            )
+        df.loc[mask, col] = df.loc[mask, col].fillna(0)
     return df
 
 
@@ -111,6 +142,13 @@ def fill_no_message_rounds(df: pd.DataFrame) -> pd.DataFrame:
 # =====
 def convert_made_promise(df: pd.DataFrame) -> pd.DataFrame:
     """Convert made_promise from True/False to 1/0 integer."""
+    nan_mask = df['made_promise'].isna()
+    if nan_mask.any():
+        offenders = df.loc[nan_mask, MERGE_KEYS].to_dict('records')
+        raise ValueError(
+            f"made_promise has {nan_mask.sum()} NaN before astype(int). "
+            f"Offending keys: {offenders[:5]}{'...' if len(offenders) > 5 else ''}"
+        )
     df['made_promise'] = df['made_promise'].astype(int)
     return df
 
@@ -140,6 +178,8 @@ def assign_session_numbers(df: pd.DataFrame) -> pd.DataFrame:
 def derive_deviation_measures(df: pd.DataFrame) -> pd.DataFrame:
     """Compute othercont, othercontaverage, and contribution deviations."""
     # payoff = 25 - contribution + (contribution + othercont) * 0.4
+    # othercont is reverse-engineered from payoff for parity with the Stata do-file;
+    # summing others_contribution_{1,2,3} would be numerically equivalent.
     df['othercont'] = (df['payoff'] - 25 + 0.6 * df['contribution']) / 0.4
     df['othercontaverage'] = df['othercont'] / 3
 
@@ -161,6 +201,9 @@ def derive_peer_order_stats(df: pd.DataFrame) -> pd.DataFrame:
 
 def build_deviation(tag: str, reference: pd.Series, df: pd.DataFrame) -> pd.DataFrame:
     """Create morethan/lessthan/diff/contmore/contless columns against a reference series."""
+    # The "average" tag is asymmetric: it produces unsuffixed Stata-compatible names
+    # (contmore/contless/diffcont), while min/med/max — added in issue #68 — use the
+    # tag as a suffix (e.g. contmoremax, diffcontmax).
     suffix = tag if tag != 'average' else 'average'
     more_col = f'morethan{suffix}'
     less_col = f'lessthan{suffix}'

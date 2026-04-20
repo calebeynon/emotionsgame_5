@@ -80,12 +80,15 @@ Each of the 4 baseline columns appears 3 times: `{Baseline, +Chat, +Chat+Facial}
 - Python handles all merging/derivation; R only estimates and exports. Keeps R scripts pure-statistics.
 - Wald tests on coefficient differences use robust `vcovHC()`, not the model vcov (fixed in commit 35b801f).
 - `segmentnumber` was dropped in issue #68 after the coauthor's updated Stata spec removed it. The main-paper equation (`eq:dynamic_reg`) was simplified accordingly.
-- GOF rows in the table: Observations, AR(1), AR(2), Sargan, `pos+neg=0` Wald (mean cols), and `max+, med+, min+=0` Wald triplet (min/med/max cols). The prior `R1+R2=0` Wald test was removed with `round2`.
+- GOF rows in the table: Observations, AR(1), AR(2), Sargan, `pos+neg=0` Wald (mean cols), and three pairwise sum-zero Wald tests `max±, med±, min± pair sums = 0` (min/med/max cols — each tests whether a single variant's positive and negative deviation coefficients sum to zero). The prior `R1+R2=0` Wald test was removed with `round2`.
 
 ## Test Coverage
 
-- `tests/test_dynamic_regression_panel.py` + `tests/test_dynamic_regression_merged_panel.py` + `tests/test_dynamic_regression_minmedmax.py` — 135 tests pinning row counts, merge integrity, NaN patterns, lag correctness, deviation roundtrips, min/med/max peer-stat correctness, and hand-verified edge rows (tied min=med, mixed more/less, cross-supergame lag).
-- `tests/test_dynamic_regression_significance.py` — 7 tests verifying baseline-table coefficients match Stata DP1 reference within 0.01 and that baseline columns equal their counterparts in the extended table.
+Total: **143 tests passing** across three categories.
+
+- **Panel structure (116 tests):** `tests/test_dynamic_regression_panel.py` (46) + `tests/test_dynamic_regression_merged_panel.py` (51) + `tests/test_dynamic_regression_minmedmax.py` (19). Pins row counts, merge integrity, NaN patterns, lag correctness, deviation roundtrips, min/med/max peer-stat correctness, and hand-verified edge rows (tied min=med, mixed more/less, cross-supergame lag).
+- **Stata parity (14 tests):** `tests/test_dynamic_regression_significance.py`. Verifies baseline-table coefficients (T1 mean, T2 mean, T1 min/med/max, T2 min/med/max), standard errors, significance stars, and GoF rows (Observations=1520, AR(2)>0.05, Sargan>0.05, pairwise Wald p-values) against Stata DP1 reference. Default tolerance **0.005** with per-coefficient overrides: Round 1 at 0.01 (GMM two-step optimizer noise) and `contmoremax_L1` at 0.006 (Stata 3-decimal rounding boundary). Also pins 21 Chat/Facial coefficients in the extended spec and verifies baseline columns equal their counterparts in the extended table.
+- **Pipeline safety (13 tests):** `tests/test_dynamic_regression_pipeline_safety.py`. Covers `safe_left_merge` (duplicate/missing merge-key failures), `fill_no_message_rounds` NaN-bound guard, and `convert_made_promise` NaN error path.
 
 ## Related
 

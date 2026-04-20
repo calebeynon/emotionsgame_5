@@ -22,6 +22,11 @@ EXTENDED_TEX <- file.path(OUTPUT_DIR, "dynamic_regression_extended.tex")
 FAMILY_LABELS <- c(mean = "mean", order = "min/med/max")
 SPEC_LABELS <- c("Base", "+Chat", "+Chat+Facial")
 
+# Upper bound on no-message NaN fills per chat column; exceeding it signals drift.
+# Baseline is 800 round-1 rows (chat hasn't happened yet); 50-row headroom lets the
+# guard fire on real regressions without tripping on the exact-baseline case.
+MAX_NO_MESSAGE_ROUNDS <- 850
+
 main <- function() {
     dt <- load_and_prepare_data(INPUT_CSV)
     panels <- build_all_panels(dt)
@@ -37,22 +42,45 @@ main <- function() {
 }
 
 load_and_prepare_data <- function(filepath) {
+    if (!file.exists(filepath)) {
+        stop(sprintf(
+            "Missing panel CSV: %s. Run build_dynamic_regression_panel.py first.",
+            filepath
+        ))
+    }
     dt <- as.data.table(read.csv(filepath))
     dt[, made_promise := as.integer(made_promise)]
     int_cols <- c("treatment", "subject_id", "period", paste0("round", 1:7))
     for (col in int_cols) {
         if (col %in% names(dt)) dt[, (col) := as.integer(get(col))]
     }
+    report_chat_nan_counts(dt)
     for (col in c("word_count", "sentiment_compound_mean")) {
         dt[is.na(get(col)), (col) := 0]
     }
     return(dt)
 }
 
+report_chat_nan_counts <- function(dt) {
+    for (col in c("word_count", "sentiment_compound_mean")) {
+        n_nan <- sum(is.na(dt[[col]]))
+        message(sprintf("  %s NaN count: %d (bound=%d)",
+                        col, n_nan, MAX_NO_MESSAGE_ROUNDS))
+        if (n_nan > MAX_NO_MESSAGE_ROUNDS) {
+            stop(sprintf(
+                "%s has %d NaN, exceeding no-message bound %d.",
+                col, n_nan, MAX_NO_MESSAGE_ROUNDS
+            ))
+        }
+    }
+}
+
 prepare_panel <- function(dt) {
     pdata.frame(as.data.frame(dt), index = c("subject_id", "period"))
 }
 
+# t1_emo / t2_emo drop rows where emotion_valence is NA (AFFDEX unavailable);
+# this reduces N from 1520 to ~1064 (T1) / ~1273 (T2) — used for +Chat+Facial specs only.
 build_all_panels <- function(dt) {
     list(
         t1     = prepare_panel(dt[treatment == 1]),
@@ -62,7 +90,8 @@ build_all_panels <- function(dt) {
     )
 }
 
-# Formula builders (no round2, no segmentnumber)
+# Formula RHS builders. round1 is the only time dummy
+# (per Stata Table DP1 xtabond spec in issue_68_do1.do; round2 and segmentnumber were dropped).
 mean_base_rhs <- function() {
     paste("lag(contribution, 1:2)", "contmore_L1", "contless_L1", "round1",
           sep = " + ")
@@ -77,6 +106,8 @@ order_base_rhs <- function() {
 }
 
 build_formulas <- function() {
+    # lag(contribution, 2:5) as instruments matches Stata's maxldep(4) maxlags(4)
+    # (see analysis/issues/issue_68_do1.do lines 112-114).
     instr <- "lag(contribution, 2:5)"
     chat <- "word_count + made_promise + sentiment_compound_mean"
     facial <- "emotion_valence"
@@ -164,7 +195,14 @@ wald_test_pvalue <- function(model, coef_names) {
 }
 
 model_wald_sum <- function(model, pair) {
-    if (!all(pair %in% names(coef(model)))) return(NA_real_)
+    present <- pair %in% names(coef(model))
+    # Warn only on partial presence (one coef but not both); both-absent means the
+    # pair belongs to a different family (e.g., min/med/max pair in a mean model).
+    if (any(present) && !all(present)) {
+        warning(sprintf("Wald pair %s partially present in model coefficients",
+                        paste(pair, collapse = "+")))
+    }
+    if (!all(present)) return(NA_real_)
     wald_test_pvalue(model, pair)
 }
 
@@ -252,7 +290,8 @@ wrap_tabular <- function(body) {
     wrapped
 }
 
-# Stata Table DP1 reference anchors for sanity verification.
+# Stata Table DP1 reference values from analysis/issues/issue_68_table_dp1_reference.txt.
+# Tolerance below (0.01) matches Stata's 3-decimal log output precision.
 REFERENCE_ROWS <- list(
     c("T1 (min/med/max)", "contmoremax_L1", 0.064),
     c("T1 (min/med/max)", "contlessmax_L1", 0.071),
@@ -270,17 +309,24 @@ REFERENCE_ROWS <- list(
 
 compare_to_reference <- function(baseline_models) {
     cat("\n=== Baseline vs Stata Table DP1 (tol=0.01) ===\n")
+    any_miss <- FALSE
     for (row in REFERENCE_ROWS) {
         model_label <- row[[1]]; term <- row[[2]]; ref <- as.numeric(row[[3]])
         coef_val <- coef(baseline_models[[model_label]])[term]
         diff <- abs(coef_val - ref)
         status <- if (diff <= 0.01) "OK" else "MISS"
+        if (status == "MISS") any_miss <- TRUE
         cat(sprintf("  [%s] %-20s %-18s coef=%7.3f ref=%7.3f diff=%6.3f\n",
                     status, model_label, term, coef_val, ref, diff))
+    }
+    if (any_miss) {
+        stop("Reference comparison failed: see MISS rows above")
     }
 }
 
 # %%
+# TESTING is set via <<- TRUE by dynamic_regression_validate.R before source()-ing
+# this file; that suppresses main() so helper functions can be loaded for validation.
 if (interactive() || !exists("TESTING")) {
     main()
 }

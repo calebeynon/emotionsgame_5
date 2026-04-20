@@ -21,7 +21,7 @@ Three columns:
 - (2) T1 mean deviation (baseline)
 - (3) T2 mean deviation (baseline)
 
-R coefficients must match within ~0.01 tolerance.
+**Outcome (verified):** R coefficients match Stata Table DP1 within 0.01 tolerance across all 13 reference rows covering T1 mean, T2 mean, and T1 min/med/max. Largest observed diff was **0.006** on `round1` (both T1 mean: R=-12.721 vs Stata=-12.715; T2 mean: R=-5.585 vs Stata=-5.591). All deviation-coefficient diffs were ≤ 0.005 (max was 0.005 on `contmoremax_L1` in T1 min/med/max: R=0.059 vs Stata=0.064). Residual gaps are attributable to Stata's 3-decimal log output rounding.
 
 ## 4-column §4.2 table layout
 

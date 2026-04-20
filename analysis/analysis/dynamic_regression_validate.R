@@ -56,16 +56,30 @@ write_wald_csv <- function(models, filepath) {
     rows <- list()
     for (label in names(models)) {
         for (test_name in names(WALD_PAIRS)) {
-            pair <- WALD_PAIRS[[test_name]]
-            if (!all(pair %in% names(coef(models[[label]])))) next
-            rows[[length(rows) + 1]] <- data.table(
-                model = label,
-                test_name = test_name,
-                pvalue = wald_test_pvalue(models[[label]], pair)
-            )
+            row <- wald_row_for(models, label, test_name)
+            if (!is.null(row)) rows[[length(rows) + 1]] <- row
         }
     }
     fwrite(rbindlist(rows), filepath)
+}
+
+wald_row_for <- function(models, label, test_name) {
+    pair <- WALD_PAIRS[[test_name]]
+    present <- pair %in% names(coef(models[[label]]))
+    # Warn on partial presence only; both-absent means the pair belongs to a
+    # different family (mean vs min/med/max) and is expected to skip silently.
+    if (any(present) && !all(present)) {
+        warning(sprintf(
+            "Wald test '%s' for model '%s' partially present: %s",
+            test_name, label, paste(pair, collapse = "+")
+        ))
+    }
+    if (!all(present)) return(NULL)
+    data.table(
+        model = label,
+        test_name = test_name,
+        pvalue = wald_test_pvalue(models[[label]], pair)
+    )
 }
 
 # %%

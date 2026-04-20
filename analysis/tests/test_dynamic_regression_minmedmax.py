@@ -11,10 +11,12 @@ Date: 2026-04-19
 import sys
 from pathlib import Path
 
-import numpy as np
 import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
+sys.path.insert(0, str(Path(__file__).parent))
+
+from _helpers import get_row, validate_lag_column
 
 # FILE PATHS
 PANEL_CSV = (
@@ -35,45 +37,16 @@ def panel_df():
     """Load panel CSV once per module."""
     import pandas as pd
     if not PANEL_CSV.exists():
-        pytest.skip(f"Panel CSV not found: {PANEL_CSV}")
+        pytest.fail(
+            f"dynamic_regression_panel.csv not found at {PANEL_CSV}. "
+            f"Run: uv run python analysis/derived/build_dynamic_regression_panel.py"
+        )
     return pd.read_csv(PANEL_CSV)
 
 
 # =====
 # Helper functions
 # =====
-def _get_row(df, session_code, segment, round_num, label):
-    """Fetch a single row by composite key."""
-    mask = (
-        (df['session_code'] == session_code)
-        & (df['segment'] == segment)
-        & (df['round'] == round_num)
-        & (df['label'] == label)
-    )
-    result = df[mask]
-    assert len(result) == 1, (
-        f"Expected 1 row for ({session_code}, {segment}, {round_num}, {label}), "
-        f"got {len(result)}"
-    )
-    return result
-
-
-def _validate_lag(df, source_col, lag_col):
-    """Check lag_col[t] == source_col[t-1] within each subject."""
-    sorted_df = df.sort_values(['subject_id', 'period'])
-    expected = sorted_df.groupby('subject_id')[source_col].shift(1)
-    expected[sorted_df['period'].values == 1] = np.nan
-    actual = sorted_df[lag_col]
-    mask = expected.notna()
-    mismatches = mask & ((actual - expected).abs() > 1e-10)
-    bad = sorted_df[mismatches].head(10)
-    return [
-        f"subject={r['subject_id']} period={r['period']}: "
-        f"expected={expected.iloc[idx]}, got={r[lag_col]}"
-        for idx, (_, r) in enumerate(bad.iterrows())
-    ]
-
-
 def _assert_minmedmax(r, othermin, othermed, othermax, diffmin, diffmed, diffmax,
                       moremin, moremed, moremax, lessmin, lessmed, lessmax,
                       mtmin, mtmed, mtmax, ltmin, ltmed, ltmax):
@@ -139,7 +112,7 @@ class TestMinMaxMedDeviationVariables:
     def test_lag_values_match_within_subject(self, panel_df, tag):
         """contmore{tag}_L1[t] == contmore{tag}[t-1] within each subject."""
         for kind in ['contmore', 'contless']:
-            errors = _validate_lag(panel_df, f'{kind}{tag}', f'{kind}{tag}_L1')
+            errors = validate_lag_column(panel_df, f'{kind}{tag}', f'{kind}{tag}_L1')
             assert len(errors) == 0, (
                 f"{kind}{tag}_L1 errors:\n" + "\n".join(errors)
             )
@@ -156,7 +129,7 @@ class TestMinMaxMedKnownRows:
 
         All three references below contribution -> contmore*=diff, contless*=0.
         """
-        r = _get_row(panel_df, 'sa7mprty', 'supergame1', 1, 'A').iloc[0]
+        r = get_row(panel_df, 'sa7mprty', 'supergame1', 1, 'A').iloc[0]
         assert r['others_contribution_1'] == 6.0
         assert r['others_contribution_2'] == 5.0
         assert r['others_contribution_3'] == 10.0
@@ -167,12 +140,12 @@ class TestMinMaxMedKnownRows:
 
         contribution above min (more), below med and max (less).
         """
-        r = _get_row(panel_df, 'irrzlgk2', 'supergame1', 1, 'A').iloc[0]
+        r = get_row(panel_df, 'irrzlgk2', 'supergame1', 1, 'A').iloc[0]
         _assert_minmedmax(r, 0, 25, 25, 8, -17, -17, 8, 0, 0, 0, 17, 17, 1, 0, 0, 0, 1, 1)
 
     def test_sa7mprty_sg3_r1_a_tied_min_med(self, panel_df):
         """sa7mprty sg3 r1 A: contribution=10, others={10,25,10} -> min=10 med=10 max=25."""
-        r = _get_row(panel_df, 'sa7mprty', 'supergame3', 1, 'A').iloc[0]
+        r = get_row(panel_df, 'sa7mprty', 'supergame3', 1, 'A').iloc[0]
         assert r['othercontmin'] == pytest.approx(10.0)
         assert r['othercontmed'] == pytest.approx(10.0)
         assert r['othercontmax'] == pytest.approx(25.0)
@@ -182,7 +155,7 @@ class TestMinMaxMedKnownRows:
 
     def test_sa7mprty_sg1_r2_a_lags_carry_r1_values(self, panel_df):
         """sa7mprty sg1 r2 A: lag columns should equal r1 derivations (10, 9, 5, 0s)."""
-        r = _get_row(panel_df, 'sa7mprty', 'supergame1', 2, 'A').iloc[0]
+        r = get_row(panel_df, 'sa7mprty', 'supergame1', 2, 'A').iloc[0]
         assert r['period'] == 2
         assert r['contmoremin_L1'] == pytest.approx(10.0)
         assert r['contmoremed_L1'] == pytest.approx(9.0)
