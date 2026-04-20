@@ -35,13 +35,21 @@ EXPECTED_FIRST_PERIODS = {1: 1, 2: 4, 3: 8, 4: 11, 5: 18}
 EXPECTED_LAST_PERIODS = {1: 3, 2: 7, 3: 10, 4: 17, 5: 22}
 ROUND_1_ROWS = 800  # 10 sessions x 16 players x 5 supergames
 
+DEVIATION_TAGS = ['min', 'max', 'med']
+
 EXPECTED_COLUMNS = [
     'session_code', 'treatment', 'segment', 'round', 'group', 'label',
-    'participant_id', 'contribution', 'payoff',
-    'segmentnumber', 'period', 'subject_id',
-    'othercont', 'othercontaverage',
-    'morethanaverage', 'lessthanaverage', 'diffcont',
-    'contmore', 'contless', 'contmore_L1', 'contless_L1',
+    'participant_id', 'contribution', 'payoff', 'segmentnumber', 'period', 'subject_id',
+    'others_contribution_1', 'others_contribution_2', 'others_contribution_3',
+    'othercont', 'othercontaverage', 'othercontmin', 'othercontmax', 'othercontmed',
+    'morethanaverage', 'lessthanaverage', 'diffcont', 'contmore', 'contless',
+    'contmore_L1', 'contless_L1',
+    'morethanmin', 'lessthanmin', 'diffcontmin', 'contmoremin', 'contlessmin',
+    'contmoremin_L1', 'contlessmin_L1',
+    'morethanmax', 'lessthanmax', 'diffcontmax', 'contmoremax', 'contlessmax',
+    'contmoremax_L1', 'contlessmax_L1',
+    'morethanmed', 'lessthanmed', 'diffcontmed', 'contmoremed', 'contlessmed',
+    'contmoremed_L1', 'contlessmed_L1',
     'round1', 'round2', 'round3', 'round4', 'round5', 'round6', 'round7',
     'word_count', 'made_promise', 'sentiment_compound_mean', 'emotion_valence',
 ]
@@ -49,7 +57,6 @@ EXPECTED_COLUMNS = [
 
 # =====
 # Fixtures
-# =====
 @pytest.fixture(scope="module")
 def panel_df() -> pd.DataFrame:
     """Load the dynamic_regression_panel.csv output."""
@@ -59,8 +66,7 @@ def panel_df() -> pd.DataFrame:
 
 
 # =====
-# Test 1: Row count and columns
-# =====
+# Row count and columns
 class TestStructure:
     """Verify row count, column presence, and key uniqueness."""
 
@@ -81,22 +87,16 @@ class TestStructure:
 
 
 # =====
-# Test 2: Treatment balance
-# =====
+# Treatment balance
 class TestTreatmentBalance:
     """Verify equal treatment allocation."""
 
-    def test_1760_rows_per_treatment(self, panel_df):
-        """Each treatment should have exactly 1,760 rows."""
+    def test_1760_rows_and_5_sessions_per_treatment(self, panel_df):
+        """Each treatment: 1,760 rows and 5 sessions."""
         counts = panel_df['treatment'].value_counts()
-        assert counts[1] == 1760
-        assert counts[2] == 1760
-
-    def test_5_sessions_per_treatment(self, panel_df):
-        """Each treatment should have 5 sessions."""
-        t_sessions = panel_df.groupby('session_code')['treatment'].first()
-        assert t_sessions.value_counts()[1] == 5
-        assert t_sessions.value_counts()[2] == 5
+        assert counts[1] == 1760 and counts[2] == 1760
+        t_sessions = panel_df.groupby('session_code')['treatment'].first().value_counts()
+        assert t_sessions[1] == 5 and t_sessions[2] == 5
 
     def test_80_subjects_per_treatment(self, panel_df):
         """Each treatment should have 80 unique subjects."""
@@ -106,8 +106,7 @@ class TestTreatmentBalance:
 
 
 # =====
-# Test 3: Period linearization
-# =====
+# Period linearization
 class TestPeriodLinearization:
     """Verify period is correctly linearized across supergames."""
 
@@ -139,19 +138,14 @@ class TestPeriodLinearization:
 
 
 # =====
-# Test 4: Lag correctness
-# =====
+# Lag correctness
 class TestLagVariables:
     """Verify contmore_L1 and contless_L1 are correct within-subject lags."""
 
-    def test_lags_nan_at_period_1(self, panel_df):
-        """Both lag columns should be NaN at period==1."""
+    def test_lags_nan_at_period_1_and_count(self, panel_df):
+        """Lag columns are NaN only at period==1 (exactly 160 rows each)."""
         p1 = panel_df[panel_df['period'] == 1]
-        assert p1['contmore_L1'].isna().all()
-        assert p1['contless_L1'].isna().all()
-
-    def test_lag_nan_count_is_160(self, panel_df):
-        """Lag NaN exactly 160 = one per subject at period 1."""
+        assert p1['contmore_L1'].isna().all() and p1['contless_L1'].isna().all()
         assert panel_df['contmore_L1'].isna().sum() == NUM_SUBJECTS
         assert panel_df['contless_L1'].isna().sum() == NUM_SUBJECTS
 
@@ -172,8 +166,7 @@ class TestLagVariables:
 
 
 # =====
-# Test 5: Chat variable coverage
-# =====
+# Chat variable coverage
 class TestChatVariables:
     """Verify made_promise, word_count, and sentiment_compound_mean."""
 
@@ -195,8 +188,7 @@ class TestChatVariables:
 
 
 # =====
-# Test 6: Emotion variable coverage
-# =====
+# Emotion variable coverage
 class TestEmotionVariables:
     """Verify emotion_valence coverage and range."""
 
@@ -217,8 +209,7 @@ class TestEmotionVariables:
 
 
 # =====
-# Test 7: Deviation variable correctness
-# =====
+# Deviation variable correctness
 class TestDeviationVariables:
     """Verify othercont roundtrip and deviation decomposition."""
 
@@ -252,8 +243,7 @@ class TestDeviationVariables:
 
 
 # =====
-# Test 8: Subject ID correctness
-# =====
+# Subject ID correctness
 class TestSubjectId:
     """Verify subject_id construction and uniqueness."""
 
@@ -277,8 +267,7 @@ class TestSubjectId:
 
 
 # =====
-# Test 9: Round dummies
-# =====
+# Round dummies
 class TestRoundDummies:
     """Verify round indicator variables are correct."""
 
@@ -295,7 +284,6 @@ class TestRoundDummies:
 
 # =====
 # Regression tests from verified outputs
-# =====
 class TestKnownValues:
     """Validate specific row values from the verified output."""
 
@@ -331,8 +319,35 @@ class TestKnownValues:
 
 
 # =====
-# Merge integrity
+# Peer order statistics (othercontmin/med/max)
+class TestPeerOrderStats:
+    """Verify othercontmin/med/max coverage, ordering, and derivation."""
+
+    def test_no_nan_in_peer_stats(self, panel_df):
+        """othercontmin/med/max should have zero NaN."""
+        for tag in DEVIATION_TAGS:
+            col = f'othercont{tag}'
+            nan_count = panel_df[col].isna().sum()
+            assert nan_count == 0, f"'{col}' has {nan_count} NaN; expected 0"
+
+    def test_min_le_med_le_max_rowwise(self, panel_df):
+        """othercontmin <= othercontmed <= othercontmax for every row."""
+        bad_min = panel_df[panel_df['othercontmin'] > panel_df['othercontmed']]
+        assert len(bad_min) == 0, f"{len(bad_min)} rows violate min<=med"
+        bad_max = panel_df[panel_df['othercontmed'] > panel_df['othercontmax']]
+        assert len(bad_max) == 0, f"{len(bad_max)} rows violate med<=max"
+
+    def test_peer_stats_match_others_contribution_columns(self, panel_df):
+        """Per-row min/med/max should match min/median/max of others_contribution_1/2/3."""
+        peers = panel_df[['others_contribution_1', 'others_contribution_2',
+                          'others_contribution_3']]
+        assert (panel_df['othercontmin'] == peers.min(axis=1)).all()
+        assert (panel_df['othercontmax'] == peers.max(axis=1)).all()
+        assert (panel_df['othercontmed'] - peers.median(axis=1)).abs().max() < 1e-10
+
+
 # =====
+# Merge integrity
 class TestMergeIntegrity:
     """Verify no rows lost or duplicated, no NaN in core columns."""
 
@@ -358,7 +373,6 @@ class TestMergeIntegrity:
 
 # =====
 # Helper functions
-# =====
 def _get_row(df, session_code, segment, round_num, label):
     """Fetch a single row by composite key."""
     mask = (

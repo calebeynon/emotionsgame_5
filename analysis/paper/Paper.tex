@@ -161,23 +161,24 @@ by treatment using two-step difference GMM[CITE Arrellano and Bond].
     \Delta Contribution_{i,t}
     &= \beta_1 \Delta Contribution_{i,t-1} + \beta_2 \Delta Contribution_{i,t-2} \\
     &\quad + \beta_{pos} \Delta D^+_{i,t-1} + \beta_{neg} \Delta D^-_{i,t-1}
-    + \sum_{r=1}^{2} \beta_{Rr} \cdot 1\{Round_{t} = r\} \\
-    &\quad + \psi \Delta Segment_{t} + \varepsilon_{i,t}
+    + \beta_{R1} \cdot 1\{Round_{t} = 1\} + \varepsilon_{i,t}
 \end{split}
 \label{eq:dynamic_reg}
 \end{equation}
-Where $\Delta Contribution_{i,t} = Contribution_{i,t} - Contribution_{i,t-1}$ and $Contribution_{i,t}$ is the 
+Where $\Delta Contribution_{i,t} = Contribution_{i,t} - Contribution_{i,t-1}$ and $Contribution_{i,t}$ is the
 round level individual contribution to the group account. $D^+_{i,t}$ and $D^-_{i,t}$ are binary variables indicating
-whether the individual contribution was greater or less than the group mean for round $t$. $Round_t$ and $Segment_t$
-are variables for position in time within the experiment. We use lags 2 through 5 of
-$Contribution_{i,t}$ as the GMM instruments for the differenced equation.
+whether the individual contribution was greater or less than the group mean for round $t$. $Round_t$ is an indicator
+for the first round of a supergame. We use lags 2 through 5 of
+$Contribution_{i,t}$ as the GMM instruments for the differenced equation. We report the baseline model using the
+group-mean reference for $D^+$ and $D^-$, alongside an alternative specification that replaces the mean with the
+group's minimum, median, and maximum peer contributions.
 
 
 
 \begin{table}[H]
     \centering \footnotesize
-    \input{dynamic_regression.tex}
-    \caption{Dynamic Panel Regression Analysis. Arellano-Bond two-step GMM with Windmeijer-corrected robust standard errors in parentheses. Instruments: lags 2--5 of contribution.}
+    \input{dynamic_regression_baseline.tex}
+    \caption{Dynamic Panel Regression Analysis. Columns span the two treatments crossed with two definitions of the deviation regressors: the group-mean deviation (columns 1--2) and the per-peer min/median/max deviations (columns 3--4). Arellano-Bond two-step GMM with Windmeijer-corrected robust standard errors in parentheses. Instruments: lags 2--5 of contribution.}
     \label{tab:dynamic_regression}
 \end{table}
 
@@ -359,6 +360,36 @@ We only analyze sentiment and emotions during the communication \textit{prior} t
     \caption{Facial Valence Regressions: Liars and Suckers}
     \label{table:valence_sentiment_gap}
     \input{issue_52_valence_sentiment_gap_regressions}
+\end{table}
+
+\subsection{Dynamic Panel with Communication and Emotions}
+
+We revisit the dynamic panel specification of equation~\ref{eq:dynamic_reg} and
+augment it with communication and facial-emotion covariates to ask whether
+those channels explain contribution dynamics beyond lagged behavior. The
+\emph{+Chat} specification adds \texttt{word\_count}, \texttt{made\_promise}
+(the LLM-classified promise indicator), and \texttt{sentiment\_compound\_mean}
+(VADER valence averaged across the messages that preceded round $t$'s
+contribution). The \emph{+Chat+Facial} specification further adds the AFFDEX
+\texttt{emotion\_valence} score; because video is unavailable for a subset of
+rounds, these columns are estimated on the subset of observations with
+non-missing facial valence. Table~\ref{tab:dynamic_regression_extended}
+reports all twelve models: each of the four baselines in
+Table~\ref{tab:dynamic_regression} is nested inside its own triplet of
+\{Base, +Chat, +Chat+Facial\} columns so that the incremental effect of
+communication and facial emotions is visible within treatment and deviation
+definition.
+
+\begin{table}[H]
+    \centering \footnotesize
+    \input{dynamic_regression_extended.tex}
+    \caption{Dynamic Panel Regression Analysis with Communication and Facial
+    Emotions. Columns are grouped into four baselines (Treatment 1 mean,
+    Treatment 2 mean, Treatment 1 min/med/max, Treatment 2 min/med/max); each
+    baseline is reported in three specifications (Base, +Chat, +Chat+Facial).
+    Arellano-Bond two-step GMM with Windmeijer-corrected robust standard
+    errors in parentheses. Instruments: lags 2--5 of contribution.}
+    \label{tab:dynamic_regression_extended}
 \end{table}
 
 \subsection{Using Text Embeddings for External Validition}

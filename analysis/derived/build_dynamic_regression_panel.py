@@ -31,12 +31,23 @@ OUTPUT_COLUMNS = [
     'session_code', 'treatment', 'segment', 'round', 'group', 'label',
     'participant_id', 'contribution', 'payoff',
     'segmentnumber', 'period', 'subject_id',
+    'others_contribution_1', 'others_contribution_2', 'others_contribution_3',
     'othercont', 'othercontaverage',
+    'othercontmin', 'othercontmax', 'othercontmed',
     'morethanaverage', 'lessthanaverage', 'diffcont',
     'contmore', 'contless', 'contmore_L1', 'contless_L1',
+    'morethanmin', 'lessthanmin', 'diffcontmin',
+    'contmoremin', 'contlessmin', 'contmoremin_L1', 'contlessmin_L1',
+    'morethanmax', 'lessthanmax', 'diffcontmax',
+    'contmoremax', 'contlessmax', 'contmoremax_L1', 'contlessmax_L1',
+    'morethanmed', 'lessthanmed', 'diffcontmed',
+    'contmoremed', 'contlessmed', 'contmoremed_L1', 'contlessmed_L1',
     'round1', 'round2', 'round3', 'round4', 'round5', 'round6', 'round7',
     'word_count', 'made_promise', 'sentiment_compound_mean', 'emotion_valence',
 ]
+
+# Deviation tags for per-peer min/max/med derivations
+DEVIATION_TAGS = ['min', 'max', 'med']
 
 
 # =====
@@ -132,12 +143,36 @@ def derive_deviation_measures(df: pd.DataFrame) -> pd.DataFrame:
     df['othercont'] = (df['payoff'] - 25 + 0.6 * df['contribution']) / 0.4
     df['othercontaverage'] = df['othercont'] / 3
 
-    df['morethanaverage'] = (df['contribution'] > df['othercontaverage']).astype(int)
-    df['lessthanaverage'] = (df['contribution'] < df['othercontaverage']).astype(int)
+    df = build_deviation('average', df['othercontaverage'], df)
+    df = derive_peer_order_stats(df)
+    for tag in DEVIATION_TAGS:
+        df = build_deviation(tag, df[f'othercont{tag}'], df)
+    return df
 
-    df['diffcont'] = df['contribution'] - df['othercontaverage']
-    df['contmore'] = df['diffcont'] * df['morethanaverage']
-    df['contless'] = -df['diffcont'] * df['lessthanaverage']
+
+def derive_peer_order_stats(df: pd.DataFrame) -> pd.DataFrame:
+    """Compute min/max/median across individual peer contributions."""
+    peers = df[['others_contribution_1', 'others_contribution_2', 'others_contribution_3']]
+    df['othercontmin'] = peers.min(axis=1)
+    df['othercontmax'] = peers.max(axis=1)
+    df['othercontmed'] = peers.median(axis=1)
+    return df
+
+
+def build_deviation(tag: str, reference: pd.Series, df: pd.DataFrame) -> pd.DataFrame:
+    """Create morethan/lessthan/diff/contmore/contless columns against a reference series."""
+    suffix = tag if tag != 'average' else 'average'
+    more_col = f'morethan{suffix}'
+    less_col = f'lessthan{suffix}'
+    diff_col = 'diffcont' if tag == 'average' else f'diffcont{tag}'
+    more_val = 'contmore' if tag == 'average' else f'contmore{tag}'
+    less_val = 'contless' if tag == 'average' else f'contless{tag}'
+
+    df[more_col] = (df['contribution'] > reference).astype(int)
+    df[less_col] = (df['contribution'] < reference).astype(int)
+    df[diff_col] = df['contribution'] - reference
+    df[more_val] = df[diff_col] * df[more_col]
+    df[less_val] = -df[diff_col] * df[less_col]
     return df
 
 
@@ -147,11 +182,12 @@ def derive_deviation_measures(df: pd.DataFrame) -> pd.DataFrame:
 def create_lag_variables(df: pd.DataFrame) -> pd.DataFrame:
     """Create lagged deviation variables within each subject."""
     df = df.sort_values(['subject_id', 'period'])
-    df['contmore_L1'] = df.groupby('subject_id')['contmore'].shift(1)
-    df['contless_L1'] = df.groupby('subject_id')['contless'].shift(1)
-    # Period 1 has no valid lag
-    df.loc[df['period'] == 1, 'contmore_L1'] = float('nan')
-    df.loc[df['period'] == 1, 'contless_L1'] = float('nan')
+    lag_sources = ['contmore', 'contless']
+    for tag in DEVIATION_TAGS:
+        lag_sources.extend([f'contmore{tag}', f'contless{tag}'])
+    for col in lag_sources:
+        df[f'{col}_L1'] = df.groupby('subject_id')[col].shift(1)
+        df.loc[df['period'] == 1, f'{col}_L1'] = float('nan')
     return df
 
 
@@ -171,21 +207,45 @@ def create_round_dummies(df: pd.DataFrame) -> pd.DataFrame:
 def validate(df: pd.DataFrame):
     """Validate output meets expected structure."""
     assert len(df) == 3520, f"Expected 3,520 rows, got {len(df):,}"
-
     dupes = df.duplicated(subset=MERGE_KEYS)
     assert not dupes.any(), f"Found {dupes.sum()} duplicate key rows"
-
     assert df['made_promise'].isna().sum() == 0, "made_promise has NaN values"
     assert set(df['made_promise'].unique()) <= {0, 1}, "made_promise has non-0/1 values"
+    validate_chat_columns(df)
+    validate_peer_stats(df)
+    validate_lags(df)
+    print("\nValidation passed: 3,520 rows, no duplicates, types correct")
 
-    # word_count and sentiment NaN only at round 1
+
+def validate_chat_columns(df: pd.DataFrame):
+    """word_count and sentiment NaN only allowed at round 1."""
     r2plus = df[df['round'] > 1]
     wc_nan = r2plus['word_count'].isna().sum()
     assert wc_nan == 0, f"word_count has {wc_nan} NaN in rounds > 1"
     sc_nan = r2plus['sentiment_compound_mean'].isna().sum()
     assert sc_nan == 0, f"sentiment_compound_mean has {sc_nan} NaN in rounds > 1"
 
-    print("\nValidation passed: 3,520 rows, no duplicates, types correct")
+
+def validate_peer_stats(df: pd.DataFrame):
+    """Ensure min/max/med peer stats are present and consistent."""
+    for tag in DEVIATION_TAGS:
+        col = f'othercont{tag}'
+        nan_count = df[col].isna().sum()
+        assert nan_count == 0, f"{col} has {nan_count} NaN values"
+    assert (df['othercontmin'] <= df['othercontmed']).all(), "min > med in peer stats"
+    assert (df['othercontmed'] <= df['othercontmax']).all(), "med > max in peer stats"
+
+
+def validate_lags(df: pd.DataFrame):
+    """Ensure lag columns are NaN iff period==1."""
+    lag_cols = ['contmore_L1', 'contless_L1']
+    for tag in DEVIATION_TAGS:
+        lag_cols.extend([f'contmore{tag}_L1', f'contless{tag}_L1'])
+    for col in lag_cols:
+        nan_at_p1 = df.loc[df['period'] == 1, col].notna().sum()
+        assert nan_at_p1 == 0, f"{col} has non-NaN at period==1"
+        nan_after = df.loc[df['period'] > 1, col].isna().sum()
+        assert nan_after == 0, f"{col} has {nan_after} NaN at period>1"
 
 
 # %%
