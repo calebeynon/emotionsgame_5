@@ -19,18 +19,19 @@ last_verified: "2026-04-19"
 | 2. Related Literature | Communication and visibility in PG games | — |
 | 3. Experimental Design | Two treatments, 5 segments, 25-token endowment, 0.4 MPCR | — |
 | 4.1 Summary Statistics | Mean/median contribution by round, contribution CDF | `mean_contribution_by_round.png`, `median_contribution_by_round.png`, `contribution_cdf_by_treatment.png` |
-| 4.2 Regression Analysis | Dynamic Arellano-Bond GMM (issue #57) | `dynamic_regression.tex` (3 specs × 2 treatments) |
+| 4.2 Regression Analysis | Dynamic Arellano-Bond GMM baseline (issues #57, #68) | `dynamic_regression_baseline.tex` (4 cols: T1/T2 × mean/min-med-max) |
 | 4.3 Classifying Behavior | Liar diff-in-means, sentiment distributions | `liar_diff_in_means.tex`, `liar_count_distribution.png`, `sentiment_distribution_t1/t2.png` |
 | 4.4 Communication Sentiment | OLS: contribution ~ sentiment + controls | `contribution_regression_combined.tex` |
 | 4.5 Classification Effect | Sucker DiD event study with heterogeneous TE | `issue_59_het_did_coefplot_20_main.pdf` |
 | 4.6 Facial Emotions | Liar/sucker valence regressions (issue #52) | `issue_52_valence_sentiment_gap_regressions.tex` |
-| 4.7 Text Embeddings | Centroid projections + Hanaki external validation | `group_contribution_embedding_regression.tex`, `hanaki_external_validation_inv.tex` |
+| 4.7 Dynamic Panel w/ Communication & Emotions | Extension of §4.2 with chat & facial regressors (issue #68) | `dynamic_regression_extended.tex` (12 cols: 4 baselines × {Base, +Chat, +Chat+Facial}) |
+| 4.8 Text Embeddings | Centroid projections + Hanaki external validation | `group_contribution_embedding_regression.tex`, `hanaki_external_validation_inv.tex` |
 | 5. Conclusion | (placeholder) | — |
 | Appendix | Instructions, quiz, screenshots, pooled DiD | `issue_20_did_coefplot_20_main.png`, `issue_20_did_contribution.tex` |
 
 ## Key Equations
 
-- `eq:dynamic_reg` — Arellano-Bond two-step GMM in differences with positive/negative deviation dummies and round dummies. Instruments: lags 2-5 of contribution.
+- `eq:dynamic_reg` — Arellano-Bond two-step GMM in differences with positive/negative peer-deviation dummies and a `round1` dummy. Instruments: lags 2–5 of contribution. Issue #68 dropped the `round2` and `Δ Segment_t` terms to match the coauthor's Stata `xtabond` Table DP1 spec.
 - `eq:contribution_sentiment` — `contribution ~ sentiment + treatment + n_messages | round + segment` (clustered SE at session-segment-group).
 - `eq:contribution_regression` — `contribution ~ promise + sucker + treatment | round + segment`.
 - `eq:did_contribution` — Heterogeneous DiD event study: `contribution ~ Σ τ × suckered × T1 + Σ τ × suckered × T2 + ... | round + segment`.

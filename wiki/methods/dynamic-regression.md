@@ -1,53 +1,94 @@
 ---
 title: "Dynamic Panel Regression (Arellano-Bond)"
 type: method
-tags: [regression, panel, arellano-bond, gmm, dynamic, issue-57]
-summary: "Two-step difference GMM model of contribution dynamics, extended with chat and facial-emotion regressors (issue #57)"
+tags: [regression, panel, arellano-bond, gmm, dynamic, issue-57, issue-68]
+summary: "Two-step difference GMM of contribution dynamics. Baseline (4-col, §4.2) + extended (12-col, §4.7) tables. Aligned to Stata Table DP1."
 status: active
 last_verified: "2026-04-19"
 ---
 
 ## Summary
 
-The headline dynamic specification in the paper (`Paper.tex` §4.2). Estimates how a player's change in contribution depends on their own lagged changes and on whether they were above or below the group mean previously. Issue #57 extended it to include chat characteristics (word count, promises, sentiment) and facial valence as additional regressors. Final output is a 6-column LaTeX table: 3 specifications (baseline / +chat / +chat+facial) × 2 treatments.
+The headline dynamic specification in the paper. Estimates how a player's change in contribution depends on their own lagged changes and on whether they were above or below their peers' contribution previously. Two tables are produced:
+
+- **§4.2 baseline (4 columns)**: each column is a treatment × deviation-definition combination.
+- **§4.7 extended (12 columns)**: each baseline column × {Baseline, +Chat, +Chat+Facial}.
+
+Issue #57 introduced chat and facial-emotion extensions. Issue #68 realigned the spec to match the coauthor's Stata `xtabond` Table DP1 (dropped `round2` and `segmentnumber`, added min/med/max peer-deviation variants).
 
 ## Model
 
-Two-step difference GMM with Windmeijer-corrected robust SEs:
+Two-step difference GMM (Arellano-Bond) with Windmeijer-corrected robust SEs:
 
 $$
 \Delta C_{i,t} = \beta_1 \Delta C_{i,t-1} + \beta_2 \Delta C_{i,t-2}
 + \beta_{pos} \Delta D^+_{i,t-1} + \beta_{neg} \Delta D^-_{i,t-1}
-+ \sum_{r=1}^{2} \beta_{Rr} \mathbf{1}\{\text{Round}_t=r\}
-+ \psi \Delta \text{Segment}_t + \varepsilon_{i,t}
++ \beta_{R1}\, \mathbf{1}\{\text{Round}_t=1\}
++ \varepsilon_{i,t}
 $$
 
-where $D^+$ / $D^-$ flag contributions above / below the group mean. Instruments: lags 2-5 of $C_{i,t}$.
+Instruments: lags 2–5 of $C_{i,t}$. `round1` is the only round dummy; `segmentnumber` and `round2` were dropped in issue #68 to match Stata `xtabond` Table DP1.
+
+### Deviation definitions
+
+Four flavors of `D^+` / `D^-` are computed; the peer reference point differs:
+
+| Variant | Peer reference | Variables |
+|---|---|---|
+| Mean | `othercontaverage` (mean of 3 peers) | `contmore_L1`, `contless_L1` |
+| Min | `othercontmin` | `contmoremin_L1`, `contlessmin_L1` |
+| Med | `othercontmed` (row median of 3 peers) | `contmoremed_L1`, `contlessmed_L1` |
+| Max | `othercontmax` | `contmoremax_L1`, `contlessmax_L1` |
+
+The `min/med/max` columns include **all six** `contmore*_L1` and `contless*_L1` terms in one regression; the mean columns include just the two.
+
+## Columns produced
+
+### Baseline table (`output/tables/dynamic_regression_baseline.tex`, 4 cols)
+
+1. T1 mean
+2. T2 mean
+3. T1 min/med/max
+4. T2 min/med/max
+
+T1 min/med/max, T1 mean, and T2 mean match the coauthor's Stata Table DP1 within 0.01 (largest diff 0.006 on `round1`). T2 min/med/max is new (not in Stata reference) — run for symmetry.
+
+### Extended table (`output/tables/dynamic_regression_extended.tex`, 12 cols)
+
+Each of the 4 baseline columns appears 3 times: `{Baseline, +Chat, +Chat+Facial}`.
+
+- `+Chat` adds `word_count + made_promise + sentiment_compound_mean`.
+- `+Chat+Facial` additionally adds `emotion_valence`, estimated on the emotion-complete subsample (filtered to `!is.na(emotion_valence)`).
 
 ## Pipeline
 
-1. **Build panel** (Python): `derived/build_dynamic_regression_panel.py` merges `contributions.csv`, `behavior_classifications.csv`, and `merged_panel.csv` → `datastore/derived/dynamic_regression_panel.csv`.
-   - Chat NaN (no message rounds) filled with 0.
+1. **Build panel** (Python): `derived/build_dynamic_regression_panel.py` merges `contributions.csv`, `behavior_classifications.csv`, and `merged_panel.csv` → `datastore/derived/dynamic_regression_panel.csv` (3,520 rows × 59 cols).
+   - Adds all min/med/max peer stats and deviation variants.
+   - Chat NaN (no-message rounds) filled with 0.
    - Emotion NaN left as-is; +facial models use the emotion-complete subsample.
-2. **Estimate** (R): `analysis/dynamic_regression.R` reads the pre-built panel, estimates 6 GMM models, exports the LaTeX table.
-3. **(Reference) Stata**: `analysis/dynamic_regression.do` — original Stata implementation, kept for reproducibility/comparison.
+2. **Estimate** (R): `analysis/dynamic_regression.R` reads the pre-built panel, estimates 16 GMM models (4 baseline + 12 extended), exports both LaTeX tables, and prints a Stata Table DP1 parity diagnostic at the end of `main()`.
+3. **(Reference) Stata**: `analysis/dynamic_regression.do` — superseded. Issue-68 reference Stata files are archived under `analysis/issues/issue_68_do1.do` and `analysis/issues/issue_68_table_dp1_reference.{tex,txt}`.
 
 ## Output
 
-- `output/tables/dynamic_regression.tex` — 6-column landscape table consumed by `Paper.tex`.
-- N = 1,520 per treatment in the baseline column (verified pre-merge).
+- `output/tables/dynamic_regression_baseline.tex` — 4 columns (§4.2).
+- `output/tables/dynamic_regression_extended.tex` — 12 columns (§4.7).
+- N = 1,520 per treatment for all baseline/+Chat columns; +Chat+Facial drops to ≈1,064 (T1) / ≈1,273 (T2) due to AFFDEX availability.
 
 ## Design Notes
 
 - Python handles all merging/derivation; R only estimates and exports. Keeps R scripts pure-statistics.
 - Wald tests on coefficient differences use robust `vcovHC()`, not the model vcov (fixed in commit 35b801f).
-- "Supergame" was renamed to "Segment" in the codebase (commit 561ad25); the paper uses "Segment" throughout.
+- `segmentnumber` was dropped in issue #68 after the coauthor's updated Stata spec removed it. The main-paper equation (`eq:dynamic_reg`) was simplified accordingly.
+- GOF rows in the table: Observations, AR(1), AR(2), Sargan, `pos+neg=0` Wald (mean cols), and `max+, med+, min+=0` Wald triplet (min/med/max cols). The prior `R1+R2=0` Wald test was removed with `round2`.
 
 ## Test Coverage
 
-- `tests/test_dynamic_regression_merged_panel.py` — 51 tests pinning row counts, merge integrity, NaN patterns, lag correctness, deviation roundtrips, and known values.
+- `tests/test_dynamic_regression_panel.py` + `tests/test_dynamic_regression_merged_panel.py` + `tests/test_dynamic_regression_minmedmax.py` — 135 tests pinning row counts, merge integrity, NaN patterns, lag correctness, deviation roundtrips, min/med/max peer-stat correctness, and hand-verified edge rows (tied min=med, mixed more/less, cross-supergame lag).
+- `tests/test_dynamic_regression_significance.py` — 7 tests verifying baseline-table coefficients match Stata DP1 reference within 0.01 and that baseline columns equal their counterparts in the extended table.
 
 ## Related
 
 - [Merged Panel Construction](merged-panel.md)
 - [Main Paper Overview](../papers/main-paper.md)
+- [Datastore Files Reference](../tools/datastore-files.md)

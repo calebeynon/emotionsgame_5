@@ -46,7 +46,7 @@ last_verified: "2026-04-19"
 | File | Producer | Rows | What |
 |---|---|---|---|
 | `merged_panel.csv` | `derived/merge_panel_data.py` | 10,683 × 34 | Page-level wide panel: state + sentiment + AFFDEX |
-| `dynamic_regression_panel.csv` | `derived/build_dynamic_regression_panel.py` | per-treatment | Pre-built input for `dynamic_regression.R` (issue #57) |
+| `dynamic_regression_panel.csv` | `derived/build_dynamic_regression_panel.py` | 3,520 × 59 | Pre-built input for `dynamic_regression.R`. Includes mean/min/med/max peer-deviation variants and `_L1` lags (issue #57, extended in #68) |
 | `issue_20_did_panel.csv` | `derived/issue_20_build_did_panel.py` | event-study panel | Sucker event-time, treated/control flags |
 | `issue_17_regression_data.csv` | `derived/merge_regression_data.py` | regression-ready | Sentiment + liar joined |
 
