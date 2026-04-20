@@ -17,6 +17,7 @@
 \usepackage{xcolor}
 \usepackage{subcaption}
 \usepackage{adjustbox}
+\usepackage{dsfont}
 
 %%%%%%%%% Path resolution: prefer ../output/ locally so committed paper/tables/%
 %%%%%%%%% and paper/plots/ copies (Action-managed, may be stale) never shadow %
@@ -81,6 +82,58 @@ The remainder of the paper proceeds as follows. Section 2 reviews the related li
 
 \section{Related Literature}
 
+\subsection{Information}
+
+*seminar speaker literature to cross check:
+%why do we not put any cost for participation?
+public message = cheap talk 
+CSE (Fong, Lin and Palfrey 2025)
+Eyster & Rabin (2005)
+cox and stoddard (2021) 
+what are contibutions under no commu.
+
+IF=individual feedback treatment
+
+AF=aggregate feedback treatment
+
+Para 1: Early experiments find mixed results. 
+
+\cite{sell1991levels} is the first paper to experimentally  investigate the effects of individual versus aggregate feedback in public goods game. It is the only paper that finds larger contributions when subjects were provided with individual feedback. Group of 4, MPCR=0.75. They used small sample: 32 in AF and 31  in IF (don't know how it is not divisible by 4) and  10 periods. fixed (partner) matching.
+
+\cite{weimann1994individual} use only 15 subjects in each treatment. group of 5. MPCR=0.5. In TF he reported  average not total. Partner matching. 10 periods. \cite{croson2001feedback} use 24 subjects in each treatment. group of 4. 10 periods. partner matching. MPCR=0.5.
+
+
+Para 2: Later experiments use larger sample size and  find no statistical differences between IF and AF, but observe differences in variances in contibutions and distributions of cooperative types. 
+
+\cite{croson2001feedback} find no statistical difference in group contributions. However, \cite{croson2001feedback} finds that the variance of between-group contributions is significantly higher for the individual feedback treatment. More free riders but also more cooperators under IF.
+
+
+\cite{carpenter2004rome} 80 and 85 in each treatment.  Group of 5. 10 periods. MPCR=0.75. Strangers matching.More free riders under IF. conformity. Define FR with 3 thresholds (cont<1/4, 1/3, 1/2). Variance within group is larger under TF because some coop and some free ride. Under IF, all free ride or all coop. did not report contibutions. only by types of players.
+
+Para 3: More recent experiments focus on interactions between this info structure and punishment, imitation, matching procedure.
+
+
+
+
+\cite{bigoni2012feedback}
+
+\cite{nikiforakis2010feedback}
+
+\cite{cox2015framing}
+
+\cite{cason1999laboratory} No feedback vs 
+\cite{irlenbusch2019designing} look at partial information only one contribution from each group (max/min/random).
+
+
+
+\subsection{Communication}
+
+early experiments \cite{isaac1988communication}
+
+\cite{wilson1997liar}
+
+\cite{cason1999laboratory} for verbal communication
+
 Communication significantly enhances cooperation in public-goods and social dilemma settings. Early experimental studies demonstrate that allowing participants to communicate—even when communication is non-binding and has no direct payoff consequences—leads to higher contributions and improved group outcomes relative to no-communication baselines \cite{Dawes1977_Communication}. These findings challenged the prediction of standard self-interest models and highlighted the importance of social interaction and norm formation in collective action problems.
 
 Subsequent work has confirmed the generality of this effect across a wide range of institutional settings. \cite{Sally1995_Meta} provides a comprehensive meta-analysis of experiments conducted over several decades, showing that communication consistently increases cooperation and reduces free-riding behavior. Communication allows participants to coordinate expectations, articulate shared goals, and invoke social norms, thereby mitigating strategic uncertainty and fostering trust.
@@ -109,7 +162,8 @@ By combining repeated interaction within segments, random rematching across segm
 
 While prior work establishes that both communication and visibility matter for cooperation, we show that the effectiveness of communication critically depends on the ability to attribute behavior to individuals. Moreover, we document how informational transparency shapes not only contribution levels but also the nature and function of communication itself.
 
-%again over here on emotions: 
+\subsection{Emotion}
+
 
 \section{Experimental Design}
 Our study employs a between-subjects design with two treatments that vary the degree of informational visibility in a standard public-goods environment. Across the two treatments, we manipulate whether subjects can observe both the individual contributions of their group members or only the aggregate contribution of the group, i.e. in the "Feedback" treatment, each subject observes the contributions of all of their group members at the end of every round \footnote{Refer to Appendix: Results. Each participant can see their contribution and also exactly how much everyone else in that group contrubuted}, while in the "No Feedback" treatment, subjects see only the total contribution placed into the group account, without any breakdown of who contributed how much. This manipulation allows us to study how transparency—either at the individual or group level—affects cooperative behavior, communication patterns, and contribution dynamics.
@@ -152,11 +206,9 @@ We start by analyzing the dynamic effect of individual contributions across trea
 by treatment using two-step difference GMM[CITE Arrellano and Bond].  
 \begin{equation}
 \begin{split}
-    \Delta Contribution_{i,t}
-    &= \beta_1 \Delta Contribution_{i,t-1} + \beta_2 \Delta Contribution_{i,t-2} \\
-    &\quad + \beta_{pos} \Delta D^+_{i,t-1} + \beta_{neg} \Delta D^-_{i,t-1}
-    + \sum_{r=1}^{2} \beta_{Rr} \cdot 1\{Round_{t} = r\} \\
-    &\quad + \psi \Delta Segment_{t} + \varepsilon_{i,t}
+     Contribution_{i,t}
+    &=\alpha_0+ \sum_{l=1}^{2} \alpha_l \cdot Contribution_{i,t-l} + \sum_{j=1}^{3} \beta^{+}_{j} \cdot PosDevInd_{i,t-1}(j)   \\
+    &\quad + \sum_{j=1}^{3} \beta^{-}_{j} \cdot NegDevInd_{i,t-1}(j) + \gamma \cdot \mathds{1}\{Round_{t} =1\} \ + \varepsilon_{i,t}
 \end{split}
 \label{eq:dynamic_reg}
 \end{equation}
@@ -165,6 +217,37 @@ round level individual contribution to the group account. $D^+_{i,t}$ and $D^-_{
 whether the individual contribution was greater or less than the group mean for round $t$. $Round_t$ and $Segment_t$
 are variables for position in time within the experiment. We use lags 2 through 5 of
 $Contribution_{i,t}$ as the GMM instruments for the differenced equation.
+\begin{equation}
+\begin{split}
+     Contribution_{i,t}
+    &=\alpha_0+ \sum_{l=1}^{2} \alpha_l \cdot Contribution_{i,t-l} + \beta^{+}\cdot PosDevAve_{i,t-1}   \\
+    &\quad  + \beta^{-}\cdot NegDevAve_{i,t-1}  + \gamma \cdot \mathds{1}\{Round_{t} =1\} \ + \varepsilon_{i,t}
+\end{split}
+\label{eq:dynamic_reg}
+\end{equation}
+
+
+
+
+
+\begin{table}[H]
+    \centering \footnotesize
+    \input{tables/treatment_contribution}
+    \caption{Treatment Effects on Contributions}
+    \label{tab:treatment_contribution}
+\end{table}
+
+
+
+\begin{table}[H]
+    \centering \footnotesize
+    \input{tables/dynamic_regression_stata}
+    \caption{Dynamic Panel Regression Analysis. Arellano-Bond two-step GMM with Windmeijer-corrected robust standard errors in parentheses. Instruments: lags 2--5 of contribution.}
+    \label{tab:dynamic_regression_stata}
+\end{table}
+
+
+In Model (1)
 
 
 
