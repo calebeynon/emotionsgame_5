@@ -4,7 +4,7 @@ type: paper
 tags: [paper, results, latex, overleaf]
 summary: "Structure, key tables, and key claims of analysis/paper/Paper.tex"
 status: active
-last_verified: "2026-04-19"
+last_verified: "2026-04-20"
 ---
 
 ## Summary
@@ -18,8 +18,8 @@ last_verified: "2026-04-19"
 | 1. Introduction | Motivation: communication × visibility × emotion | — |
 | 2. Related Literature | Communication and visibility in PG games | — |
 | 3. Experimental Design | Two treatments, 5 segments, 25-token endowment, 0.4 MPCR | — |
-| 4.1 Summary Statistics | Mean/median contribution by round, contribution CDF | `mean_contribution_by_round.png`, `median_contribution_by_round.png`, `contribution_cdf_by_treatment.png` |
-| 4.2 Regression Analysis | Dynamic Arellano-Bond GMM baseline (issues #57, #68) | `dynamic_regression_baseline.tex` (4 cols: T1/T2 × mean/min-med-max) |
+| 4.1 Summary Statistics | Mean contribution across all 22 sequential rounds, contribution CDF | `mean_contribution_by_period.png` (issue #67), `contribution_cdf_by_treatment.png` |
+| 4.2 Regression Analysis | Treatment means (Paan's new table) then dynamic Arellano-Bond GMM baseline (issues #57, #68) | `treatment_contribution.tex` (Paan, Overleaf-authored), `dynamic_regression_baseline.tex` (4 cols: T1/T2 × mean/min-med-max) |
 | 4.3 Classifying Behavior | Liar diff-in-means, sentiment distributions | `liar_diff_in_means.tex`, `liar_count_distribution.png`, `sentiment_distribution_t1/t2.png` |
 | 4.4 Communication Sentiment | OLS: contribution ~ sentiment + controls | `contribution_regression_combined.tex` |
 | 4.5 Classification Effect | Sucker DiD event study with heterogeneous TE | `issue_59_het_did_coefplot_20_main.pdf` |

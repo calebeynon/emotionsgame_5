@@ -4,7 +4,7 @@ type: method
 tags: [regression, panel, arellano-bond, gmm, dynamic, issue-57, issue-68]
 summary: "Two-step difference GMM of contribution dynamics. Baseline (4-col, §4.2) + extended (12-col, §4.7) tables. Aligned to Stata Table DP1."
 status: active
-last_verified: "2026-04-19"
+last_verified: "2026-04-20"
 ---
 
 ## Summary
@@ -67,13 +67,14 @@ Each of the 4 baseline columns appears 3 times: `{Baseline, +Chat, +Chat+Facial}
    - Chat NaN (no-message rounds) filled with 0.
    - Emotion NaN left as-is; +facial models use the emotion-complete subsample.
 2. **Estimate** (R): `analysis/dynamic_regression.R` reads the pre-built panel, estimates 16 GMM models (4 baseline + 12 extended), exports both LaTeX tables, and prints a Stata Table DP1 parity diagnostic at the end of `main()`.
-3. **(Reference) Stata**: `analysis/dynamic_regression.do` — superseded. Issue-68 reference Stata files are archived under `analysis/issues/issue_68_do1.do` and `analysis/issues/issue_68_table_dp1_reference.{tex,txt}`.
+3. **(Reference) Stata**: Issue-68 reference Stata files are archived under `analysis/issues/issue_68_do1.do` and `analysis/issues/issue_68_table_dp1_reference.{tex,txt}`. Paan's legacy manual Stata output (`analysis/output/tables/dynamic_regression_stata.tex`, 3-column Max/Median/Min + averages) is retained on disk but no longer inputted by `Paper.tex`.
 
 ## Output
 
 - `output/tables/dynamic_regression_baseline.tex` — 4 columns (§4.2).
 - `output/tables/dynamic_regression_extended.tex` — 12 columns (§4.7).
 - N = 1,520 per treatment for all baseline/+Chat columns; +Chat+Facial drops to ≈1,064 (T1) / ≈1,273 (T2) due to AFFDEX availability.
+- `output/tables/dynamic_regression.tex` and `dynamic_regression_stata.tex` remain on disk for historical reference but are not \input by the paper.
 
 ## Design Notes
 
