@@ -282,8 +282,8 @@ transform_to_etable_style <- function(lines, ncol, group_header) {
     top_i <- grep("\\\\toprule", lines)
     mid_idx <- grep("^\\s*\\\\midrule\\s*$", lines)
     bot_i <- grep("\\\\bottomrule", lines)
-    stopifnot("transform_to_etable_style: expected 1 toprule, >=2 midrule, 1 bottomrule" =
-              length(top_i) == 1 && length(mid_idx) >= 2 && length(bot_i) == 1)
+    if (!(length(top_i) == 1 && length(mid_idx) >= 2 && length(bot_i) == 1))
+        stop(sprintf("transform_to_etable_style: expected 1/>=2/1 rules, got %d/%d/%d", length(top_i), length(mid_idx), length(bot_i)))
     lines[top_i] <- build_header_block(ncol, group_header)
     lines[mid_idx[1]] <- "\\midrule\n\\emph{Variables}\\\\"
     lines[mid_idx[length(mid_idx)]] <- "\\midrule\n\\emph{Fit statistics}\\\\"
@@ -317,10 +317,10 @@ wrap_body <- function(body, strategy) {
         out <- sub("\\\\begin\\{tabular\\}\\{([^}]+)\\}",
                    "\\\\begin{tabular*}{\\\\textwidth}{@{\\\\extracolsep{\\\\fill}} \\1}", body)
         out <- sub("\\\\end\\{tabular\\}", "\\\\end{tabular*}", out)
-    } else {
+    } else if (strategy == "resizebox") {
         out <- sub("(?s)(\\\\begin\\{tabular\\}.*?\\\\end\\{tabular\\})",
                    "\\\\resizebox{\\\\textwidth}{!}{%\n\\1%\n}", body, perl = TRUE)
-    }
+    } else stop(sprintf("wrap_body: unknown strategy '%s'; expected 'extracolsep' or 'resizebox'", strategy))
     stopifnot("wrap_body: tabular regex failed" = !identical(out, body))
     out
 }

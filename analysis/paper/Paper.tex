@@ -212,12 +212,10 @@ by treatment using two-step difference GMM[CITE Arrellano and Bond].
 \end{split}
 \label{eq:dynamic_reg}
 \end{equation}
-Where $Contribution_{i,t}$ is the round-level individual contribution to the group account. $D^+_{i,t}$ and $D^-_{i,t}$ are binary variables indicating
-whether the individual contribution was greater or less than the group mean for round $t$. $Round_t$ is an indicator
+Where $Contribution_{i,t}$ is the round-level individual contribution to the group account. $PosDevInd_{i,t-1}(j)$ and $NegDevInd_{i,t-1}(j)$ are binary indicators for whether $i$'s prior-round contribution exceeded or fell short of the $j$-th peer reference point. $Round_t$ is an indicator
 for the first round of a supergame. We use lags 2 through 5 of
-$Contribution_{i,t}$ as the GMM instruments for the differenced equation. We report the baseline model using the
-group-mean reference for $D^+$ and $D^-$, alongside an alternative specification that replaces the mean with the
-group's minimum, median, and maximum peer contributions.
+$Contribution_{i,t}$ as the GMM instruments for the differenced equation. We report the baseline model in which a single peer reference point is the group mean (so $j$ collapses to one term), alongside an alternative specification that replaces the mean with the
+group's minimum, median, and maximum peer contributions ($j=1,2,3$).
 
 
 

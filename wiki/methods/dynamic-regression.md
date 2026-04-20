@@ -18,16 +18,16 @@ Issue #57 introduced chat and facial-emotion extensions. Issue #68 realigned the
 
 ## Model
 
-Two-step difference GMM (Arellano-Bond) with Windmeijer-corrected robust SEs:
+The paper writes the specification in levels; the Arellano-Bond two-step estimator differences it internally and uses Windmeijer-corrected robust SEs:
 
 $$
-\Delta C_{i,t} = \beta_1 \Delta C_{i,t-1} + \beta_2 \Delta C_{i,t-2}
-+ \beta_{pos} \Delta D^+_{i,t-1} + \beta_{neg} \Delta D^-_{i,t-1}
-+ \beta_{R1}\, \mathbf{1}\{\text{Round}_t=1\}
-+ \varepsilon_{i,t}
+C_{i,t} = \alpha_0 + \sum_{l=1}^{2} \alpha_l\, C_{i,t-l}
++ \sum_{j=1}^{3} \beta^{+}_j\, \text{PosDevInd}_{i,t-1}(j)
++ \sum_{j=1}^{3} \beta^{-}_j\, \text{NegDevInd}_{i,t-1}(j)
++ \gamma\, \mathbf{1}\{\text{Round}_t=1\} + \varepsilon_{i,t}
 $$
 
-Instruments: lags 2–5 of $C_{i,t}$. `round1` is the only round dummy; `segmentnumber` and `round2` were dropped in issue #68 to match Stata `xtabond` Table DP1.
+$\text{PosDevInd}(j)$ and $\text{NegDevInd}(j)$ are binary indicators for whether the prior-round contribution exceeded or fell short of peer reference $j$. The mean-reference columns use a single $j$; the min/med/max columns include $j=1,2,3$. Instruments: lags 2–5 of $C_{i,t}$. `round1` is the only round dummy; `segmentnumber` and `round2` were dropped in issue #68 to match Stata `xtabond` Table DP1.
 
 ### Deviation definitions
 
@@ -89,7 +89,7 @@ Total: **143 tests passing** across three categories.
 
 - **Panel structure (116 tests):** `tests/test_dynamic_regression_panel.py` (46) + `tests/test_dynamic_regression_merged_panel.py` (51) + `tests/test_dynamic_regression_minmedmax.py` (19). Pins row counts, merge integrity, NaN patterns, lag correctness, deviation roundtrips, min/med/max peer-stat correctness, and hand-verified edge rows (tied min=med, mixed more/less, cross-supergame lag).
 - **Stata parity (12 tests):** `tests/test_dynamic_regression_parity.py`. Verifies baseline-table coefficients (T1 mean, T2 mean, T1 min/med/max, T2 min/med/max), standard errors, significance stars, and GoF rows (Observations=1520, AR(2)>0.05, Sargan>0.05, pairwise Wald p-values) against Stata DP1 reference. Default tolerance **0.005** with per-coefficient overrides: Round 1 at 0.01 (GMM two-step optimizer noise) and `contmoremax_L1` at 0.006 (Stata 3-decimal rounding boundary). Also cross-checks that baseline columns equal their counterparts in the extended table.
-- **Extended structure (2 tests):** `tests/test_dynamic_regression_significance.py`. Pins 21 Chat/Facial coefficients across extended cols 1,2,4,5,7,8,10,11 and asserts 12 data columns are present.
+- **Extended structure (2 tests):** `tests/test_dynamic_regression_significance.py`. Pins 20 Chat/Facial coefficients across extended cols 1,2,4,5,7,8,10,11 and asserts 12 data columns are present.
 - **Pipeline safety (13 tests):** `tests/test_dynamic_regression_pipeline_safety.py`. Covers `safe_left_merge` (duplicate/missing merge-key failures), `fill_no_message_rounds` NaN-bound guard, and `convert_made_promise` NaN error path.
 
 ## Related

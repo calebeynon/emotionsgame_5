@@ -89,12 +89,14 @@ def _run_r_script_with_timeout():
 
 def _tex_outputs_stale() -> bool:
     """Return True if any .tex output is missing or older than R_SCRIPT/INPUT_CSV."""
+    if not INPUT_CSV.exists():
+        raise FileNotFoundError(
+            f"Missing panel CSV: {INPUT_CSV}. "
+            f"Run build_dynamic_regression_panel.py first."
+        )
     if not BASELINE_TEX.exists() or not EXTENDED_TEX.exists():
         return True
-    source_mtimes = [R_SCRIPT.stat().st_mtime]
-    if INPUT_CSV.exists():
-        source_mtimes.append(INPUT_CSV.stat().st_mtime)
-    newest_source = max(source_mtimes)
+    newest_source = max(R_SCRIPT.stat().st_mtime, INPUT_CSV.stat().st_mtime)
     oldest_tex = min(BASELINE_TEX.stat().st_mtime, EXTENDED_TEX.stat().st_mtime)
     return newest_source > oldest_tex
 
@@ -119,8 +121,13 @@ def _iter_tabular_rows(text: str):
         if not in_tabular or "\\" not in line or _is_structural_line(line):
             continue
         cells = split_tex_row(line)
-        if cells is not None:
-            yield cells
+        if cells is None:
+            continue
+        # Skip header-label rows like "Model: & (1) & (2) ..." whose cells are
+        # column IDs, not coefficient cells. Data labels never end in a colon.
+        if cells[0].strip().endswith(":"):
+            continue
+        yield cells
 
 
 def split_tex_row(line: str):
@@ -138,7 +145,9 @@ def parse_cell(cell: str):
     if trimmed == "" or trimmed == "$$":
         return None
     match = COEF_CELL_RE.search(trimmed)
-    return None if match is None else float(match.group(1))
+    if match is None:
+        raise ValueError(f"Unparseable coef cell: {trimmed!r}")
+    return float(match.group(1))
 
 
 def parse_coef_and_stars(cell: str):
@@ -148,7 +157,7 @@ def parse_coef_and_stars(cell: str):
         return (None, "")
     match = COEF_CELL_RE.search(trimmed)
     if match is None:
-        return (None, "")
+        raise ValueError(f"Unparseable coef cell: {trimmed!r}")
     return (float(match.group(1)), match.group(2) or "")
 
 
@@ -158,7 +167,9 @@ def parse_se_cell(cell: str):
     if trimmed == "" or trimmed == "$$":
         return None
     match = SE_CELL_RE.search(trimmed)
-    return None if match is None else float(match.group(1))
+    if match is None:
+        raise ValueError(f"Unparseable SE cell: {trimmed!r}")
+    return float(match.group(1))
 
 
 def parse_tex_coefficients(tex_path: Path, num_data_cols: int) -> dict:

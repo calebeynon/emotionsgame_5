@@ -325,6 +325,11 @@ def extended_coefs():
 def baseline_details():
     """Parse baseline .tex with SE+stars: {label: [(coef, se, stars), ...]}."""
     ensure_tex_outputs_current()
+    if not BASELINE_TEX.exists():
+        raise FileNotFoundError(
+            f"Missing baseline table: {BASELINE_TEX}. "
+            f"Run: cd analysis && Rscript analysis/dynamic_regression.R"
+        )
     return parse_tex_with_details(BASELINE_TEX, num_data_cols=4)
 
 
@@ -332,4 +337,9 @@ def baseline_details():
 def baseline_gof():
     """Parse the GoF rows (Observations, AR/Sargan/Wald p-values) from baseline.tex."""
     ensure_tex_outputs_current()
+    if not BASELINE_TEX.exists():
+        raise FileNotFoundError(
+            f"Missing baseline table: {BASELINE_TEX}. "
+            f"Run: cd analysis && Rscript analysis/dynamic_regression.R"
+        )
     return parse_tex_gof_rows(BASELINE_TEX, num_data_cols=4)
