@@ -1,8 +1,11 @@
+\begin{minipage}{\textwidth}
+\scriptsize
 
-\resizebox{\textwidth}{!}{%
-\begin{tabular}{l c c c c}
+\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}} l c c c c}
 \toprule
- & T1 (mean) & T2 (mean) & T1 (min/med/max) & T2 (min/med/max) \\
+ & \multicolumn{2}{c}{Mean deviation} & \multicolumn{2}{c}{Min/Med/Max deviation} \\
+\cmidrule(lr){2-3} \cmidrule(lr){4-5}
+ & T1 & T2 & T1 & T2 \\
 \midrule
 Contribution$_{t-1}$            & $-0.070^{***}$  & $0.085$        & $-0.055$        & $0.473^{**}$   \\
                                 & $(0.027)$       & $(0.080)$      & $(0.038)$       & $(0.190)$      \\
@@ -36,6 +39,6 @@ Max peer pair sum = 0 (p)       & $$              & $$             & $0.206$    
 Median peer pair sum = 0 (p)    & $$              & $$             & $0.827$         & $0.199$        \\
 Min peer pair sum = 0 (p)       & $$              & $$             & $0.059$         & $0.661$        \\
 \bottomrule
-\end{tabular}%
-}
+\end{tabular*}
 \begin{minipage}{\textwidth}\scriptsize Notes: Two-step difference GMM (Arellano-Bond) with Windmeijer-corrected robust standard errors. Instruments: lags 2--5 of contribution. $^{***}p<0.01$; $^{**}p<0.05$; $^{*}p<0.1$.\end{minipage}
+\end{minipage}

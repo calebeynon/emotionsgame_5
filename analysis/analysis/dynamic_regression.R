@@ -34,7 +34,9 @@ main <- function() {
     baseline_models <- fit_baseline_models(panels, formulas)
     extended_models <- fit_extended_models(panels, formulas)
     dir.create(OUTPUT_DIR, recursive = TRUE, showWarnings = FALSE)
-    export_table(baseline_models, BASELINE_TEX, names(baseline_models), NULL)
+    baseline_col_names <- c("T1", "T2", "T1", "T2")
+    export_table(baseline_models, BASELINE_TEX,
+                 baseline_col_names, baseline_group_header())
     export_table(extended_models, EXTENDED_TEX,
                  rep(SPEC_LABELS, times = 4), extended_group_header())
     cat("\nTables written to:", BASELINE_TEX, "and", EXTENDED_TEX, "\n")
@@ -237,7 +239,11 @@ export_table <- function(models, filepath, col_names, group_header) {
         custom.gof.rows = build_gof_rows(models, summaries),
         custom.note = build_table_note()
     )
-    writeLines(finalize_tex(tex, length(models), group_header), filepath)
+    # Narrow tables (<8 cols) use tabular* + \extracolsep{\fill} to fill
+    # \textwidth with evenly distributed column gaps. Wide tables (>=8 cols)
+    # would overflow \textwidth naturally, so wrap in \resizebox instead.
+    strategy <- if (length(models) >= 8) "resizebox" else "extracolsep"
+    writeLines(finalize_tex(tex, length(models), group_header, strategy), filepath)
 }
 
 build_table_note <- function() {
@@ -256,14 +262,49 @@ extended_group_header <- function() {
         " \\cmidrule(lr){8-10} \\cmidrule(lr){11-13}")
 }
 
-finalize_tex <- function(tex_output, ncol, group_header) {
+# Baseline has 4 cols ordered [T1 mean, T2 mean, T1 mmm, T2 mmm]. Groups on the
+# deviation spec (mean vs. min/med/max) so individual col labels shrink to T1/T2,
+# which equalizes column widths instead of letting the wide "(min/med/max)"
+# label stretch cols 3-4.
+baseline_group_header <- function() {
+    paste0(
+        " & \\multicolumn{2}{c}{Mean deviation}",
+        " & \\multicolumn{2}{c}{Min/Med/Max deviation} \\\\",
+        "\n\\cmidrule(lr){2-3} \\cmidrule(lr){4-5}")
+}
+
+finalize_tex <- function(tex_output, ncol, group_header, strategy) {
     lines <- strsplit(tex_output, "\n")[[1]]
     drop <- c("^n ", "^T ", "^Num\\.", "^Sargan Test:", "^Wald Test")
     lines <- lines[!grepl(paste(drop, collapse = "|"), trimws(lines))]
     parts <- extract_footnote(lines, ncol)
     body_lines <- parts$body
     if (!is.null(group_header)) body_lines <- insert_after_toprule(body_lines, group_header)
-    paste0(wrap_tabular(paste(body_lines, collapse = "\n")), parts$note)
+    body <- paste(body_lines, collapse = "\n")
+    body <- if (strategy == "resizebox") wrap_tabular(body) else convert_to_tabularx(body)
+    wrap_scriptsize_minipage(paste0(body, parts$note))
+}
+
+# Wraps the whole tabular + notes in a \scriptsize minipage so the baseline
+# table fits on one page. Overrides Paper.tex's \footnotesize sizing for the
+# table while keeping the caption at its parent size.
+wrap_scriptsize_minipage <- function(body) {
+    sprintf("\\begin{minipage}{\\textwidth}\n\\scriptsize\n%s\n\\end{minipage}",
+            body)
+}
+
+# Converts texreg's `\begin{tabular}{l c c ...}` into
+# `\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}} l c c ...}` so the
+# tabular always fills \textwidth with evenly distributed inter-column gaps.
+# This avoids \resizebox (which inflates height when natural width < textwidth)
+# while still giving visually even column spacing regardless of label widths.
+convert_to_tabularx <- function(body) {
+    opened <- sub("\\\\begin\\{tabular\\}\\{([^}]+)\\}",
+                  "\\\\begin{tabular*}{\\\\textwidth}{@{\\\\extracolsep{\\\\fill}} \\1}",
+                  body)
+    closed <- sub("\\\\end\\{tabular\\}", "\\\\end{tabular*}", opened)
+    stopifnot("convert_to_tabularx: tabular regex failed" = !identical(closed, body))
+    closed
 }
 
 extract_footnote <- function(lines, ncol) {

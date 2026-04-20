@@ -284,10 +284,10 @@ def _iter_tabular_rows(text: str):
     in_tabular = False
     for raw in text.splitlines():
         line = raw.rstrip()
-        if "\\begin{tabular}" in line:
+        if "\\begin{tabular}" in line or "\\begin{tabular*}" in line:
             in_tabular = True
             continue
-        if "\\end{tabular}" in line:
+        if "\\end{tabular}" in line or "\\end{tabular*}" in line:
             break
         if not in_tabular or "\\" not in line or _is_structural_line(line):
             continue
