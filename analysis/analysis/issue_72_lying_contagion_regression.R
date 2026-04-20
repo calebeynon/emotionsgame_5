@@ -1,9 +1,9 @@
 # Purpose: Estimate lying contagion — does a participant's lying in round t
 #   respond to OTHER group members' lying, heterogeneous by treatment?
-#   Six models: two specifications (lag / cumulative) x two clusterings
-#   (group / session) x two link functions (LPM / logit, group-clustered only).
+#   Six models: two specifications (lag / cumulative) x three estimators
+#   (LPM, FE Logit, Pooled Logit). All group-clustered.
 # Author: Claude Code
-# Date: 2026-04-19
+# Date: 2026-04-20
 
 library(data.table)
 library(fixest)
@@ -27,9 +27,9 @@ VAR_DICT <- c(
 )
 
 MODEL_HEADERS <- c(
-    "LPM A (grp)", "LPM A (ses)",
-    "LPM B (grp)", "LPM B (ses)",
-    "Logit A (grp)", "Logit B (grp)"
+    "LPM A", "LPM B",
+    "FE Logit A", "FE Logit B",
+    "Pooled Logit A", "Pooled Logit B"
 )
 
 # =====
@@ -64,43 +64,44 @@ load_panel <- function(path) {
 # =====
 estimate_all_models <- function(dt) {
     list(
-        m1 = lpm_version_a(dt, cluster_var = ~cluster_group),
-        m2 = lpm_version_a(dt, cluster_var = ~session_code),
-        m3 = lpm_version_b(dt, cluster_var = ~cluster_group),
-        m4 = lpm_version_b(dt, cluster_var = ~session_code),
-        m5 = logit_version_a(dt),
-        m6 = logit_version_b(dt)
+        m1 = lpm_version_a(dt),
+        m2 = lpm_version_b(dt),
+        m3 = logit_version_a(dt),
+        m4 = logit_version_b(dt),
+        m5 = pooled_logit_version_a(dt),
+        m6 = pooled_logit_version_b(dt)
     )
 }
 
-# Version A: one-round lag regressors.
-lpm_version_a <- function(dt, cluster_var) {
+# Version A: one-round lag regressors. LPM with individual FE.
+lpm_version_a <- function(dt) {
     feols(
         lied ~ group_lied_lag + self_lied_lag + i(treatment_f, ref = 2) +
             i(treatment_f, ref = 2):group_lied_lag |
-            session_code + segment + round + label_session,
-        cluster = cluster_var,
+            segment + round + label_session,
+        cluster = ~cluster_group,
         data = dt
     )
 }
 
-# Version B: cumulative "any prior round" regressors.
-lpm_version_b <- function(dt, cluster_var) {
+# Version B: cumulative "any prior round" regressors. LPM with individual FE.
+lpm_version_b <- function(dt) {
     feols(
         lied ~ any_group_lied_prior + any_self_lied_prior +
             i(treatment_f, ref = 2) +
             i(treatment_f, ref = 2):any_group_lied_prior |
-            session_code + segment + round + label_session,
-        cluster = cluster_var,
+            segment + round + label_session,
+        cluster = ~cluster_group,
         data = dt
     )
 }
 
+# FE Logit (individual FE): drops never-liars, retains only within-individual variation.
 logit_version_a <- function(dt) {
     feglm(
         lied ~ group_lied_lag + self_lied_lag + i(treatment_f, ref = 2) +
             i(treatment_f, ref = 2):group_lied_lag |
-            session_code + segment + round + label_session,
+            segment + round + label_session,
         data = dt,
         family = binomial(link = "logit"),
         cluster = ~cluster_group
@@ -112,7 +113,32 @@ logit_version_b <- function(dt) {
         lied ~ any_group_lied_prior + any_self_lied_prior +
             i(treatment_f, ref = 2) +
             i(treatment_f, ref = 2):any_group_lied_prior |
-            session_code + segment + round + label_session,
+            segment + round + label_session,
+        data = dt,
+        family = binomial(link = "logit"),
+        cluster = ~cluster_group
+    )
+}
+
+# Pooled logit: no individual FE, no session FE. Keeps all 160 individuals
+# (N = 2,720) and identifies the Treatment main effect. Clustered at group level.
+pooled_logit_version_a <- function(dt) {
+    feglm(
+        lied ~ group_lied_lag + self_lied_lag + i(treatment_f, ref = 2) +
+            i(treatment_f, ref = 2):group_lied_lag |
+            segment + round,
+        data = dt,
+        family = binomial(link = "logit"),
+        cluster = ~cluster_group
+    )
+}
+
+pooled_logit_version_b <- function(dt) {
+    feglm(
+        lied ~ any_group_lied_prior + any_self_lied_prior +
+            i(treatment_f, ref = 2) +
+            i(treatment_f, ref = 2):any_group_lied_prior |
+            segment + round,
         data = dt,
         family = binomial(link = "logit"),
         cluster = ~cluster_group
