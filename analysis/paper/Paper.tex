@@ -16,11 +16,16 @@
 \usepackage{array}
 \usepackage{xcolor}
 \usepackage{subcaption}
+\usepackage{adjustbox}
 
-%%%%%%%%% Path resolution (Overleaf: tables/, plots/; Local: ../output/) %%%%%%%%%
-\graphicspath{{plots/}{../output/plots/}}
+%%%%%%%%% Path resolution: prefer ../output/ locally so committed paper/tables/%
+%%%%%%%%% and paper/plots/ copies (Action-managed, may be stale) never shadow %
+%%%%%%%%% the canonical generated output. On Overleaf ../output/ is absent,   %
+%%%%%%%%% so LaTeX falls through to tables/ and plots/ which the sync Action  %
+%%%%%%%%% populates from analysis/output/.                                    %
+\graphicspath{{../output/plots/}{plots/}}
 \makeatletter
-\def\input@path{{tables/}{../output/tables/}}
+\def\input@path{{../output/tables/}{tables/}}
 \makeatother
 
 \doublespacing
@@ -121,27 +126,16 @@ After completing all five segments, one segment was randomly selected to determi
 
 \subsection{Summary Statistics}
 
-Our experimental design consisted of five segments with a varying number of rounds. Among the 160 total subjects x\% were men and women. Our primary composition was xxx ethnicity. We will discuss the differences based on these characteristics, but first, we look at the general contribution pattern across participants when the number of rounds varied. Figures \ref{fig:median_contribution_by_round} and \ref{fig:mean_contribution_by_round} display the 
-median and mean contributions by rounds within segments for the two treatment types. We observe a higher contribution during the very first round in the Feedback Treatment (- Treatment 2 hereon) compared to the No Feedback Treatment (- Treatment 1 hereon), but there is not significant difference in the overall contribution across treatments based on the number of rounds: Both measures converge to a near 25 ECU mean and a 25 ECU median, consistent with the continuous
+Our experimental design consisted of five segments with a varying number of rounds. Among the 160 total subjects x\% were men and women. Our primary composition was xxx ethnicity. We will discuss the differences based on these characteristics, but first, we look at the general contribution pattern across participants. Figure \ref{fig:mean_contribution_by_period} displays the mean contribution across all 22 sequential rounds (supergames 1-5) for the two treatment types. We observe a higher contribution during the very first round in the Feedback Treatment (- Treatment 2 hereon) compared to the No Feedback Treatment (- Treatment 1 hereon), but there is no significant difference in the overall contribution across treatments: the mean converges to a near 25 ECU level by the end of each supergame, consistent with the continuous
 chat treatment in [CITE needed, I forget which paper had this]. Figure \ref{fig:contribution_cdf_by_treatment}
 displays the contribution CDF by treatment. The CDF from Treatment 1 first-order stochastically dominates that of Treatment 2, implying overall lower contributions in Treatment 1. 
 
 
 \begin{figure}[htbp]
     \centering
-    \begin{minipage}{0.48\textwidth}
-        \centering
-        \includegraphics[width=\linewidth]{median_contribution_by_round.png}
-        \caption{Median contribution by round}
-        \label{fig:median_contribution_by_round}
-    \end{minipage}
-    \hfill
-    \begin{minipage}{0.48\textwidth}
-        \centering
-        \includegraphics[width=\linewidth]{mean_contribution_by_round.png}
-        \caption{Mean contribution by round}
-        \label{fig:mean_contribution_by_round}
-    \end{minipage}
+    \includegraphics[width=0.85\linewidth]{mean_contribution_by_period.png}
+    \caption{Mean contribution by round, with 95\% CI error bars. Dashed vertical lines mark supergame boundaries (supergame lengths 3, 4, 3, 7, 5).}
+    \label{fig:mean_contribution_by_period}
 \end{figure}
 
 \newpage
@@ -174,9 +168,11 @@ $Contribution_{i,t}$ as the GMM instruments for the differenced equation.
 
 
 
-\begin{table}[H]
+\begin{table}[t]
     \centering \footnotesize
+    \begin{spacing}{1}
     \input{dynamic_regression.tex}
+    \end{spacing}
     \caption{Dynamic Panel Regression Analysis. Arellano-Bond two-step GMM with Windmeijer-corrected robust standard errors in parentheses. Instruments: lags 2--5 of contribution.}
     \label{tab:dynamic_regression}
 \end{table}
