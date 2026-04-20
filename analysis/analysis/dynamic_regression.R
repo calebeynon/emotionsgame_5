@@ -164,14 +164,14 @@ build_coef_names <- function() {
     list(
         "lag(contribution, 1:2)1" = "Contribution$_{t-1}$",
         "lag(contribution, 1:2)2" = "Contribution$_{t-2}$",
-        "contmoremax_L1"          = "contmoremax$_{t-1}$",
-        "contlessmax_L1"          = "contlessmax$_{t-1}$",
-        "contmoremed_L1"          = "contmoremed$_{t-1}$",
-        "contlessmed_L1"          = "contlessmed$_{t-1}$",
-        "contmoremin_L1"          = "contmoremin$_{t-1}$",
-        "contlessmin_L1"          = "contlessmin$_{t-1}$",
-        "contmore_L1"             = "Positive Deviation$_{t-1}$",
-        "contless_L1"             = "Negative Deviation$_{t-1}$",
+        "contmoremax_L1"          = "Above max peer$_{t-1}$",
+        "contlessmax_L1"          = "Below max peer$_{t-1}$",
+        "contmoremed_L1"          = "Above median peer$_{t-1}$",
+        "contlessmed_L1"          = "Below median peer$_{t-1}$",
+        "contmoremin_L1"          = "Above min peer$_{t-1}$",
+        "contlessmin_L1"          = "Below min peer$_{t-1}$",
+        "contmore_L1"             = "Above peer mean$_{t-1}$",
+        "contless_L1"             = "Below peer mean$_{t-1}$",
         "word_count"              = "Word Count",
         "made_promise"            = "Made Promise",
         "sentiment_compound_mean" = "Sentiment (compound)",
@@ -217,10 +217,10 @@ build_gof_rows <- function(models, summaries) {
         "AR(1) p-value"      = ar1_p,
         "AR(2) p-value"      = ar2_p,
         "Sargan p-value"     = sargan_p,
-        "pos+neg=0 (p)"      = pair_wald(c("contmore_L1", "contless_L1")),
-        "max$^+$+max$^-$=0 (p)" = pair_wald(c("contmoremax_L1", "contlessmax_L1")),
-        "med$^+$+med$^-$=0 (p)" = pair_wald(c("contmoremed_L1", "contlessmed_L1")),
-        "min$^+$+min$^-$=0 (p)" = pair_wald(c("contmoremin_L1", "contlessmin_L1"))
+        "Peer mean pair sum = 0 (p)"   = pair_wald(c("contmore_L1", "contless_L1")),
+        "Max peer pair sum = 0 (p)"    = pair_wald(c("contmoremax_L1", "contlessmax_L1")),
+        "Median peer pair sum = 0 (p)" = pair_wald(c("contmoremed_L1", "contlessmed_L1")),
+        "Min peer pair sum = 0 (p)"    = pair_wald(c("contmoremin_L1", "contlessmin_L1"))
     )
 }
 

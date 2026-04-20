@@ -80,7 +80,7 @@ Each of the 4 baseline columns appears 3 times: `{Baseline, +Chat, +Chat+Facial}
 - Python handles all merging/derivation; R only estimates and exports. Keeps R scripts pure-statistics.
 - Wald tests on coefficient differences use robust `vcovHC()`, not the model vcov (fixed in commit 35b801f).
 - `segmentnumber` was dropped in issue #68 after the coauthor's updated Stata spec removed it. The main-paper equation (`eq:dynamic_reg`) was simplified accordingly.
-- GOF rows in the table: Observations, AR(1), AR(2), Sargan, `pos+neg=0` Wald (mean cols), and three pairwise sum-zero Wald tests `max±, med±, min± pair sums = 0` (min/med/max cols — each tests whether a single variant's positive and negative deviation coefficients sum to zero). The prior `R1+R2=0` Wald test was removed with `round2`.
+- GOF rows in the table: Observations, AR(1), AR(2), Sargan, `Peer mean pair sum = 0` Wald (mean cols), and three pairwise sum-zero Wald tests `Max/Median/Min peer pair sum = 0` (min/med/max cols — each tests whether a single variant's above- and below-peer deviation coefficients sum to zero). The prior `R1+R2=0` Wald test was removed with `round2`. Coefficient row labels in the rendered table use intuitive names: `Above peer mean` / `Below peer mean` for the mean spec and `Above/Below {max, median, min} peer` for the min/med/max spec.
 
 ## Test Coverage
 

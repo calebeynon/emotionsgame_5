@@ -32,10 +32,10 @@ TOLERANCE_OVERRIDES = {
     # Round 1 intercepts (~|12|) drift ~0.006 from Stata due to GMM two-step
     # optimizer differences on large-scale constants. Relative drift <0.05%.
     "Round 1": 0.01,
-    # contmoremax lands at the 0.005 boundary (Stata 0.064 vs R 0.059); the
-    # drift equals Stata's 3-decimal rounding precision so an epsilon is
+    # "Above max peer" lands at the 0.005 boundary (Stata 0.064 vs R 0.059);
+    # the drift equals Stata's 3-decimal rounding precision so an epsilon is
     # needed to avoid a false-positive from float comparison.
-    "contmoremax$_{t-1}$": 0.006,
+    "Above max peer$_{t-1}$": 0.006,
 }
 SE_TOLERANCE = 0.005
 # GoF p-values are 3-digit rounded; allow 0.002 rounding slack.
@@ -53,28 +53,28 @@ REFERENCE_COLUMN_INDEX = {
 T1_MEAN_REFERENCE = {
     "Contribution$_{t-1}$":       -0.069,
     "Contribution$_{t-2}$":       -0.181,
-    "Positive Deviation$_{t-1}$": -0.406,
-    "Negative Deviation$_{t-1}$":  0.268,
+    "Above peer mean$_{t-1}$": -0.406,
+    "Below peer mean$_{t-1}$":  0.268,
     "Round 1":                   -12.715,
 }
 
 T2_MEAN_REFERENCE = {
     "Contribution$_{t-1}$":        0.087,
     "Contribution$_{t-2}$":       -0.242,
-    "Positive Deviation$_{t-1}$": -0.263,
-    "Negative Deviation$_{t-1}$":  0.553,
+    "Above peer mean$_{t-1}$": -0.263,
+    "Below peer mean$_{t-1}$":  0.553,
     "Round 1":                   -5.591,
 }
 
 T1_MINMEDMAX_REFERENCE = {
     "Contribution$_{t-1}$":  -0.056,
     "Contribution$_{t-2}$":  -0.177,
-    "contmoremax$_{t-1}$":    0.064,
-    "contlessmax$_{t-1}$":    0.071,
-    "contmoremed$_{t-1}$":   -0.179,
-    "contlessmed$_{t-1}$":    0.201,
-    "contmoremin$_{t-1}$":   -0.160,
-    "contlessmin$_{t-1}$":   -0.016,
+    "Above max peer$_{t-1}$":    0.064,
+    "Below max peer$_{t-1}$":    0.071,
+    "Above median peer$_{t-1}$":   -0.179,
+    "Below median peer$_{t-1}$":    0.201,
+    "Above min peer$_{t-1}$":   -0.160,
+    "Below min peer$_{t-1}$":   -0.016,
     "Round 1":              -12.811,
 }
 
@@ -84,12 +84,12 @@ T1_MINMEDMAX_REFERENCE = {
 T2_MINMEDMAX_REFERENCE = {
     "Contribution$_{t-1}$":    0.473,
     "Contribution$_{t-2}$":   -0.268,
-    "contmoremax$_{t-1}$":     0.056,
-    "contlessmax$_{t-1}$":     0.819,
-    "contmoremed$_{t-1}$":    -0.069,
-    "contlessmed$_{t-1}$":    -0.089,
-    "contmoremin$_{t-1}$":    -0.117,
-    "contlessmin$_{t-1}$":     0.156,
+    "Above max peer$_{t-1}$":     0.056,
+    "Below max peer$_{t-1}$":     0.819,
+    "Above median peer$_{t-1}$":    -0.069,
+    "Below median peer$_{t-1}$":    -0.089,
+    "Above min peer$_{t-1}$":    -0.117,
+    "Below min peer$_{t-1}$":     0.156,
     "Round 1":                -5.221,
 }
 
@@ -97,8 +97,8 @@ T2_MINMEDMAX_REFERENCE = {
 T1_MEAN_SE_REFERENCE = {
     "Contribution$_{t-1}$":       0.027,
     "Contribution$_{t-2}$":       0.020,
-    "Positive Deviation$_{t-1}$": 0.049,
-    "Negative Deviation$_{t-1}$": 0.065,
+    "Above peer mean$_{t-1}$": 0.049,
+    "Below peer mean$_{t-1}$": 0.065,
     "Round 1":                    0.742,
 }
 
@@ -107,8 +107,8 @@ T1_MEAN_SE_REFERENCE = {
 T1_MEAN_STARS_REFERENCE = {
     "Contribution$_{t-1}$":       "***",
     "Contribution$_{t-2}$":       "***",
-    "Positive Deviation$_{t-1}$": "***",
-    "Negative Deviation$_{t-1}$": "***",
+    "Above peer mean$_{t-1}$": "***",
+    "Below peer mean$_{t-1}$": "***",
     "Round 1":                    "***",
 }
 
@@ -119,23 +119,23 @@ T1_MEAN_GOF_REFERENCE = {
     "AR(1) p-value":          0.000,
     "AR(2) p-value":          0.183,
     "Sargan p-value":         0.231,
-    "pos+neg=0 (p)":          0.137,
+    "Peer mean pair sum = 0 (p)":          0.137,
 }
 T2_MEAN_GOF_REFERENCE = {
     "Observations":           1520,
     "AR(1) p-value":          0.000,
     "AR(2) p-value":          0.309,
     "Sargan p-value":         0.252,
-    "pos+neg=0 (p)":          0.006,
+    "Peer mean pair sum = 0 (p)":          0.006,
 }
 T1_MINMEDMAX_GOF_REFERENCE = {
     "Observations":               1520,
     "AR(1) p-value":              0.000,
     "AR(2) p-value":              0.193,
     "Sargan p-value":             0.234,
-    "max$^+$+max$^-$=0 (p)":      0.206,
-    "med$^+$+med$^-$=0 (p)":      0.827,
-    "min$^+$+min$^-$=0 (p)":      0.059,
+    "Max peer pair sum = 0 (p)":      0.206,
+    "Median peer pair sum = 0 (p)":      0.827,
+    "Min peer pair sum = 0 (p)":      0.059,
 }
 
 # Extended-table pins for chat/facial coefficients (cols 1,2,4,5,7,8,10,11 —
@@ -398,8 +398,8 @@ def _consume_detail_row(cells, state, details):
 # =====
 GOF_LABELS = {
     "Observations", "AR(1) p-value", "AR(2) p-value", "Sargan p-value",
-    "pos+neg=0 (p)", "max$^+$+max$^-$=0 (p)",
-    "med$^+$+med$^-$=0 (p)", "min$^+$+min$^-$=0 (p)",
+    "Peer mean pair sum = 0 (p)", "Max peer pair sum = 0 (p)",
+    "Median peer pair sum = 0 (p)", "Min peer pair sum = 0 (p)",
 }
 
 
