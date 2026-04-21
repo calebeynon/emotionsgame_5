@@ -14,7 +14,7 @@ Total articles: 20
 ### method
 - [Behavior Classification: Promises, Liars, Suckers](methods/behavior-classification.md) — Pipeline that classifies chat as promises (LLM) and players as liars/suckers per round and per segment
 - [Cooperative State Classification](methods/cooperative-state.md) — Two flavors of cooperative-state classification: group-level (everyone shares) and player-level (others' contributions only)
-- [Dynamic Panel Regression (Arellano-Bond)](methods/dynamic-regression.md) — Two-step difference GMM model of contribution dynamics, extended with chat and facial-emotion regressors (issue #57)
+- [Dynamic Panel Regression (Arellano-Bond)](methods/dynamic-regression.md) — Two-step difference GMM of contribution dynamics. Baseline (4-col, §4.2) + extended (12-col, §4.7) tables. Aligned to Stata Table DP1.
 - [Chat Embeddings & Hanaki External Validation](methods/embeddings-validation.md) — OpenAI text embeddings of chat, centroid projections by behavior class, and external validation on Hanaki & Ozkes (2023) data
 - [Facial Valence Regressions for Liars and Suckers](methods/facial-valence-regressions.md) — Issue #52: AFFDEX facial valence regressed on liar and sucker flags, two face windows
 - [Liar Diff-in-Means by Treatment and Gender (Issue #64)](methods/liar-diff-in-means.md) — Welch t-tests on participant-level 'ever lied' indicator — replaces earlier logit (issue #53)
