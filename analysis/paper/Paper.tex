@@ -276,6 +276,44 @@ We examine whether the share of participants who ever lied during the experiment
     \label{fig:liar_dist}
 \end{figure}
 
+We estimate pooled logit models of own lying in round $t$ on groupmates' prior lying, interacted with treatment. Two specifications are estimated.
+
+\noindent\emph{Version A (one-round lag):}
+\begin{align}
+\Pr(\text{lied}_{it} = 1) = \Lambda\Big(
+  &\ \beta_1\, \text{group\_lied\_lag}_{it}
+   + \beta_2\, \text{self\_lied\_lag}_{it} \nonumber \\
+  &+ \beta_3\, \mathbf{1}\{T_i = 1\}
+   + \beta_4\, \mathbf{1}\{T_i = 1\} \cdot \text{group\_lied\_lag}_{it} \nonumber \\
+  &+ \alpha_s + \alpha_r \Big).
+\end{align}
+
+\noindent\emph{Version B (cumulative prior):}
+\begin{align}
+\Pr(\text{lied}_{it} = 1) = \Lambda\Big(
+  &\ \gamma_1\, \text{any\_group\_lied\_prior}_{it}
+   + \gamma_2\, \text{any\_self\_lied\_prior}_{it} \nonumber \\
+  &+ \gamma_3\, \mathbf{1}\{T_i = 1\}
+   + \gamma_4\, \mathbf{1}\{T_i = 1\} \cdot \text{any\_group\_lied\_prior}_{it} \nonumber \\
+  &+ \alpha_s + \alpha_r \Big).
+\end{align}
+where $\Lambda(\cdot)$ is the logistic CDF, $\alpha_s$ are segment (supergame) fixed effects, and $\alpha_r$ are round fixed effects. Treatment 2 is the reference level, so $\beta_1$ and $\gamma_1$ identify the groupmate-lying effect under Treatment 2, while $\beta_4$ and $\gamma_4$ capture the differential effect under Treatment 1. Standard errors are clustered at the group level (group $\times$ session $\times$ segment). Variables:
+\begin{itemize}
+  \item $\text{lied}_{it}$: indicator that participant $i$ promised in round $t$ but contributed below 20 ECUs.
+  \item $\text{group\_lied\_lag}_{it}$: indicator that any \emph{other} member of $i$'s group lied in round $t{-}1$ (sum-minus-self).
+  \item $\text{self\_lied\_lag}_{it}$: indicator that participant $i$ lied in round $t{-}1$.
+  \item $\text{any\_group\_lied\_prior}_{it}$: indicator that any other member of $i$'s group has lied in any earlier round of the current supergame.
+  \item $\text{any\_self\_lied\_prior}_{it}$: indicator that participant $i$ has lied in any earlier round of the current supergame.
+\end{itemize}
+Table \ref{table:lying_contagion} reports the estimates. The final two rows give the Wald $\chi^2$ and $p$-value for the joint null $H_0: \beta_1 + \beta_4 = 0$ (and $\gamma_1 + \gamma_4 = 0$ for Version B), i.e.\ zero \emph{total} groupmate-lying effect under Treatment 1.
+
+\begin{table}[htbp]
+    \centering
+    \input{issue_72_lying_contagion.tex}
+    \caption{Pooled logit of own round-$t$ lying on groupmates' prior lying, interacted with treatment. Column (1) uses the one-round lag; column (2) uses a cumulative indicator for any prior-round lying within the current supergame. Segment and round fixed effects included; standard errors clustered at the group level. Treatment 2 is the reference. The bottom two rows report the joint Wald test that the total groupmate-lying effect under Treatment 1 (main coefficient plus the Treatment~1 interaction) is zero.}
+    \label{table:lying_contagion}
+\end{table}
+
 
 %\begin{table}
 %\centering
