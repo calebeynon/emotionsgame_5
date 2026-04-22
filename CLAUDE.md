@@ -185,7 +185,7 @@ The project wiki at `wiki/` is the authoritative knowledge base for AI agents wo
 4. **Bump `last_verified`** in the frontmatter of any article you touch to today's date (use the current date from the environment).
 5. **Regenerate `_index.md`** so article counts and listings stay in sync.
 6. **Commit the wiki changes in the same push/PR** as the code changes — never as a follow-up.
-7. **Run `/kb sync`** after the push/PR is merged to mirror to the GitHub Wiki.
+7. **Run `/kb sync`** after the push/PR is merged to mirror to the GitHub Wiki. The `/pr-merge` skill runs this automatically as Step 7 — do not skip it if merging by other means.
 
 ### When to skip
 
