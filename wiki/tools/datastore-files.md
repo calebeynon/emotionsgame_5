@@ -4,7 +4,7 @@ type: tool
 tags: [data, csv, datastore, reference]
 summary: "Cheat sheet for files in analysis/datastore/derived/ — what they contain, who produces them, who consumes them"
 status: active
-last_verified: "2026-04-19"
+last_verified: "2026-05-01"
 ---
 
 ## Summary
@@ -73,7 +73,7 @@ The paper's GitHub Action copies referenced `output/tables/` and `output/plots/`
 ## Conventions
 
 - Keys across most CSVs: `(session_code, segment, round, label)` for player-round; add `page_type` for the merged panel; add `treatment` and `group` where useful.
-- `treatment ∈ {1, 2}`. T1 = No Feedback, T2 = Feedback.
+- `treatment ∈ {1, 2}`. `1 = IF` (Individual Feedback — players see individual contributions of all group members each round), `2 = AF` (Aggregate Feedback — players see only the group total). Note: earlier docs incorrectly labeled these as "T1 = No Feedback" and "T2 = Feedback"; corrected in issue #74.
 - `segment ∈ {supergame1, supergame2, supergame3, supergame4, supergame5}`.
 - `label` is letter A–R (no I/O).
 - `SESSION_CODE_REMAP` (defined in several scripts) handles a special case for session 03 where the raw CSV's session_code differs from the canonical one.

@@ -23,7 +23,7 @@ Total articles: 20
 - [Merged Panel Construction](methods/merged-panel.md) — How the unified merged_panel.csv (10,683 rows × 34 cols) is built from oTree state, VADER sentiment, and AFFDEX emotion sources
 - [Sentiment Analysis & Sentiment-Contribution Regressions](methods/sentiment-analysis.md) — VADER sentiment scoring of chat plus the regressions that link it to contributions and to facial emotion
 - [Promise, Sucker, and Treatment Effects on Contributions](methods/sentiment-and-promise-regressions.md) — OLS panel regressions of contribution on promise/sucker flags and treatment, with two threshold specifications
-- [Sucker DiD Event Study](methods/sucker-did.md) — Event-study DiD around the round a player gets suckered, with heterogeneous treatment effects by T1/T2
+- [Sucker DiD Event Study](methods/sucker-did.md) — Event-study DiD around the round a player gets suckered, with heterogeneous treatment effects by IF/AF
 
 ### paper
 - [Main Paper: Facial Emotions vs Verbal Sentiments](papers/main-paper.md) — Structure, key tables, and key claims of analysis/paper/Paper.tex

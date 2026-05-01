@@ -13,7 +13,7 @@ OUTPUT_DIR <- "../output/plots"
 OUTPUT_FILE <- file.path(OUTPUT_DIR, "contribution_cdf_by_treatment.png")
 
 # Color scheme for treatments
-TREATMENT_COLORS <- c("Treatment 1" = "#9E1B32", "Treatment 2" = "#828A8F")
+TREATMENT_COLORS <- c("IF" = "#9E1B32", "AF" = "#828A8F")
 
 # =====
 # Main function
@@ -29,7 +29,7 @@ main <- function() {
 # =====
 load_contributions <- function(file_path) {
     dt <- fread(file_path)
-    dt[, treatment := factor(treatment, labels = c("Treatment 1", "Treatment 2"))]
+    dt[, treatment := factor(treatment, labels = c("IF", "AF"))]
     return(dt)
 }
 

@@ -9,7 +9,7 @@
 # COEFFICIENT INTERPRETATION:
 #   sentiment_compound_mean: VADER compound sentiment score [-1, 1].
 #     Positive coefficient = more positive sentiment associated with higher contributions.
-#   treatment: Treatment coded as 1 or 2. Coefficient = effect of treatment 2 vs 1.
+#   treatment: Treatment coded as 1 (IF) or 2 (AF). Coefficient = effect of AF vs IF.
 #   message_count: Number of chat messages sent by this player in this round.
 #     Controls for communication volume to isolate sentiment's content effect.
 
@@ -98,7 +98,7 @@ export_latex_table <- function(baseline, extended, filepath) {
         dict = c(
             sentiment_compound_mean = "Sentiment (Compound)",
             message_count = "Message Count",
-            treatment = "Treatment",
+            treatment = "AF (vs IF)",
             cluster_id = "session-segment-group"
         ),
         headers = c("Baseline", "With Message Count"),

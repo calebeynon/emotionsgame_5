@@ -6,8 +6,9 @@
 # Clustering: session_code + segment + group (concatenated as cluster_id)
 #
 # COEFFICIENT INTERPRETATION:
-#   treatment: Treatment is coded as 1 or 2. The coefficient represents the effect
-#              of treatment 2 relative to treatment 1 (the reference category).
+#   treatment: Treatment is coded as 1 (IF, Individual Feedback) or 2 (AF, Aggregate
+#              Feedback). The coefficient represents the effect of AF relative to IF
+#              (the reference category).
 #
 # SUCKER DEFINITION:
 #   A player is classified as a "sucker" if they contributed the maximum (25 points)
@@ -116,7 +117,7 @@ export_latex_table <- function(model_20, filepath) {
         dict = c(
             made_promise = "Made Promise",
             is_sucker_20 = "Is Sucker",
-            treatment = "Treatment",
+            treatment = "AF (vs IF)",
             cluster_id = "session-segment-group"
         ),
         title = "Contribution Regression: Promise and Sucker Effects"

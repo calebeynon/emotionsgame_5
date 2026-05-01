@@ -31,7 +31,7 @@ def main():
     print(f"Participants: {len(participants)}")
 
     treatment_row = compare(
-        participants, 'treatment', 1, 2, 'Treatment 1', 'Treatment 2',
+        participants, 'treatment', 1, 2, 'IF', 'AF',
     )
     gender_row = compare(
         participants, 'gender', 'Male', 'Female', 'Male', 'Female',

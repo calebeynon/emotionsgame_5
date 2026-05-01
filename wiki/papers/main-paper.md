@@ -4,12 +4,12 @@ type: paper
 tags: [paper, results, latex, overleaf]
 summary: "Structure, key tables, and key claims of analysis/paper/Paper.tex"
 status: active
-last_verified: "2026-04-20"
+last_verified: "2026-05-01"
 ---
 
 ## Summary
 
-`analysis/paper/Paper.tex` is the working draft. Title: "Facial Emotions vs Verbal Sentiments in a Public Goods game" (Eynon, Jindapon, Khadka, Razzolini). Two-treatment between-subjects design comparing **No Feedback (T1)** vs **Feedback (T2)** information regimes in a 5-segment public goods game with chat. Combines AFFDEX facial expression data, VADER chat sentiment, LLM-based promise/liar classification, and text embeddings for external validation.
+`analysis/paper/Paper.tex` is the working draft. Title: "Facial Emotions vs Verbal Sentiments in a Public Goods game" (Eynon, Jindapon, Khadka, Razzolini). Two-treatment between-subjects design comparing **IF (Individual Feedback, treatment=1)** vs **AF (Aggregate Feedback, treatment=2)** information regimes in a 5-segment public goods game with chat. Combines AFFDEX facial expression data, VADER chat sentiment, LLM-based promise/liar classification, and text embeddings for external validation. (Issue #74 corrected the previous mislabeling that swapped these to "No Feedback / Feedback".)
 
 ## Section Structure
 
@@ -19,7 +19,7 @@ last_verified: "2026-04-20"
 | 2. Related Literature | Communication and visibility in PG games | — |
 | 3. Experimental Design | Two treatments, 5 segments, 25-token endowment, 0.4 MPCR | — |
 | 4.1 Summary Statistics | Mean contribution across all 22 sequential rounds, contribution CDF | `mean_contribution_by_period.png` (issue #67), `contribution_cdf_by_treatment.png` |
-| 4.2 Regression Analysis | Treatment means (Paan's new table) then dynamic Arellano-Bond GMM baseline (issues #57, #68) | `treatment_contribution.tex` (Paan, Overleaf-authored), `dynamic_regression_baseline.tex` (4 cols: T1/T2 × mean/min-med-max) |
+| 4.2 Regression Analysis | Treatment means (Paan's new table) then dynamic Arellano-Bond GMM baseline (issues #57, #68) | `treatment_contribution.tex` (Paan, Overleaf-authored), `dynamic_regression_baseline.tex` (4 cols: IF/AF × mean/min-med-max) |
 | 4.3 Classifying Behavior | Liar diff-in-means, sentiment distributions | `liar_diff_in_means.tex`, `liar_count_distribution.png`, `sentiment_distribution_t1/t2.png` |
 | 4.4 Communication Sentiment | OLS: contribution ~ sentiment + controls | `contribution_regression_combined.tex` |
 | 4.5 Classification Effect | Sucker DiD event study with heterogeneous TE | `issue_59_het_did_coefplot_20_main.pdf` |
@@ -34,13 +34,13 @@ last_verified: "2026-04-20"
 - `eq:dynamic_reg` — Arellano-Bond two-step GMM in differences with positive/negative peer-deviation dummies and a `round1` dummy. Instruments: lags 2–5 of contribution. Issue #68 dropped the `round2` and `Δ Segment_t` terms to match the coauthor's Stata `xtabond` Table DP1 spec.
 - `eq:contribution_sentiment` — `contribution ~ sentiment + treatment + n_messages | round + segment` (clustered SE at session-segment-group).
 - `eq:contribution_regression` — `contribution ~ promise + sucker + treatment | round + segment`.
-- `eq:did_contribution` — Heterogeneous DiD event study: `contribution ~ Σ τ × suckered × T1 + Σ τ × suckered × T2 + ... | round + segment`.
+- `eq:did_contribution` — Heterogeneous DiD event study: `contribution ~ Σ τ × suckered × IF + Σ τ × suckered × AF + ... | round + segment`.
 - `eq:gap_lied` / `eq:gap_suckered` — `Y ~ Lied + segment×round FE + player FE`, two-way clustered SE.
 
 ## Headline Empirical Claims
 
-1. **First-round Feedback bump**: T2 starts higher in round 1 of each segment; contributions converge to ~25 by mid-segment regardless. The CDF in T1 first-order stochastically dominates T2 (lower contributions overall under No Feedback).
-2. **Treatment effect on lying**: T1 participants are 16.2 pp more likely to ever lie than T2 (42.5% vs 26.2%, p = 0.031). Gender is not significant.
+1. **First-round bump under AF**: AF starts higher in round 1 of each segment; contributions converge to ~25 by mid-segment regardless. The CDF in IF first-order stochastically dominates AF (lower contributions overall under IF, where individual contributions are visible).
+2. **Treatment effect on lying**: IF participants are 16.2 pp more likely to ever lie than AF (42.5% vs 26.2%, p = 0.031). Gender is not significant.
 3. **Liar prevalence is concentrated**: 105 of 160 participants never lie in 22 rounds.
 4. **Sucker → contribution decay**: Being suckered reduces subsequent contributions monotonically (Sucker coefficient ≈ −6, p < 0.01 in OLS; event-study coefficients monotonically more negative post-event).
 5. **Sentiment → contribution**: VADER compound sentiment coefficient ≈ +2.18 (p < 0.01); message count not significant. (Sample limited to chatters; round 1 excluded.)

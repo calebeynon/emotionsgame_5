@@ -26,8 +26,8 @@ POS_COLOR  <- "#388E3C"
 # =====
 main <- function() {
     dt <- load_data()
-    save_plot(build_plot(dt[treatment == "Treatment 1"], y_max = 500), OUTPUT_T1)
-    save_plot(build_plot(dt[treatment == "Treatment 2"]), OUTPUT_T2)
+    save_plot(build_plot(dt[treatment == "IF"], y_max = 500), OUTPUT_T1)
+    save_plot(build_plot(dt[treatment == "AF"]), OUTPUT_T2)
 }
 
 # =====
@@ -43,7 +43,7 @@ load_data <- function() {
     dt[, sentiment_category := factor(
         sentiment_category, levels = c("Negative", "Neutral", "Positive")
     )]
-    dt[, treatment := factor(treatment, labels = c("Treatment 1", "Treatment 2"))]
+    dt[, treatment := factor(treatment, labels = c("IF", "AF"))]
     dt
 }
 

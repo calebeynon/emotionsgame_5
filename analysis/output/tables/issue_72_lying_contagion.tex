@@ -12,16 +12,16 @@
                                                                        & (0.5563)      &   \\   
    Self Lied (t-1)                                                     & 1.692$^{***}$ &   \\   
                                                                        & (0.4601)      &   \\   
-   Treatment $=$ 1                                                     & 0.2733        & 0.3202\\   
-                                                                       & (0.3124)      & (0.3203)\\   
-   Group Lied (t-1) $\times$ Treatment $=$ 1                           & -0.6122       &   \\   
-                                                                       & (0.7686)      &   \\   
+   IF (vs AF)                                                          & 0.2733        & 0.3202\\
+                                                                       & (0.3124)      & (0.3203)\\
+   Group Lied (t-1) $\times$ IF (vs AF)                                & -0.6122       &   \\
+                                                                       & (0.7686)      &   \\
    Any Group Lied Prior                                                &               & 1.006$^{*}$\\   
                                                                        &               & (0.5492)\\   
    Any Self Lied Prior                                                 &               & 1.530$^{***}$\\   
                                                                        &               & (0.5249)\\   
-   Any Group Lied Prior $\times$ Treatment $=$ 1                       &               & -0.2010\\   
-                                                                       &               & (0.6833)\\   
+   Any Group Lied Prior $\times$ IF (vs AF)                            &               & -0.2010\\
+                                                                       &               & (0.6833)\\
    \midrule
    \emph{Fixed-effects}\\
    Segment                                                             & Yes           & Yes\\  
@@ -29,7 +29,7 @@
    \midrule
    \emph{Fit statistics}\\
    Observations                                                        & 2,720         & 2,720\\  
-   Wald $\chi^2$ ($\beta_{\text{main}} + \beta_{\times T=1} = 0$)      & 1.182         & 1.817\\  
+   Wald $\chi^2$ ($\beta_{\text{main}} + \beta_{\times \text{IF}} = 0$) & 1.182         & 1.817\\
    \quad $p$-value                                                     & 0.277         & 0.178\\  
    \midrule \midrule
    \multicolumn{3}{l}{\emph{Clustered (cluster\_group) standard-errors in parentheses}}\\

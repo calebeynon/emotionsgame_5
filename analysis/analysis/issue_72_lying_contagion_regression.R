@@ -1,8 +1,11 @@
 # Purpose: Estimate lying contagion — does a participant's lying in round t
 #   respond to OTHER group members' lying, heterogeneous by treatment?
 #   Pooled logit specifications (A: lag; B: cumulative), group-clustered.
-#   Reports joint Wald test of TOTAL Treatment 1 effect
-#   (H0: beta_main + beta_{main x T=1} = 0) at the bottom.
+#   Reports joint Wald test of TOTAL IF effect
+#   (H0: beta_main + beta_{main x IF} = 0) at the bottom.
+#
+# Treatment coding: 1 = IF (Individual Feedback), 2 = AF (Aggregate Feedback).
+# AF (treatment == 2) is the reference; the interaction reports the IF contrast.
 # Author: Claude Code
 # Date: 2026-04-20
 
@@ -19,7 +22,8 @@ VAR_DICT <- c(
     self_lied_lag          = "Self Lied (t-1)",
     any_group_lied_prior   = "Any Group Lied Prior",
     any_self_lied_prior    = "Any Self Lied Prior",
-    treatment_f            = "Treatment",
+    treatment_f            = "IF (vs AF)",
+    "treatment_f::1"       = "IF (vs AF)",
     segment                = "Segment",
     round                  = "Round"
 )
@@ -61,7 +65,7 @@ load_panel <- function(path) {
     }
     dt <- as.data.table(read.csv(path))
     validate_panel(dt, path)
-    # Treatment 2 as reference → interaction reports Treatment-1 contrast.
+    # AF (treatment == 2) as reference → interaction reports IF (treatment == 1) contrast.
     dt[, treatment_f := relevel(factor(treatment), ref = "2")]
     return(dt)
 }
@@ -113,7 +117,7 @@ pooled_logit_version_b <- function(dt) {
 
 # =====
 # Joint Wald test: H0: beta_main + beta_interaction = 0
-# Tests whether total group-lying contagion effect under Treatment 1 is zero.
+# Tests whether total group-lying contagion effect under IF is zero.
 # Uses clustered vcov stored in the fitted model.
 # =====
 compute_joint_tests <- function(models) {
@@ -214,7 +218,7 @@ export_table <- function(models, tests, filepath) {
         title = "Lying Contagion: Pooled Logit by Treatment",
         se.below = TRUE,
         extralines = list(
-            `__Wald $\\chi^2$ ($\\beta_{\\text{main}} + \\beta_{\\times T=1} = 0$)` =
+            `__Wald $\\chi^2$ ($\\beta_{\\text{main}} + \\beta_{\\times \\text{IF}} = 0$)` =
                 format_chi2_row(tests),
             `__\\quad $p$-value` = format_pvalue_row(tests)
         )

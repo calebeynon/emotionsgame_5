@@ -554,7 +554,7 @@ def analyze_survey_responses_aggregate(survey_df: pd.DataFrame, output_dir: str)
     if 'treatment' in survey_df.columns:
         treatment_counts = survey_df['treatment'].value_counts()
         ax = axes[3]
-        bars = ax.bar(['Treatment 1', 'Treatment 2'], treatment_counts.values, 
+        bars = ax.bar(['IF', 'AF'], treatment_counts.values, 
                      color=['orange', 'green'], alpha=0.7)
         ax.set_title('Treatment Distribution\nAcross All Sessions', fontweight='bold')
         ax.set_ylabel('Number of Participants')
@@ -819,10 +819,10 @@ def plot_treatment_comparison_contributions(contrib_df: pd.DataFrame, output_dir
     
     bars1 = ax1.bar(x - width/2, treatment1_data['mean'], width, 
                     yerr=treatment1_data['se'], capsize=5,
-                    label='Treatment 1', color='#FF6B6B', alpha=0.8)
+                    label='IF', color='#FF6B6B', alpha=0.8)
     bars2 = ax1.bar(x + width/2, treatment2_data['mean'], width,
                     yerr=treatment2_data['se'], capsize=5, 
-                    label='Treatment 2', color='#4ECDC4', alpha=0.8)
+                    label='AF', color='#4ECDC4', alpha=0.8)
     
     ax1.set_xlabel('Supergame')
     ax1.set_ylabel('Average Contribution')
@@ -849,9 +849,9 @@ def plot_treatment_comparison_contributions(contrib_df: pd.DataFrame, output_dir
         
         # Scatter points for individual sessions
         ax2.scatter([i - 0.15] * len(t1_sg_data), t1_sg_data, 
-                   color='#FF6B6B', alpha=0.6, s=60, label='Treatment 1' if i == 0 else "")
+                   color='#FF6B6B', alpha=0.6, s=60, label='IF' if i == 0 else "")
         ax2.scatter([i + 0.15] * len(t2_sg_data), t2_sg_data, 
-                   color='#4ECDC4', alpha=0.6, s=60, label='Treatment 2' if i == 0 else "")
+                   color='#4ECDC4', alpha=0.6, s=60, label='AF' if i == 0 else "")
     
     # Add box plots
     t1_all_data = [t1_sessions[t1_sessions['supergame'] == sg]['contribution'] for sg in supergames]
@@ -892,7 +892,7 @@ def plot_treatment_comparison_chat_sentiment(chat_df: pd.DataFrame, output_dir: 
     t1_msg = msg_per_session[msg_per_session['treatment'] == 1]['msg_count']
     t2_msg = msg_per_session[msg_per_session['treatment'] == 2]['msg_count']
     
-    ax1.bar(['Treatment 1', 'Treatment 2'], [t1_msg.mean(), t2_msg.mean()], 
+    ax1.bar(['IF', 'AF'], [t1_msg.mean(), t2_msg.mean()], 
            yerr=[t1_msg.std()/np.sqrt(len(t1_msg)), t2_msg.std()/np.sqrt(len(t2_msg))],
            capsize=5, color=['#FF6B6B', '#4ECDC4'], alpha=0.8)
     ax1.set_ylabel('Average Messages per Session')
@@ -909,7 +909,7 @@ def plot_treatment_comparison_chat_sentiment(chat_df: pd.DataFrame, output_dir: 
     t2_sentiment = chat_df[chat_df['treatment'] == 2]['sentiment'].dropna()
     
     ax2.hist([t1_sentiment, t2_sentiment], bins=30, alpha=0.7, 
-            label=['Treatment 1', 'Treatment 2'], color=['#FF6B6B', '#4ECDC4'])
+            label=['IF', 'AF'], color=['#FF6B6B', '#4ECDC4'])
     ax2.set_xlabel('Sentiment Score')
     ax2.set_ylabel('Frequency')
     ax2.set_title('Sentiment Distribution by Treatment', fontweight='bold')
@@ -930,9 +930,9 @@ def plot_treatment_comparison_chat_sentiment(chat_df: pd.DataFrame, output_dir: 
     t2_sent_data = sentiment_stats[sentiment_stats['treatment'] == 2]
     
     ax3.bar(x - width/2, t1_sent_data['mean'], width, yerr=t1_sent_data['se'], 
-           capsize=5, label='Treatment 1', color='#FF6B6B', alpha=0.8)
+           capsize=5, label='IF', color='#FF6B6B', alpha=0.8)
     ax3.bar(x + width/2, t2_sent_data['mean'], width, yerr=t2_sent_data['se'], 
-           capsize=5, label='Treatment 2', color='#4ECDC4', alpha=0.8)
+           capsize=5, label='AF', color='#4ECDC4', alpha=0.8)
     
     ax3.set_xlabel('Supergame')
     ax3.set_ylabel('Average Sentiment')
@@ -978,7 +978,7 @@ def plot_treatment_comparison_chat_sentiment(chat_df: pd.DataFrame, output_dir: 
     ax4.set_ylabel('Percentage of Messages')
     ax4.set_title('Sentiment Categories by Treatment', fontweight='bold')
     ax4.set_xticks(x_pos)
-    ax4.set_xticklabels(['Treatment 1', 'Treatment 2'])
+    ax4.set_xticklabels(['IF', 'AF'])
     ax4.legend()
     ax4.set_ylim(0, 100)
     
@@ -1010,7 +1010,7 @@ def plot_treatment_comparison_player_behavior(contrib_df: pd.DataFrame, output_d
     t2_contrib = player_stats[player_stats['treatment'] == 2]['mean_contribution']
     
     ax1.hist([t1_contrib, t2_contrib], bins=20, alpha=0.7, 
-            label=['Treatment 1', 'Treatment 2'], color=['#FF6B6B', '#4ECDC4'])
+            label=['IF', 'AF'], color=['#FF6B6B', '#4ECDC4'])
     ax1.set_xlabel('Player Average Contribution')
     ax1.set_ylabel('Frequency')
     ax1.set_title('Distribution of Player Average Contributions\nby Treatment', fontweight='bold')
@@ -1019,16 +1019,16 @@ def plot_treatment_comparison_player_behavior(contrib_df: pd.DataFrame, output_d
     
     # Add mean lines
     ax1.axvline(t1_contrib.mean(), color='#FF6B6B', linestyle='--', linewidth=2, 
-               label=f'T1 Mean: {t1_contrib.mean():.1f}')
+               label=f'IF Mean: {t1_contrib.mean():.1f}')
     ax1.axvline(t2_contrib.mean(), color='#4ECDC4', linestyle='--', linewidth=2,
-               label=f'T2 Mean: {t2_contrib.mean():.1f}')
+               label=f'AF Mean: {t2_contrib.mean():.1f}')
     
     # 2. Distribution of player total payoffs
     t1_payoff = player_stats[player_stats['treatment'] == 1]['total_payoff']
     t2_payoff = player_stats[player_stats['treatment'] == 2]['total_payoff']
     
     ax2.hist([t1_payoff, t2_payoff], bins=20, alpha=0.7,
-            label=['Treatment 1', 'Treatment 2'], color=['#FF6B6B', '#4ECDC4'])
+            label=['IF', 'AF'], color=['#FF6B6B', '#4ECDC4'])
     ax2.set_xlabel('Player Total Payoff')
     ax2.set_ylabel('Frequency')
     ax2.set_title('Distribution of Player Total Payoffs\nby Treatment', fontweight='bold')
@@ -1039,7 +1039,7 @@ def plot_treatment_comparison_player_behavior(contrib_df: pd.DataFrame, output_d
     t1_std = player_stats[player_stats['treatment'] == 1]['std_contribution'].dropna()
     t2_std = player_stats[player_stats['treatment'] == 2]['std_contribution'].dropna()
     
-    ax3.boxplot([t1_std, t2_std], labels=['Treatment 1', 'Treatment 2'], 
+    ax3.boxplot([t1_std, t2_std], labels=['IF', 'AF'],
                patch_artist=True, 
                boxprops=dict(facecolor='lightblue', alpha=0.7))
     ax3.set_ylabel('Standard Deviation of Contributions')
@@ -1064,8 +1064,8 @@ def plot_treatment_comparison_player_behavior(contrib_df: pd.DataFrame, output_d
             ax4.annotate(label, (label_performance.loc[label, 1], label_performance.loc[label, 2]),
                         xytext=(5, 5), textcoords='offset points', fontsize=10)
         
-        ax4.set_xlabel('Average Contribution in Treatment 1')
-        ax4.set_ylabel('Average Contribution in Treatment 2')
+        ax4.set_xlabel('Average Contribution in IF')
+        ax4.set_ylabel('Average Contribution in AF')
         ax4.set_title('Player Label Performance\nAcross Treatments', fontweight='bold')
         ax4.grid(True, alpha=0.3)
     
@@ -1122,10 +1122,10 @@ def generate_treatment_comparison_statistics(contrib_df: pd.DataFrame, chat_df: 
     session_means_t2 = contrib_df[contrib_df['treatment'] == 2].groupby('session_code')['contribution'].mean()
     
     stats['Session-Level Comparison'] = {
-        'Treatment 1 session means': f"{session_means_t1.mean():.2f} ± {session_means_t1.std():.2f}",
-        'Treatment 2 session means': f"{session_means_t2.mean():.2f} ± {session_means_t2.std():.2f}",
-        'Between-session variability T1': session_means_t1.std(),
-        'Between-session variability T2': session_means_t2.std()
+        'IF session means': f"{session_means_t1.mean():.2f} ± {session_means_t1.std():.2f}",
+        'AF session means': f"{session_means_t2.mean():.2f} ± {session_means_t2.std():.2f}",
+        'Between-session variability IF': session_means_t1.std(),
+        'Between-session variability AF': session_means_t2.std()
     }
     
     # Save to file

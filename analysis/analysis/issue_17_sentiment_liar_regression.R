@@ -9,7 +9,7 @@
 #   sentiment_compound_mean: Effect of sentiment on contribution (for non-liars)
 #   lied_this_period: Effect of lying on contribution (at mean sentiment)
 #   interaction: How lying modifies the sentiment-contribution relationship
-#   treatment: Treatment 2 effect relative to Treatment 1 (reference)
+#   treatment: AF effect relative to IF (reference)
 #
 # LIAR DEFINITIONS:
 #   _20 threshold: Made promise AND contributed < 20 (94 instances)
@@ -116,7 +116,7 @@ export_latex_table <- function(model_20, model_5, filepath) {
             sentiment_compound_mean = "Sentiment",
             lied_this_period_20 = "Lied (<20)",
             lied_this_period_5 = "Lied (<5)",
-            treatment = "Treatment",
+            treatment = "AF (vs IF)",
             "sentiment_compound_mean:lied_this_period_20" = "Sentiment x Lied",
             "sentiment_compound_mean:lied_this_period_5" = "Sentiment x Lied"
         ),

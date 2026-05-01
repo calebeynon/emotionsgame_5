@@ -54,7 +54,7 @@ create_median_plot <- function(dt_agg) {
         scale_x_continuous(breaks = 1:7) +
         scale_y_continuous(limits = c(0, 25), breaks = seq(0, 25, 5)) +
         scale_color_manual(values = TREATMENT_COLORS,
-                          labels = c("1" = "Treatment 1", "2" = "Treatment 2")) +
+                          labels = c("1" = "IF", "2" = "AF")) +
         labs(x = "Round (within segment)", y = "Median Contribution", color = NULL) +
         theme_minimal() +
         theme(panel.grid.minor = element_blank(), legend.position = "bottom")

@@ -4,7 +4,7 @@ type: concept
 tags: [glossary, terminology, definitions]
 summary: "Definitions of terms used throughout the project: treatments, segments, liar, sucker, thresholds"
 status: active
-last_verified: "2026-04-19"
+last_verified: "2026-05-01"
 ---
 
 ## Summary
@@ -17,8 +17,8 @@ Definitions for terms used across the experiment, analysis code, and paper. AI a
 |---|---|
 | **Segment / Supergame** | A block of repeated-game rounds with stable groups. The experiment has 5 segments: `supergame1` (3 rounds), `supergame2` (4), `supergame3` (3), `supergame4` (7), `supergame5` (5) — 22 rounds total. The codebase uses `segment` and `supergame` interchangeably; `Segment` is the preferred name in `experiment_data.py`. |
 | **Round** | A single contribution decision within a segment, numbered 1 through (segment length). Each round = chat (rounds 2+) → contribute → results. |
-| **Treatment 1 (T1) / "No Feedback"** | Players see only the **group total** contribution after each round, not individual contributions. |
-| **Treatment 2 (T2) / "Feedback"** | Players see **individual contributions** of each group member after each round. |
+| **IF (Individual Feedback)** | Encoded as `treatment == 1` in datastore CSVs. Players see **individual contributions** of each group member (and the aggregate) after each round. Note: earlier docs/code mislabeled this as "No Feedback / Treatment 1" — corrected in issue #74 to align with experimental instructions and Hanaki–Ozkes literature. |
+| **AF (Aggregate Feedback)** | Encoded as `treatment == 2` in datastore CSVs. Players see only the **group total** contribution after each round, no individual breakdown. Earlier docs/code labeled this as "Feedback / Treatment 2"; corrected in issue #74. |
 | **Endowment** | 25 ECU (experimental currency units) given to each player at the start of every round. |
 | **MPCR / Multiplier** | 0.4 — each token in the group account returns 1.6 ECU split four ways. |
 | **Random ending** | Each round has a 20% chance of ending the segment (continuation prob = 0.8), following Lugovskyy et al. (2010) Sequence 1. |
@@ -43,7 +43,7 @@ Earlier code used `_strict` and `_lenient` suffixes — these were swapped in is
 
 ## Sample Sizes (Reference)
 
-- **Sessions**: 10 (5 in T1, 5 in T2)
+- **Sessions**: 10 (5 in IF, 5 in AF)
 - **Participants**: 160 (16 per session)
 - **Player-rounds**: 3,520 (160 × 22)
 - **Player-rounds with chat**: 2,298 (rounds 2+ only)

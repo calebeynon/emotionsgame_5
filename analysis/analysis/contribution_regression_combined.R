@@ -68,7 +68,7 @@ export_combined_table <- function(m_behavior, m_sentiment, filepath) {
             is_sucker_20 = "Is Sucker",
             sentiment_compound_mean = "Sentiment",
             message_count = "Message Count",
-            treatment = "Treatment"
+            treatment = "AF (vs IF)"
         )
     )
 }

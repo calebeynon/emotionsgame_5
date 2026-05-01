@@ -2,14 +2,14 @@
 title: "Sucker DiD Event Study"
 type: method
 tags: [did, event-study, sucker, regression, issue-20, issue-59]
-summary: "Event-study DiD around the round a player gets suckered, with heterogeneous treatment effects by T1/T2"
+summary: "Event-study DiD around the round a player gets suckered, with heterogeneous treatment effects by IF/AF"
 status: active
-last_verified: "2026-04-19"
+last_verified: "2026-05-01"
 ---
 
 ## Summary
 
-Estimates the dynamic effect of being "suckered" (contributing 25 while a groupmate broke a promise) on subsequent contributions. Issue #20 introduced the pooled event study; issue #59 extended it to allow separate trajectories for T1 and T2 in a single fully-interacted model.
+Estimates the dynamic effect of being "suckered" (contributing 25 while a groupmate broke a promise) on subsequent contributions. Issue #20 introduced the pooled event study; issue #59 extended it to allow separate trajectories for IF and AF in a single fully-interacted model.
 
 ## Pooled Spec (Issue #20)
 
@@ -51,7 +51,7 @@ Single regression interacting `got_suckered` with treatment dummies — produces
 
 - Pre-event coefficients are not significantly different from zero (no anticipation, parallel pre-trends).
 - Post-event coefficients are significantly negative in every round and **monotonically decrease** — suckered players keep cutting contributions over time, suggesting a snowball/trust-erosion effect.
-- T1 vs T2 difference is visible in the heterogeneous coefplot (`issue_59_het_did_coefplot_20_main.pdf`) used as Figure in §4.5.
+- IF vs AF difference is visible in the heterogeneous coefplot (`issue_59_het_did_coefplot_20_main.pdf`) used as Figure in §4.5.
 
 ## Identification Assumptions (stated in paper)
 
