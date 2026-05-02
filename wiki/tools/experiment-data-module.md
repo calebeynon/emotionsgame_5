@@ -4,7 +4,7 @@ type: tool
 tags: [experiment_data, data-model, sentiment, vader, otree-loader]
 summary: "Core hierarchical data model: Experiment > Session > Segment > Round > Group > Player, with built-in VADER sentiment"
 status: active
-last_verified: "2026-04-19"
+last_verified: "2026-05-01"
 ---
 
 ## Summary
@@ -30,8 +30,8 @@ Experiment (multi-session)
 from experiment_data import load_experiment_data
 
 file_pairs = [
-    ('session1_data.csv', 'session1_chat.csv', 1),  # treatment 1
-    ('session2_data.csv', 'session2_chat.csv', 2),  # treatment 2
+    ('session1_data.csv', 'session1_chat.csv', 1),  # IF (treatment code 1)
+    ('session2_data.csv', 'session2_chat.csv', 2),  # AF (treatment code 2)
 ]
 experiment = load_experiment_data(file_pairs, name="My Experiment")
 

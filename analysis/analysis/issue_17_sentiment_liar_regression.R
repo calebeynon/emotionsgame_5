@@ -9,7 +9,7 @@
 #   sentiment_compound_mean: Effect of sentiment on contribution (for non-liars)
 #   lied_this_period: Effect of lying on contribution (at mean sentiment)
 #   interaction: How lying modifies the sentiment-contribution relationship
-#   treatment: Treatment 2 effect relative to Treatment 1 (reference)
+#   treatment: AF effect relative to IF (reference)
 #
 # LIAR DEFINITIONS:
 #   _20 threshold: Made promise AND contributed < 20 (94 instances)

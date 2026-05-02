@@ -28,6 +28,9 @@ _NEG_THRESHOLD = -0.05
 _STRONG_THRESHOLD = 0.6
 _MODERATE_THRESHOLD = 0.2
 
+# TREATMENT LABELS for display (issue #74: T1/T2 -> IF/AF)
+_TREATMENT_LABELS = {1: 'IF', 2: 'AF'}
+
 
 # =====
 # Main function
@@ -144,7 +147,7 @@ def compute_correlation(df):
     for treatment in sorted(df['treatment'].unique()):
         t_data = df[df['treatment'] == treatment]
         r = _pearson_corr(t_data)
-        rows.append([f'T{treatment}', r, len(t_data)])
+        rows.append([_TREATMENT_LABELS[treatment], r, len(t_data)])
     rows.append(['Overall', _pearson_corr(df), len(df)])
     return pd.DataFrame(rows, columns=['Group', 'Pearson r', 'N'])
 

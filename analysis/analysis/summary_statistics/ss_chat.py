@@ -119,13 +119,13 @@ def compute_participation(chat):
 def compute_word_frequency(chat):
     """Top N words excluding stopwords, overall and by treatment."""
     overall = _top_words(chat['body'])
-    t1 = _top_words(chat[chat['treatment'] == 1]['body'])
-    t2 = _top_words(chat[chat['treatment'] == 2]['body'])
+    if_words = _top_words(chat[chat['treatment'] == 1]['body'])
+    af_words = _top_words(chat[chat['treatment'] == 2]['body'])
     rows = []
     for i in range(_TOP_N_WORDS):
-        row = _word_row(overall, i) + _word_row(t1, i) + _word_row(t2, i)
+        row = _word_row(overall, i) + _word_row(if_words, i) + _word_row(af_words, i)
         rows.append(row)
-    cols = ['Overall', 'Count', 'T1 Word', 'T1 Count', 'T2 Word', 'T2 Count']
+    cols = ['Overall', 'Count', 'IF Word', 'IF Count', 'AF Word', 'AF Count']
     return pd.DataFrame(rows, columns=cols)
 
 

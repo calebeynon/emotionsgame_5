@@ -1,3 +1,4 @@
+# TODO: rename T1/T2 labels to IF/AF (issue #74 scope was paper-bound outputs only)
 """
 Multi-session analysis and visualization script for experimental data.
 

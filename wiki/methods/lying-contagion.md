@@ -2,18 +2,18 @@
 title: "Lying Contagion Regression (Issue #72)"
 type: method
 tags: [liar, regression, contagion, feedback, treatment]
-summary: "Pooled logit of own lying on groupmates' prior lying, interacted with treatment; reports joint Wald test of total Treatment-1 effect"
+summary: "Pooled logit of own lying on groupmates' prior lying, interacted with treatment; reports joint Wald test of total IF effect"
 status: active
-last_verified: "2026-04-20"
+last_verified: "2026-05-01"
 ---
 
 ## Summary
 
-Tests whether a participant becomes more likely to lie after observing others in their group lie, and whether this "contagion" is amplified by the feedback treatment (Treatment 1). Conceptually a lying analog to the free-riding contagion documented for contributions: complements Table 1 (feedback hurts cooperation) and Table 4 (feedback induces more lies) by asking whether the *mechanism* is a within-group behavioral response to observed lying rather than an independent treatment intercept shift.
+Tests whether a participant becomes more likely to lie after observing others in their group lie, and whether this "contagion" is amplified by the individual-feedback treatment (IF). Conceptually a lying analog to the free-riding contagion documented for contributions: complements Table 1 (feedback hurts cooperation) and Table 4 (feedback induces more lies) by asking whether the *mechanism* is a within-group behavioral response to observed lying rather than an independent treatment intercept shift.
 
 ## Hypothesis
 
-Under Treatment 1 (feedback), participants see who lied in prior rounds and can condition on it; under Treatment 2 (no feedback) they cannot. If lying is contagious *and* feedback is the channel, the treatment-by-group-lying interactions should be positive. Key coefficient: `treatment_f=1 × group_lied_*` > 0 → contagion concentrates in the feedback treatment.
+Under IF (individual feedback), participants see who lied in prior rounds and can condition on it; under AF (aggregate feedback) they cannot. If lying is contagious *and* individual feedback is the channel, the treatment-by-group-lying interactions should be positive. Key coefficient: `treatment_f=1 × group_lied_*` > 0 → contagion concentrates in IF.
 
 ## Models
 
@@ -38,10 +38,10 @@ lied_it = γ₁ any_group_lied_prior_it + γ₂ any_self_lied_prior_it
         + α_segment + α_round + e_it
 ```
 
-Treatment 2 is the reference level (`relevel(factor(treatment), ref = "2")`), so `i(treatment_f, ref=2)=1` contrasts T1 vs T2. `β₁` and `γ₁` therefore identify the groupmate-lying effect under Treatment 2, and `β₄`, `γ₄` capture the differential under Treatment 1.
+AF (treatment code `2`) is the reference level (`relevel(factor(treatment), ref = "2")`), so `i(treatment_f, ref=2)=1` contrasts IF vs AF. `β₁` and `γ₁` therefore identify the groupmate-lying effect under AF, and `β₄`, `γ₄` capture the IF differential.
 
 **Design choices:**
-- **Pooled logit, no individual or session FE** — avoids the never-liar selection problem of FE logit (which drops 66% of individuals). Tradeoff: identification of the Treatment 1 × contagion interaction pools within- and between-session variation across only 10 sessions.
+- **Pooled logit, no individual or session FE** — avoids the never-liar selection problem of FE logit (which drops 66% of individuals). Tradeoff: identification of the IF × contagion interaction pools within- and between-session variation across only 10 sessions.
 - **No session-clustered SEs** — only 10 sessions, below the ~30–40 rule-of-thumb for cluster-robust asymptotics. Cluster at group level (`session × segment × group_id`) instead.
 - **Group-contagion regressors exclude the focal player** ("sum-minus-self" arithmetic), so `group_lied_*` captures *other* group members' lying, not the player's own.
 
@@ -52,7 +52,7 @@ At the bottom of the table, the R script reports the Wald test of
 H0: β₁ + β₄ = 0    (Model A)
 H0: γ₁ + γ₄ = 0    (Model B)
 ```
-i.e. zero **total** groupmate-lying effect under Treatment 1. Test statistic is $\chi^2_1$; computed from the clustered vcov via the delta method:
+i.e. zero **total** groupmate-lying effect under IF. Test statistic is $\chi^2_1$; computed from the clustered vcov via the delta method:
 ```r
 k = e_main + e_interaction       # contrast vector
 est = k' β̂
@@ -73,7 +73,7 @@ var = k' V k                     # V = clustered vcov
 | Column | Type | Definition |
 |---|---|---|
 | `session_code` | str | oTree session identifier (10 sessions, 5 per treatment) |
-| `treatment` | int | 1 = feedback, 2 = no-feedback |
+| `treatment` | int | 1 = IF (individual feedback), 2 = AF (aggregate feedback) |
 | `segment` | str | `supergame1`..`supergame5` |
 | `round` | int | Round within segment (1..N_rounds) |
 | `group` | int | Group id within `(session, segment)` |
@@ -95,35 +95,35 @@ var = k' V k                     # V = clustered vcov
 
 ## Results
 
-### Main coefficients (Treatment 2 baseline — main effects)
+### Main coefficients (AF baseline — main effects)
 
 | Model | Group-lying coef | SE | p | N |
 |---|---|---|---|---|
 | (1) Pooled Logit A (lag) | **1.240** | 0.556 | 0.026 | 2,720 |
 | (2) Pooled Logit B (cumulative) | 1.006 | 0.549 | 0.067 | 2,720 |
 
-Under the no-feedback baseline, a groupmate lying in the prior round is associated with elevated log-odds of own lying (1.24, significant at 5%); the cumulative-prior version is marginal (p = 0.067).
+Under the AF baseline, a groupmate lying in the prior round is associated with elevated log-odds of own lying (1.24, significant at 5%); the cumulative-prior version is marginal (p = 0.067).
 
-### Treatment 1 × group-lying interaction
+### IF × group-lying interaction
 
 | Model | Interaction coef | SE | p |
 |---|---|---|---|
 | (1) Pooled Logit A (lag) | −0.612 | 0.769 | 0.43 |
 | (2) Pooled Logit B (cumulative) | −0.201 | 0.683 | 0.77 |
 
-### Joint Wald test — total Treatment 1 effect (β_main + β_interaction = 0)
+### Joint Wald test — total IF effect (β_main + β_interaction = 0)
 
 | Model | Sum est | SE | Wald χ² | p |
 |---|---|---|---|---|
 | (1) Pooled Logit A (lag) | 0.628 | 0.578 | 1.182 | 0.277 |
 | (2) Pooled Logit B (cumulative) | 0.805 | 0.597 | 1.817 | 0.178 |
 
-The negative interaction roughly cancels the positive main effect in both specs. The total groupmate-lying response under Treatment 1 is not distinguishable from zero at conventional levels. The significant contagion in column (1) is therefore a Treatment-2 phenomenon.
+The negative interaction roughly cancels the positive main effect in both specs. The total groupmate-lying response under IF is not distinguishable from zero at conventional levels. The significant contagion in column (1) is therefore an AF phenomenon.
 
 ### Other coefficients
 
 - `self_lied_lag` = 1.69*** and `any_self_lied_prior` = 1.53*** — strong persistent-liar effect (identified in pooled logit; would be absorbed by individual FE).
-- Treatment 1 main effect: Pooled Logit A: β = 0.273 (SE 0.312, p = 0.38); Pooled Logit B: β = 0.320 (SE 0.320, p = 0.32). Positive but not significant.
+- IF main effect: Pooled Logit A: β = 0.273 (SE 0.312, p = 0.38); Pooled Logit B: β = 0.320 (SE 0.320, p = 0.32). Positive but not significant.
 
 ### Interpretation caveats
 

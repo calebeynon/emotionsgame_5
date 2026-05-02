@@ -4,7 +4,7 @@ type: method
 tags: [regression, panel, arellano-bond, gmm, dynamic, issue-57, issue-68]
 summary: "Two-step difference GMM of contribution dynamics. Baseline (4-col, §4.2) + extended (12-col, §4.7) tables. Aligned to Stata Table DP1."
 status: active
-last_verified: "2026-04-20"
+last_verified: "2026-05-01"
 ---
 
 ## Summary
@@ -46,12 +46,12 @@ The `min/med/max` columns include **all six** `contmore*_L1` and `contless*_L1` 
 
 ### Baseline table (`output/tables/dynamic_regression_baseline.tex`, 4 cols)
 
-1. T1 mean
-2. T2 mean
-3. T1 min/med/max
-4. T2 min/med/max
+1. IF mean
+2. AF mean
+3. IF min/med/max
+4. AF min/med/max
 
-T1 min/med/max, T1 mean, and T2 mean match the coauthor's Stata Table DP1 within 0.01 (largest diff 0.006 on `round1`). T2 min/med/max is new (not in Stata reference) — run for symmetry.
+IF min/med/max, IF mean, and AF mean match the coauthor's Stata Table DP1 within 0.01 (largest diff 0.006 on `round1`). AF min/med/max is new (not in Stata reference) — run for symmetry.
 
 ### Extended table (`output/tables/dynamic_regression_extended.tex`, 12 cols)
 
@@ -73,7 +73,7 @@ Each of the 4 baseline columns appears 3 times: `{Baseline, +Chat, +Chat+Facial}
 
 - `output/tables/dynamic_regression_baseline.tex` — 4 columns (§4.2).
 - `output/tables/dynamic_regression_extended.tex` — 12 columns (§4.7).
-- N = 1,520 per treatment for all baseline/+Chat columns; +Chat+Facial drops to ≈1,064 (T1) / ≈1,273 (T2) due to AFFDEX availability.
+- N = 1,520 per treatment for all baseline/+Chat columns; +Chat+Facial drops to ≈1,064 (IF) / ≈1,273 (AF) due to AFFDEX availability.
 - `output/tables/dynamic_regression.tex` and `dynamic_regression_stata.tex` remain on disk for historical reference but are not \input by the paper.
 
 ## Design Notes
@@ -88,7 +88,7 @@ Each of the 4 baseline columns appears 3 times: `{Baseline, +Chat, +Chat+Facial}
 Total: **143 tests passing** across three categories.
 
 - **Panel structure (116 tests):** `tests/test_dynamic_regression_panel.py` (46) + `tests/test_dynamic_regression_merged_panel.py` (51) + `tests/test_dynamic_regression_minmedmax.py` (19). Pins row counts, merge integrity, NaN patterns, lag correctness, deviation roundtrips, min/med/max peer-stat correctness, and hand-verified edge rows (tied min=med, mixed more/less, cross-supergame lag).
-- **Stata parity (12 tests):** `tests/test_dynamic_regression_parity.py`. Verifies baseline-table coefficients (T1 mean, T2 mean, T1 min/med/max, T2 min/med/max), standard errors, significance stars, and GoF rows (Observations=1520, AR(2)>0.05, Sargan>0.05, pairwise Wald p-values) against Stata DP1 reference. Default tolerance **0.005** with per-coefficient overrides: Round 1 at 0.01 (GMM two-step optimizer noise) and `contmoremax_L1` at 0.006 (Stata 3-decimal rounding boundary). Also cross-checks that baseline columns equal their counterparts in the extended table.
+- **Stata parity (12 tests):** `tests/test_dynamic_regression_parity.py`. Verifies baseline-table coefficients (IF mean, AF mean, IF min/med/max, AF min/med/max), standard errors, significance stars, and GoF rows (Observations=1520, AR(2)>0.05, Sargan>0.05, pairwise Wald p-values) against Stata DP1 reference. Default tolerance **0.005** with per-coefficient overrides: Round 1 at 0.01 (GMM two-step optimizer noise) and `contmoremax_L1` at 0.006 (Stata 3-decimal rounding boundary). Also cross-checks that baseline columns equal their counterparts in the extended table.
 - **Extended structure (2 tests):** `tests/test_dynamic_regression_significance.py`. Pins 20 Chat/Facial coefficients across extended cols 1,2,4,5,7,8,10,11 and asserts 12 data columns are present.
 - **Pipeline safety (13 tests):** `tests/test_dynamic_regression_pipeline_safety.py`. Covers `safe_left_merge` (duplicate/missing merge-key failures), `fill_no_message_rounds` NaN-bound guard, and `convert_made_promise` NaN error path.
 

@@ -9,8 +9,8 @@ library(ggplot2)
 # FILE PATHS
 INPUT_CSV <- "datastore/derived/sentiment_scores.csv"
 PLOT_DIR <- file.path("output", "plots")
-OUTPUT_T1 <- file.path(PLOT_DIR, "sentiment_distribution_t1.png")
-OUTPUT_T2 <- file.path(PLOT_DIR, "sentiment_distribution_t2.png")
+OUTPUT_IF <- file.path(PLOT_DIR, "sentiment_distribution_if.png")
+OUTPUT_AF <- file.path(PLOT_DIR, "sentiment_distribution_af.png")
 
 # SENTIMENT CATEGORY THRESHOLDS
 NEUTRAL_LO <- -0.1
@@ -26,8 +26,8 @@ POS_COLOR  <- "#388E3C"
 # =====
 main <- function() {
     dt <- load_data()
-    save_plot(build_plot(dt[treatment == "Treatment 1"], y_max = 500), OUTPUT_T1)
-    save_plot(build_plot(dt[treatment == "Treatment 2"]), OUTPUT_T2)
+    save_plot(build_plot(dt[treatment == "IF"], y_max = 500), OUTPUT_IF)
+    save_plot(build_plot(dt[treatment == "AF"]), OUTPUT_AF)
 }
 
 # =====
@@ -43,7 +43,7 @@ load_data <- function() {
     dt[, sentiment_category := factor(
         sentiment_category, levels = c("Negative", "Neutral", "Positive")
     )]
-    dt[, treatment := factor(treatment, labels = c("Treatment 1", "Treatment 2"))]
+    dt[, treatment := factor(treatment, labels = c("IF", "AF"))]
     dt
 }
 
