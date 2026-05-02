@@ -8,7 +8,7 @@
 #                      + i(tau, suckered_t2, ref = c(0, 999)) + treatment
 #                      | round + segment
 #
-# This produces separate event-study coefficients for Treatment 1 and Treatment 2,
+# This produces separate event-study coefficients for IF and AF,
 # allowing heterogeneous treatment effects across treatments.
 # Treatment-specific suckered indicators are constructed by interacting got_suckered
 # with treatment group dummies.
@@ -141,8 +141,8 @@ run_het_did_regression <- function(dt, threshold, sample_col) {
 print_summary_stats <- function(dt) {
     cat("=== Summary Statistics (by Treatment) ===\n")
     cat("Total observations:", nrow(dt), "\n")
-    cat("Treatment 1:", sum(dt$treatment == "1"), "\n")
-    cat("Treatment 2:", sum(dt$treatment == "2"), "\n\n")
+    cat("IF:", sum(dt$treatment == "1"), "\n")
+    cat("AF:", sum(dt$treatment == "2"), "\n\n")
     for (thresh in c("20", "5")) {
         print_threshold_stats(dt, thresh, paste0("did_sample_", thresh), "Main")
         print_threshold_stats(dt, thresh, paste0("did_sample_robust_", thresh), "Robust")
@@ -198,12 +198,12 @@ build_coef_dict <- function() {
         for (trt in c("t1", "t2")) {
             col <- paste0("suckered_", trt, "_", thresh)
             nms <- sprintf("tau_%s::%d:%s", thresh, taus, col)
-            trt_label <- ifelse(trt == "t1", "T1", "T2")
+            trt_label <- ifelse(trt == "t1", "IF", "AF")
             labs <- sprintf("%s Treated $\\times$ $\\tau = %d$", trt_label, taus)
             dict <- c(dict, setNames(labs, nms))
         }
     }
-    dict <- c(dict, "treatment2" = "Treatment 2")
+    dict <- c(dict, "treatment2" = "AF")
     return(dict)
 }
 

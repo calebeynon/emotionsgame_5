@@ -4,7 +4,7 @@ type: tool
 tags: [scripts, derived, analysis, R, python, reference]
 summary: "Per-script index of analysis/derived/ and analysis/analysis/ — what each script does and what it produces"
 status: active
-last_verified: "2026-04-19"
+last_verified: "2026-05-01"
 ---
 
 ## Summary
@@ -84,7 +84,7 @@ Quick reference mapping each major script under `analysis/derived/` (data prepar
 | `issue_12_cdf_plot.R` | `contribution_cdf_by_treatment.png` |
 | `issue_12_table_behavior.R`, `_aggregate.R` | `behavior_summary*.tex` |
 | `issue_12_table_contributions.R`, `_aggregate.R` | `contributions_summary*.tex` |
-| `sentiment_distribution_plot.R` | `sentiment_distribution_t1.png`, `t2.png`, `_by_treatment.png` |
+| `sentiment_distribution_plot.R` | `sentiment_distribution_if.png`, `af.png`, `_by_treatment.png` |
 
 ### Embedding Plots
 

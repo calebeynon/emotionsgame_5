@@ -1,8 +1,8 @@
 # Purpose: Estimate lying contagion — does a participant's lying in round t
 #   respond to OTHER group members' lying, heterogeneous by treatment?
 #   Pooled logit specifications (A: lag; B: cumulative), group-clustered.
-#   Reports joint Wald test of TOTAL Treatment 1 effect
-#   (H0: beta_main + beta_{main x T=1} = 0) at the bottom.
+#   Reports joint Wald test of TOTAL IF effect
+#   (H0: beta_main + beta_{main x IF} = 0) at the bottom.
 # Author: Claude Code
 # Date: 2026-04-20
 
@@ -61,8 +61,11 @@ load_panel <- function(path) {
     }
     dt <- as.data.table(read.csv(path))
     validate_panel(dt, path)
-    # Treatment 2 as reference → interaction reports Treatment-1 contrast.
-    dt[, treatment_f := relevel(factor(treatment), ref = "2")]
+    # AF (treatment 2) as reference → interaction reports IF contrast.
+    stopifnot("treatment must be in {1, 2, NA}" =
+                  all(dt$treatment %in% c(1, 2, NA)))
+    dt[, treatment_f := relevel(
+        factor(ifelse(treatment == 1, "IF", "AF")), ref = "AF")]
     return(dt)
 }
 
@@ -90,8 +93,8 @@ estimate_all_models <- function(dt) {
 
 pooled_logit_version_a <- function(dt) {
     feglm(
-        lied ~ group_lied_lag + self_lied_lag + i(treatment_f, ref = 2) +
-            i(treatment_f, ref = 2):group_lied_lag |
+        lied ~ group_lied_lag + self_lied_lag + i(treatment_f, ref = "AF") +
+            i(treatment_f, ref = "AF"):group_lied_lag |
             segment + round,
         data = dt,
         family = binomial(link = "logit"),
@@ -102,8 +105,8 @@ pooled_logit_version_a <- function(dt) {
 pooled_logit_version_b <- function(dt) {
     feglm(
         lied ~ any_group_lied_prior + any_self_lied_prior +
-            i(treatment_f, ref = 2) +
-            i(treatment_f, ref = 2):any_group_lied_prior |
+            i(treatment_f, ref = "AF") +
+            i(treatment_f, ref = "AF"):any_group_lied_prior |
             segment + round,
         data = dt,
         family = binomial(link = "logit"),
@@ -113,17 +116,17 @@ pooled_logit_version_b <- function(dt) {
 
 # =====
 # Joint Wald test: H0: beta_main + beta_interaction = 0
-# Tests whether total group-lying contagion effect under Treatment 1 is zero.
+# Tests whether total group-lying contagion effect under IF is zero.
 # Uses clustered vcov stored in the fitted model.
 # =====
 compute_joint_tests <- function(models) {
     list(
         m5 = joint_test(models$m5,
                         main_var = "group_lied_lag",
-                        int_var  = "group_lied_lag:treatment_f::1"),
+                        int_var  = "group_lied_lag:treatment_f::IF"),
         m6 = joint_test(models$m6,
                         main_var = "any_group_lied_prior",
-                        int_var  = "any_group_lied_prior:treatment_f::1")
+                        int_var  = "any_group_lied_prior:treatment_f::IF")
     )
 }
 
@@ -214,7 +217,7 @@ export_table <- function(models, tests, filepath) {
         title = "Lying Contagion: Pooled Logit by Treatment",
         se.below = TRUE,
         extralines = list(
-            `__Wald $\\chi^2$ ($\\beta_{\\text{main}} + \\beta_{\\times T=1} = 0$)` =
+            `__Wald $\\chi^2$ ($\\beta_{\\text{main}} + \\beta_{\\times \\text{IF}} = 0$)` =
                 format_chi2_row(tests),
             `__\\quad $p$-value` = format_pvalue_row(tests)
         )

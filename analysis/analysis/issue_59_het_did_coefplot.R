@@ -5,7 +5,7 @@
 # Uses the same fully interacted model as issue_59_het_did_regression.R:
 #   contribution ~ i(tau, suckered_t1, ref) + i(tau, suckered_t2, ref) + treatment
 #                  | round + segment
-# Extracts T1 and T2 coefficients from the single model and overlays them.
+# Extracts IF and AF coefficients from the single model and overlays them.
 # Produces 4 plots: 2 thresholds (20, 5) x 2 sample definitions (main, robust).
 
 # nolint start
@@ -109,7 +109,7 @@ extract_treatment_coefs <- function(model, threshold, treatment_num) {
         check.names = FALSE
     )
     ct <- rbind(ct, ref_row)
-    treatment_label <- paste("Treatment", treatment_num)
+    treatment_label <- ifelse(treatment_num == "1", "IF", "AF")
     build_coef_df(ct, treatment_label)
 }
 
@@ -166,8 +166,8 @@ create_het_coefplot <- function(coef_df) {
         geom_errorbar(aes(ymin = ci_lower, ymax = ci_upper, linetype = treatment),
                       width = 0.2, position = dodge, color = "black") +
         geom_point(size = 2.5, position = dodge, color = "black") +
-        scale_shape_manual(values = c("Treatment 1" = 16, "Treatment 2" = 17)) +
-        scale_linetype_manual(values = c("Treatment 1" = "solid", "Treatment 2" = "dashed")) +
+        scale_shape_manual(values = c("IF" = 16, "AF" = 17)) +
+        scale_linetype_manual(values = c("IF" = "solid", "AF" = "dashed")) +
         labs(x = expression("Rounds Since Suckered (" * tau * ")"),
              y = "Effect on Contribution", shape = NULL, linetype = NULL) +
         theme_econ()

@@ -97,12 +97,15 @@ def compute_religion_table(survey):
     return _categorical_table(survey, 'religion', order=_RELIGION_ORDER)
 
 
+_TREATMENT_LABELS = {1: 'IF', 2: 'AF'}
+
+
 def _categorical_table(survey, column, order=None):
     """Build count/pct table for a categorical variable by treatment + overall."""
     rows = []
     for treatment in sorted(survey['treatment'].unique()):
         t_rows = _count_and_pct(survey[survey['treatment'] == treatment], column, order)
-        rows.extend([[f'T{treatment}'] + r for r in t_rows])
+        rows.extend([[_TREATMENT_LABELS[treatment]] + r for r in t_rows])
     overall_rows = _count_and_pct(survey, column, order)
     rows.extend([['Overall'] + r for r in overall_rows])
     return pd.DataFrame(rows, columns=['Group', column.title(), 'Count', 'Pct'])
@@ -139,7 +142,7 @@ def _continuous_table(survey, column):
     rows = []
     for treatment in sorted(survey['treatment'].unique()):
         t_data = survey[survey['treatment'] == treatment][column]
-        rows.append([f'T{treatment}'] + _describe_numeric(t_data))
+        rows.append([_TREATMENT_LABELS[treatment]] + _describe_numeric(t_data))
     rows.append(['Overall'] + _describe_numeric(survey[column]))
     return pd.DataFrame(rows, columns=[
         'Group', 'Mean', 'Median', 'SD', 'Min', 'Max',
@@ -177,7 +180,7 @@ def compute_demographic_correlations(survey):
     rows.extend(_siblings_correlation(merged))
     rows.extend(_religion_correlation(merged))
     return pd.DataFrame(rows, columns=[
-        'Category', 'Value', 'T1 Mean', 'T2 Mean', 'Overall Mean',
+        'Category', 'Value', 'IF Mean', 'AF Mean', 'Overall Mean',
     ])
 
 
@@ -229,12 +232,12 @@ def _group_means(merged, category_label, column):
     rows = []
     for value in sorted(merged[column].unique()):
         subset = merged[merged[column] == value]
-        t1 = subset[subset['treatment'] == 1]['mean_contribution']
-        t2 = subset[subset['treatment'] == 2]['mean_contribution']
+        if_data = subset[subset['treatment'] == 1]['mean_contribution']
+        af_data = subset[subset['treatment'] == 2]['mean_contribution']
         rows.append([
             category_label, value,
-            safe_mean(t1),
-            safe_mean(t2),
+            safe_mean(if_data),
+            safe_mean(af_data),
             safe_mean(subset['mean_contribution']),
         ])
     return rows

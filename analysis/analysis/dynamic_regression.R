@@ -3,8 +3,8 @@
 # Date: 2026-04-19 (issue #68: aligned with Stata issue_68_do1.do)
 #
 # Produces two LaTeX tables:
-#   dynamic_regression_baseline.tex  - 4 cols: T1/T2 x {mean, min/med/max}
-#   dynamic_regression_extended.tex  - 12 cols: 4 baselines x {Base, +Chat, +Chat+Facial}
+#   dynamic_regression_baseline.tex  - 2 cols: IF/AF (mean-deviation regressors)
+#   dynamic_regression_extended.tex  - 6 cols: IF/AF x {Base, +Chat, +Chat+Facial}
 #
 # Instruments: lag(contribution, 2:5). Estimator: two-step difference GMM (pgmm)
 # with Windmeijer-corrected robust SEs (vcovHC.pgmm).
@@ -19,7 +19,6 @@ OUTPUT_DIR <- "output/tables"
 BASELINE_TEX <- file.path(OUTPUT_DIR, "dynamic_regression_baseline.tex")
 EXTENDED_TEX <- file.path(OUTPUT_DIR, "dynamic_regression_extended.tex")
 
-FAMILY_LABELS <- c(mean = "mean", order = "min/med/max")
 SPEC_LABELS <- c("Base", "+Chat", "+Chat+Facial")
 
 # Upper bound on no-message NaN fills per chat column; exceeding it signals drift.
@@ -34,11 +33,10 @@ main <- function() {
     baseline_models <- fit_baseline_models(panels, formulas)
     extended_models <- fit_extended_models(panels, formulas)
     dir.create(OUTPUT_DIR, recursive = TRUE, showWarnings = FALSE)
-    baseline_col_names <- c("T1", "T2", "T1", "T2")
     export_table(baseline_models, BASELINE_TEX,
-                 baseline_col_names, baseline_group_header())
+                 c("IF", "AF"), NULL)
     export_table(extended_models, EXTENDED_TEX,
-                 rep(SPEC_LABELS, times = 4), extended_group_header())
+                 rep(SPEC_LABELS, times = 2), extended_group_header())
     cat("\nTables written to:", BASELINE_TEX, "and", EXTENDED_TEX, "\n")
     compare_to_reference(baseline_models)
 }
@@ -81,14 +79,14 @@ prepare_panel <- function(dt) {
     pdata.frame(as.data.frame(dt), index = c("subject_id", "period"))
 }
 
-# t1_emo / t2_emo drop rows where emotion_valence is NA (AFFDEX unavailable);
-# this reduces N from 1520 to ~1064 (T1) / ~1273 (T2) — used for +Chat+Facial specs only.
+# if_arm_emo / af_arm_emo drop rows where emotion_valence is NA (AFFDEX unavailable);
+# this reduces N from 1520 to ~1064 (IF) / ~1273 (AF) — used for +Chat+Facial specs only.
 build_all_panels <- function(dt) {
     list(
-        t1     = prepare_panel(dt[treatment == 1]),
-        t2     = prepare_panel(dt[treatment == 2]),
-        t1_emo = prepare_panel(dt[treatment == 1 & !is.na(emotion_valence)]),
-        t2_emo = prepare_panel(dt[treatment == 2 & !is.na(emotion_valence)])
+        if_arm     = prepare_panel(dt[treatment == 1]),
+        af_arm     = prepare_panel(dt[treatment == 2]),
+        if_arm_emo = prepare_panel(dt[treatment == 1 & !is.na(emotion_valence)]),
+        af_arm_emo = prepare_panel(dt[treatment == 2 & !is.na(emotion_valence)])
     )
 }
 
@@ -99,24 +97,13 @@ mean_base_rhs <- function() {
           sep = " + ")
 }
 
-order_base_rhs <- function() {
-    paste("lag(contribution, 1:2)",
-          "contmoremax_L1", "contlessmax_L1",
-          "contmoremed_L1", "contlessmed_L1",
-          "contmoremin_L1", "contlessmin_L1",
-          "round1", sep = " + ")
-}
-
 build_formulas <- function() {
     # lag(contribution, 2:5) as instruments matches Stata's maxldep(4) maxlags(4)
     # (see analysis/issues/issue_68_do1.do lines 112-114).
     instr <- "lag(contribution, 2:5)"
     chat <- "word_count + made_promise + sentiment_compound_mean"
     facial <- "emotion_valence"
-    list(
-        mean  = assemble_spec_formulas(mean_base_rhs(), chat, facial, instr),
-        order = assemble_spec_formulas(order_base_rhs(), chat, facial, instr)
-    )
+    assemble_spec_formulas(mean_base_rhs(), chat, facial, instr)
 }
 
 assemble_spec_formulas <- function(base_rhs, chat, facial, instr) {
@@ -135,28 +122,24 @@ run_arellano_bond <- function(pdata, formula) {
 
 fit_baseline_models <- function(panels, formulas) {
     list(
-        "T1 (mean)"        = run_arellano_bond(panels$t1, formulas$mean$base),
-        "T2 (mean)"        = run_arellano_bond(panels$t2, formulas$mean$base),
-        "T1 (min/med/max)" = run_arellano_bond(panels$t1, formulas$order$base),
-        "T2 (min/med/max)" = run_arellano_bond(panels$t2, formulas$order$base)
+        "IF" = run_arellano_bond(panels$if_arm, formulas$base),
+        "AF" = run_arellano_bond(panels$af_arm, formulas$base)
     )
 }
 
 fit_extended_models <- function(panels, formulas) {
+    arm_tags <- c(if_arm = "IF", af_arm = "AF")
+    spec_tags <- c("base", "chat", "facial")
     models <- list()
-    for (fam in c("mean", "order")) {
-        fam_tag <- FAMILY_LABELS[[fam]]
-        for (treat in c("t1", "t2")) {
-            t_tag <- toupper(sub("t", "T", treat))
-            emo_panel <- panels[[paste0(treat, "_emo")]]
-            panel_list <- list(panels[[treat]], panels[[treat]], emo_panel)
-            for (i in seq_along(SPEC_LABELS)) {
-                spec_tag <- names(formulas[[fam]])[i]
-                label <- sprintf("%s %s %s", t_tag, fam_tag, SPEC_LABELS[i])
-                models[[label]] <- run_arellano_bond(
-                    panel_list[[i]], formulas[[fam]][[spec_tag]]
-                )
-            }
+    for (treat in names(arm_tags)) {
+        t_tag <- arm_tags[[treat]]
+        emo_panel <- panels[[paste0(treat, "_emo")]]
+        panel_list <- list(panels[[treat]], panels[[treat]], emo_panel)
+        for (i in seq_along(SPEC_LABELS)) {
+            label <- sprintf("%s %s", t_tag, SPEC_LABELS[i])
+            models[[label]] <- run_arellano_bond(
+                panel_list[[i]], formulas[[spec_tags[i]]]
+            )
         }
     }
     return(models)
@@ -166,12 +149,6 @@ build_coef_names <- function() {
     list(
         "lag(contribution, 1:2)1" = "Contribution$_{t-1}$",
         "lag(contribution, 1:2)2" = "Contribution$_{t-2}$",
-        "contmoremax_L1"          = "Above max peer$_{t-1}$",
-        "contlessmax_L1"          = "Below max peer$_{t-1}$",
-        "contmoremed_L1"          = "Above median peer$_{t-1}$",
-        "contlessmed_L1"          = "Below median peer$_{t-1}$",
-        "contmoremin_L1"          = "Above min peer$_{t-1}$",
-        "contlessmin_L1"          = "Below min peer$_{t-1}$",
         "contmore_L1"             = "Above peer mean$_{t-1}$",
         "contless_L1"             = "Below peer mean$_{t-1}$",
         "word_count"              = "Word Count",
@@ -219,10 +196,7 @@ build_gof_rows <- function(models, summaries) {
         "AR(1) p-value"      = ar1_p,
         "AR(2) p-value"      = ar2_p,
         "Sargan p-value"     = sargan_p,
-        "Peer mean pair sum = 0 (p)"   = pair_wald(c("contmore_L1", "contless_L1")),
-        "Max peer pair sum = 0 (p)"    = pair_wald(c("contmoremax_L1", "contlessmax_L1")),
-        "Median peer pair sum = 0 (p)" = pair_wald(c("contmoremed_L1", "contlessmed_L1")),
-        "Min peer pair sum = 0 (p)"    = pair_wald(c("contmoremin_L1", "contlessmin_L1"))
+        "Peer mean pair sum = 0 (p)"   = pair_wald(c("contmore_L1", "contless_L1"))
     )
 }
 
@@ -254,16 +228,8 @@ build_table_note <- function() {
 }
 
 extended_group_header <- function() {
-    paste0(" & \\multicolumn{3}{c}{T1 (mean)} & \\multicolumn{3}{c}{T2 (mean)}",
-           " & \\multicolumn{3}{c}{T1 (min/med/max)} & \\multicolumn{3}{c}{T2 (min/med/max)} \\\\\n",
-           "\\cmidrule(lr){2-4} \\cmidrule(lr){5-7} \\cmidrule(lr){8-10} \\cmidrule(lr){11-13}")
-}
-
-# Groups baseline on deviation spec so col labels shrink to T1/T2; otherwise
-# the wide "(min/med/max)" label stretches cols 3-4.
-baseline_group_header <- function() {
-    paste0(" & \\multicolumn{2}{c}{Mean deviation} & \\multicolumn{2}{c}{Min/Med/Max deviation} \\\\\n",
-           "\\cmidrule(lr){2-3} \\cmidrule(lr){4-5}")
+    paste0(" & \\multicolumn{3}{c}{IF} & \\multicolumn{3}{c}{AF} \\\\\n",
+           "\\cmidrule(lr){2-4} \\cmidrule(lr){5-7}")
 }
 
 finalize_tex <- function(tex_output, ncol, group_header, strategy) {
@@ -328,18 +294,12 @@ wrap_body <- function(body, strategy) {
 # Stata Table DP1 reference values from analysis/issues/issue_68_table_dp1_reference.txt.
 # Tolerance below (0.01) matches Stata's 3-decimal log output precision.
 REFERENCE_ROWS <- list(
-    c("T1 (min/med/max)", "contmoremax_L1", 0.064),
-    c("T1 (min/med/max)", "contlessmax_L1", 0.071),
-    c("T1 (min/med/max)", "contmoremed_L1", -0.179),
-    c("T1 (min/med/max)", "contlessmed_L1", 0.201),
-    c("T1 (min/med/max)", "contmoremin_L1", -0.160),
-    c("T1 (min/med/max)", "contlessmin_L1", -0.016),
-    c("T1 (mean)", "contmore_L1", -0.406),
-    c("T1 (mean)", "contless_L1", 0.268),
-    c("T2 (mean)", "contmore_L1", -0.263),
-    c("T2 (mean)", "contless_L1", 0.553),
-    c("T1 (mean)", "round1", -12.715),
-    c("T2 (mean)", "round1", -5.591)
+    c("IF", "contmore_L1", -0.406),
+    c("IF", "contless_L1", 0.268),
+    c("AF", "contmore_L1", -0.263),
+    c("AF", "contless_L1", 0.553),
+    c("IF", "round1", -12.715),
+    c("AF", "round1", -5.591)
 )
 
 compare_to_reference <- function(baseline_models) {

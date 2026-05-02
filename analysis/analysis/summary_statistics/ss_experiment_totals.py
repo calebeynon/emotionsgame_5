@@ -74,8 +74,8 @@ def compute_experiment_totals(contribs, chat):
     rows = [
         ['Sessions', n_sessions],
         ['Participants', n_sessions * PLAYERS_PER_SESSION],
-        ['Participants (T1)', n_per_treatment[1]],
-        ['Participants (T2)', n_per_treatment[2]],
+        ['Participants (IF)', n_per_treatment[1]],
+        ['Participants (AF)', n_per_treatment[2]],
         ['Player-rounds', len(contribs)],
         ['Groups (total)', n_groups],
         ['Chat messages', len(chat)],
@@ -143,7 +143,8 @@ def compute_timing_stats(durations):
     df = durations[durations['page_name'].isin(_TIMED_PAGES)]
     grouped = df.groupby(['treatment', 'page_name'])['duration'].mean()
     table = grouped.unstack(fill_value=0).round(1)
-    table.index = [f'Treatment {t}' for t in table.index]
+    treatment_labels = {1: 'IF', 2: 'AF'}
+    table.index = [treatment_labels[t] for t in table.index]
     table.index.name = 'Treatment'
     # Reorder columns to match _TIMED_PAGES order
     cols = [c for c in _TIMED_PAGES if c in table.columns]

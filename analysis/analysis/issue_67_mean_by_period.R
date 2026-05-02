@@ -109,7 +109,7 @@ create_plot <- function(dt_agg) {
 }
 
 plot_scales_and_theme <- function() {
-    treatment_labels <- c("1" = "Treatment 1", "2" = "Treatment 2")
+    treatment_labels <- c("1" = "IF", "2" = "AF")
     list(
         scale_x_continuous(breaks = 1:22,
                            expand = expansion(mult = c(0.01, 0.01))),

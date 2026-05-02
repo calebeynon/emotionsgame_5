@@ -4,7 +4,7 @@ type: method
 tags: [classification, liar, sucker, promise, llm, behavior]
 summary: "Pipeline that classifies chat as promises (LLM) and players as liars/suckers per round and per segment"
 status: active
-last_verified: "2026-04-19"
+last_verified: "2026-05-01"
 ---
 
 ## Summary
@@ -54,7 +54,7 @@ The earlier suffixes `_strict` (= threshold 20) and `_lenient` (= threshold 5) w
 
 - 21.6% of messages are promises.
 - 105 of 160 participants never lie across the entire experiment.
-- T1 participants are 16.2 pp more likely to ever lie than T2 (issue #64, p = 0.031).
+- IF participants are 16.2 pp more likely to ever lie than AF (issue #64, p = 0.031).
 - A player's bucket reflects *total* lying frequency across the experiment, not per-segment.
 
 ## Test Coverage

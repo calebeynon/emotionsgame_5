@@ -32,6 +32,9 @@ _SG_PAIRS = [
 # SEGMENT LABELS for display
 _SG_DISPLAY = {f'supergame{i}': f'SG{i}' for i in range(1, 6)}
 
+# TREATMENT LABELS for display (issue #74: T1/T2 -> IF/AF)
+_TREATMENT_LABELS = {1: 'IF', 2: 'AF'}
+
 
 # =====
 # Main function
@@ -75,7 +78,7 @@ def _promise_by_supergame(df):
     for (treatment, segment), g in df.groupby(['treatment', 'segment']):
         count = g['made_promise'].sum()
         rate = safe_pct(count, len(g))
-        rows.append([f'T{treatment}', _SG_DISPLAY[segment], count, rate])
+        rows.append([_TREATMENT_LABELS[treatment], _SG_DISPLAY[segment], count, rate])
     return rows
 
 
@@ -85,7 +88,7 @@ def _promise_by_round(df):
     for (treatment, rnd), g in df.groupby(['treatment', 'round']):
         count = g['made_promise'].sum()
         rate = safe_pct(count, len(g))
-        rows.append([f'T{treatment}', f'Rd {rnd}', count, rate])
+        rows.append([_TREATMENT_LABELS[treatment], f'Rd {rnd}', count, rate])
     return rows
 
 
@@ -111,7 +114,7 @@ def _classification_rates(df, col_20, col_5, label):
         c20, c5 = g[col_20].sum(), g[col_5].sum()
         r20 = safe_pct(c20, n)
         r5 = safe_pct(c5, n)
-        rows.append([f'T{treatment}', _SG_DISPLAY[segment], c20, r20, c5, r5])
+        rows.append([_TREATMENT_LABELS[treatment], _SG_DISPLAY[segment], c20, r20, c5, r5])
     cols = [
         'Treatment', 'Supergame',
         f'{label} (20 ECU)', 'Rate (20 ECU)', f'{label} (5 ECU)', 'Rate (5 ECU)',
@@ -145,7 +148,7 @@ def _persistence_row(t_df, treatment, sg_curr, sg_next):
     nxt = _player_flags(t_df[t_df['segment'] == sg_next])
     transition = f'{_SG_DISPLAY[sg_curr]}--{_SG_DISPLAY[sg_next]}'
     return [
-        f'T{treatment}', transition,
+        _TREATMENT_LABELS[treatment], transition,
         _persist_pct(curr, nxt, 'is_liar_20'),
         _persist_pct(curr, nxt, 'is_liar_5'),
         _persist_pct(curr, nxt, 'is_sucker_20'),
@@ -179,7 +182,7 @@ def compute_conditional_contribution(df):
     for (treatment, segment), g in df.groupby(['treatment', 'segment']):
         mean_promise = safe_mean(g[g['made_promise']]['contribution'])
         mean_no = safe_mean(g[~g['made_promise']]['contribution'])
-        rows.append([f'T{treatment}', _SG_DISPLAY[segment], mean_promise, mean_no])
+        rows.append([_TREATMENT_LABELS[treatment], _SG_DISPLAY[segment], mean_promise, mean_no])
     cols = ['Treatment', 'Supergame', 'Mean (Promise)', 'Mean (No Promise)']
     return pd.DataFrame(rows, columns=cols)
 

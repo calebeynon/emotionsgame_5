@@ -202,28 +202,27 @@ chat treatment in [CITE needed, I forget which paper had this].
     \label{fig:mean_contribution_by_period}
 \end{figure}
 
-To further understand where the difference in individual's contributions stem from, we use the \cite{ArellanoBond1991} two-step difference GMM method.\footnote{For the differenced equation\label{eq:dynamic_reg}, we use lags 2 through 5 of $Contribution_{i,t}$ as the GMM instruments.}
-We report the baseline model in which a single peer reference point is the group mean (so $j$ collapses to one term), alongside an alternative specification that replaces the mean with the
-group's minimum, median, and maximum peer contributions ($j=1,2,3$):  
+To further understand where the difference in individual's contributions stem from, we use the \cite{ArellanoBond1991} two-step difference GMM method.\footnote{For the differenced equation, we use lags 2 through 5 of $Contribution_{i,t}$ as the GMM instruments.}
+We use the group mean as the peer reference point:
 \begin{equation}
 \begin{split}
      Contribution_{i,t}
-    &=\alpha_0+ \sum_{l=1}^{2} \alpha_l \cdot Contribution_{i,t-l} + \sum_{j=1}^{3} \beta^{+}_{j} \cdot PosDevInd_{i,t-1}(j)   \\
-    &\quad + \sum_{j=1}^{3} \beta^{-}_{j} \cdot NegDevInd_{i,t-1}(j) + \gamma \cdot \mathds{1}\{Round_{t} =1\} \ + \varepsilon_{i,t}
+    &=\alpha_0+ \sum_{l=1}^{2} \alpha_l \cdot Contribution_{i,t-l} + \beta^{+} \cdot PosDevInd_{i,t-1}   \\
+    &\quad + \beta^{-} \cdot NegDevInd_{i,t-1} + \gamma \cdot \mathds{1}\{Round_{t} =1\} \ + \varepsilon_{i,t}
 \end{split}
 \label{eq:dynamic_reg}
 \end{equation}
 where,
-$Contribution_{i,t}$ is the round-level individual contribution to the group account; \,\,\, $PosDevInd_{i,t-1}(j)$ and $NegDevInd_{i,t-1}(j)$ are binary indicators for whether $i$'s prior-round contribution exceeded or fell short of the $j$-th peer reference point; and 
+$Contribution_{i,t}$ is the round-level individual contribution to the group account; \,\,\, $PosDevInd_{i,t-1}$ and $NegDevInd_{i,t-1}$ are binary indicators for whether $i$'s prior-round contribution exceeded or fell short of the peer mean; and
 $Round_t$ is an indicator
-for the first round of a super game. 
+for the first round of a super game.
 
  The analysis is presented in Table \ref{tab:dynamic_regression}. If the overall group contribution is lower than the individual contribution, subjects seem to lower their individual contribution in the next consecutive rounds, as shown by (tell which coefficients and significance level). More specifically, when only the group allocation is known, individuals seem to drastically reduce their contributions in time $t+2$. by xxxx. A second variable of interest in this table is comparison to the minimum contribution in the past round. If subject X contributed more than the minimal contribution in past period, they immediately lower their contribution next period %this doesnot make sense for AF treatment we dont know min and max?? change T1 adn T2 top IF AF 
 
 \begin{table}[htbp]
     \centering \footnotesize
     \input{dynamic_regression_baseline.tex}
-    \caption{Dynamic Panel Regression Analysis. Columns span the two treatments crossed with two definitions of the deviation regressors: the group-mean deviation (columns 1--2) and the per-peer min/median/max deviations (columns 3--4). Arellano-Bond two-step GMM with Windmeijer-corrected robust standard errors in parentheses. Instruments: lags 2--5 of contribution.}
+    \caption{Dynamic Panel Regression Analysis. Columns report the IF and AF treatments using the group-mean deviation regressors. Arellano-Bond two-step GMM with Windmeijer-corrected robust standard errors in parentheses. Instruments: lags 2--5 of contribution.}
     \label{tab:dynamic_regression}
 \end{table}
 
@@ -238,7 +237,7 @@ preceding messages in the conversation. The model is explicitly told to take the
 We then use the messages' classification to correspondingly classify subjects' behavior. We create two separate classifications at the participant-round level. First, we classify a participant as a ``liar'' if they made a promise to contribute to the group account, but failed to contribute more than 20 ECUs in the next contribution decision. Each participant begins a super game without the ``liar'' label. After a first lie, the  ``liar'' classification persists for the rest of the super game. We also classify a participant as a ``sucker'' if they contributed the maximum (25 ECUs) in a round where at least one group member lied. Similarly to the liar label, the sucker label persists for the rest of the super game once they first become a sucker. Table \ref{table:chat_behavior} presents the number of promises made, followed by the number of liars and suckers, by treatment and super game. \\
 \begin{table}[htbp]
     \centering \footnotesize
-    \input{tables/behavior_summary_aggregate}
+    \input{behavior_summary_aggregate}
     \caption{Distribution of liars and suckers across treatments and supergames}
     \label{table:chat_behavior}
 \end{table}
@@ -293,7 +292,7 @@ $\text{any\_self\_lied\_prior}_{it}$ is an indicator that participant $i$ has li
 \begin{table}[htbp]
     \centering
     \input{issue_72_lying_contagion.tex}
-    \caption{Pooled logit of own round-$t$ lying on groupmates' prior lying, interacted with treatment. Column (1) uses the one-round lag; column (2) uses a cumulative indicator for any prior-round lying within the current supergame. supergame and round fixed effects included; standard errors clustered at the group level. AF Treatment is the reference. The bottom two rows report the joint Wald test that the total groupmate-lying effect under IF Treatment (main coefficient plus the Treatment~1 interaction) is zero.}
+    \caption{Pooled logit of own round-$t$ lying on groupmates' prior lying, interacted with treatment. Column (1) uses the one-round lag; column (2) uses a cumulative indicator for any prior-round lying within the current supergame. supergame and round fixed effects included; standard errors clustered at the group level. AF Treatment is the reference. The bottom two rows report the joint Wald test that the total groupmate-lying effect under IF Treatment (main coefficient plus the IF interaction) is zero.}
     \label{table:lying_contagion}
 \end{table}
 
@@ -360,16 +359,16 @@ The above tables show a binary classification of communication and how it impact
     \centering
     \begin{minipage}{0.48\textwidth}
         \centering
-        \includegraphics[width=\linewidth]{sentiment_distribution_t1.png}
-        \caption{participant-round sentiment distribution in IF Treatment}
-        \label{fig:t1_sent_dist}
+        \includegraphics[width=\linewidth]{sentiment_distribution_if.png}
+        \caption{participant-round sentiment distribution in IF}
+        \label{fig:if_sent_dist}
     \end{minipage}
     \hfill
     \begin{minipage}{0.48\textwidth}
         \centering
-        \includegraphics[width=\linewidth]{sentiment_distribution_t2.png}
-        \caption{participant-round sentiment distribution in AF Treatment}
-        \label{fig:t2_sent_dist}
+        \includegraphics[width=\linewidth]{sentiment_distribution_af.png}
+        \caption{participant-round sentiment distribution in AF}
+        \label{fig:af_sent_dist}
     \end{minipage}
     \caption{Sentiment distributions by treatment}
     \label{fig:sent_dist}
@@ -438,21 +437,20 @@ contribution). The \emph{+Chat+Facial} specification further adds the AFFDEX
 \texttt{emotion\_valence} score; because video is unavailable for a subset of
 rounds, these columns are estimated on the subset of observations with
 non-missing facial valence. Table~\ref{tab:dynamic_regression_extended}
-reports all twelve models: each of the four baselines in
+reports all six models: each of the two baselines in
 Table~\ref{tab:dynamic_regression} is nested inside its own triplet of
 \{Base, +Chat, +Chat+Facial\} columns so that the incremental effect of
-communication and facial emotions is visible within treatment and deviation
-definition.
+communication and facial emotions is visible within treatment.
 
 \begin{table}[H]
     \centering \footnotesize
     \input{dynamic_regression_extended.tex}
     \caption{Dynamic Panel Regression Analysis with Communication and Facial
-    Emotions. Columns are grouped into four baselines (IF Treatment mean,
-    AF Treatment mean, IF Treatment min/med/max, AF Treatment min/med/max); each
-    baseline is reported in three specifications (Base, +Chat, +Chat+Facial).
-    Arellano-Bond two-step GMM with Windmeijer-corrected robust standard
-    errors in parentheses. Instruments: lags 2--5 of contribution.}
+    Emotions. Columns are grouped into two baselines (IF, AF) using the
+    group-mean deviation regressors; each baseline is reported in three
+    specifications (Base, +Chat, +Chat+Facial). Arellano-Bond two-step GMM
+    with Windmeijer-corrected robust standard errors in parentheses.
+    Instruments: lags 2--5 of contribution.}
     \label{tab:dynamic_regression_extended}
 \end{table}
 

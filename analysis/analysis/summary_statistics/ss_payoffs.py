@@ -147,10 +147,13 @@ def compute_dollar_distribution(df):
 # Helpers
 # =====
 
+_TREATMENT_LABELS = {1: 'IF', 2: 'AF'}
+
+
 def _treatment_groups(df):
     """Yield (label, subset) for each treatment and the overall dataset."""
     for treatment in sorted(df['treatment'].unique()):
-        yield f'T{treatment}', df[df['treatment'] == treatment]
+        yield _TREATMENT_LABELS[treatment], df[df['treatment'] == treatment]
     yield 'Overall', df
 
 
