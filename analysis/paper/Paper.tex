@@ -230,7 +230,7 @@ group's minimum, median, and maximum peer contributions ($j=1,2,3$).
 \begin{table}[htbp]
     \centering \footnotesize
     \input{dynamic_regression_baseline.tex}
-    \caption{Dynamic Panel Regression Analysis. Columns span the two treatments crossed with two definitions of the deviation regressors: the group-mean deviation (columns 1--2) and the per-peer min/median/max deviations (columns 3--4). Arellano-Bond two-step GMM with Windmeijer-corrected robust standard errors in parentheses. Instruments: lags 2--5 of contribution.}
+    \caption{Dynamic Panel Regression Analysis. Columns report the IF and AF treatments using the group-mean deviation regressors. Arellano-Bond two-step GMM with Windmeijer-corrected robust standard errors in parentheses. Instruments: lags 2--5 of contribution.}
     \label{tab:dynamic_regression}
 \end{table}
 
@@ -464,21 +464,20 @@ contribution). The \emph{+Chat+Facial} specification further adds the AFFDEX
 \texttt{emotion\_valence} score; because video is unavailable for a subset of
 rounds, these columns are estimated on the subset of observations with
 non-missing facial valence. Table~\ref{tab:dynamic_regression_extended}
-reports all twelve models: each of the four baselines in
+reports all six models: each of the two baselines in
 Table~\ref{tab:dynamic_regression} is nested inside its own triplet of
 \{Base, +Chat, +Chat+Facial\} columns so that the incremental effect of
-communication and facial emotions is visible within treatment and deviation
-definition.
+communication and facial emotions is visible within treatment.
 
 \begin{table}[H]
     \centering \footnotesize
     \input{dynamic_regression_extended.tex}
     \caption{Dynamic Panel Regression Analysis with Communication and Facial
-    Emotions. Columns are grouped into four baselines (IF mean,
-    AF mean, IF min/med/max, AF min/med/max); each
-    baseline is reported in three specifications (Base, +Chat, +Chat+Facial).
-    Arellano-Bond two-step GMM with Windmeijer-corrected robust standard
-    errors in parentheses. Instruments: lags 2--5 of contribution.}
+    Emotions. Columns are grouped into two baselines (IF, AF) using the
+    group-mean deviation regressors; each baseline is reported in three
+    specifications (Base, +Chat, +Chat+Facial). Arellano-Bond two-step GMM
+    with Windmeijer-corrected robust standard errors in parentheses.
+    Instruments: lags 2--5 of contribution.}
     \label{tab:dynamic_regression_extended}
 \end{table}
 
