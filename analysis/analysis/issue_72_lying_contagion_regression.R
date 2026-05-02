@@ -62,6 +62,8 @@ load_panel <- function(path) {
     dt <- as.data.table(read.csv(path))
     validate_panel(dt, path)
     # AF (treatment 2) as reference → interaction reports IF contrast.
+    stopifnot("treatment must be in {1, 2, NA}" =
+                  all(dt$treatment %in% c(1, 2, NA)))
     dt[, treatment_f := relevel(
         factor(ifelse(treatment == 1, "IF", "AF")), ref = "AF")]
     return(dt)

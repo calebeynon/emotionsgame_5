@@ -306,7 +306,7 @@ def baseline_coefs():
             f"Missing baseline table: {BASELINE_TEX}. "
             f"Run: cd analysis && Rscript analysis/dynamic_regression.R"
         )
-    return parse_tex_coefficients(BASELINE_TEX, num_data_cols=4)
+    return parse_tex_coefficients(BASELINE_TEX, num_data_cols=2)
 
 
 @pytest.fixture(scope="session")
@@ -318,7 +318,7 @@ def extended_coefs():
             f"Missing extended table: {EXTENDED_TEX}. "
             f"Run: cd analysis && Rscript analysis/dynamic_regression.R"
         )
-    return parse_tex_coefficients(EXTENDED_TEX, num_data_cols=12)
+    return parse_tex_coefficients(EXTENDED_TEX, num_data_cols=6)
 
 
 @pytest.fixture(scope="session")
@@ -330,7 +330,7 @@ def baseline_details():
             f"Missing baseline table: {BASELINE_TEX}. "
             f"Run: cd analysis && Rscript analysis/dynamic_regression.R"
         )
-    return parse_tex_with_details(BASELINE_TEX, num_data_cols=4)
+    return parse_tex_with_details(BASELINE_TEX, num_data_cols=2)
 
 
 @pytest.fixture(scope="session")
@@ -342,4 +342,4 @@ def baseline_gof():
             f"Missing baseline table: {BASELINE_TEX}. "
             f"Run: cd analysis && Rscript analysis/dynamic_regression.R"
         )
-    return parse_tex_gof_rows(BASELINE_TEX, num_data_cols=4)
+    return parse_tex_gof_rows(BASELINE_TEX, num_data_cols=2)

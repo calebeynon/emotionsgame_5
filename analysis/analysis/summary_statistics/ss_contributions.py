@@ -128,11 +128,13 @@ def plot_histogram_by_supergame(df):
     supergames = sorted(df['segment'].unique())
     fig, axes = plt.subplots(1, len(supergames), figsize=(18, 4), sharey=True)
     bins = np.arange(0, 27, 1)
+    treatment_labels = {1: 'IF', 2: 'AF'}
     for ax, sg in zip(axes, supergames):
         sg_data = df[df['segment'] == sg]
         for treatment, color in [(1, '#1f77b4'), (2, '#ff7f0e')]:
             data = sg_data[sg_data['treatment'] == treatment]['contribution']
-            ax.hist(data, bins=bins, alpha=0.5, color=color, label=f'T{treatment}')
+            ax.hist(data, bins=bins, alpha=0.5, color=color,
+                    label=treatment_labels[treatment])
         ax.set_title(sg.replace('supergame', 'SG'))
         ax.set_xlabel('Contribution')
         if ax == axes[0]:

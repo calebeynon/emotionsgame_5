@@ -30,27 +30,22 @@ TOLERANCE_OVERRIDES = {
     # Round 1 intercepts (~|12|) drift ~0.006 from Stata due to GMM two-step
     # optimizer differences on large-scale constants. Relative drift <0.05%.
     "Round 1": 0.01,
-    # "Above max peer" lands at the 0.005 boundary (Stata 0.064 vs R 0.059);
-    # the drift equals Stata's 3-decimal rounding precision.
-    "Above max peer$_{t-1}$": 0.006,
 }
 SE_TOLERANCE = 0.005
 # GoF p-values are 3-digit rounded; allow 0.002 rounding slack.
 GOF_TOLERANCE = 0.002
 
 # Column order in dynamic_regression_baseline.tex (0-indexed):
-#   0: T1 (mean), 1: T2 (mean), 2: T1 (min/med/max), 3: T2 (min/med/max)
+#   0: IF (mean-deviation), 1: AF (mean-deviation)
+# Issue #74 dropped the min/med/max columns (cols 2-3 in the prior layout).
 REFERENCE_COLUMN_INDEX = {
-    "T1_mean":       0,
-    "T2_mean":       1,
-    "T1_minmedmax":  2,
-    "T2_minmedmax":  3,
+    "IF": 0,
+    "AF": 1,
 }
 
 GOF_LABELS = {
     "Observations", "AR(1) p-value", "AR(2) p-value", "Sargan p-value",
-    "Peer mean pair sum = 0 (p)", "Max peer pair sum = 0 (p)",
-    "Median peer pair sum = 0 (p)", "Min peer pair sum = 0 (p)",
+    "Peer mean pair sum = 0 (p)",
 }
 
 # Matches a numeric coefficient cell with optional stars: $-0.069^{***}$ or $0.268$.
