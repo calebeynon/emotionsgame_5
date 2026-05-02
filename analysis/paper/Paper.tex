@@ -203,20 +203,19 @@ chat treatment in [CITE needed, I forget which paper had this].
 \end{figure}
 
 To further understand where the difference in individual's contributions stem from, we use the \cite{ArellanoBond1991} two-step difference GMM method.\footnote{For the differenced equation, we use lags 2 through 5 of $Contribution_{i,t}$ as the GMM instruments.}
-We report the baseline model in which a single peer reference point is the group mean (so $j$ collapses to one term), alongside an alternative specification that replaces the mean with the
-group's minimum, median, and maximum peer contributions ($j=1,2,3$):  
+We use the group mean as the peer reference point:
 \begin{equation}
 \begin{split}
      Contribution_{i,t}
-    &=\alpha_0+ \sum_{l=1}^{2} \alpha_l \cdot Contribution_{i,t-l} + \sum_{j=1}^{3} \beta^{+}_{j} \cdot PosDevInd_{i,t-1}(j)   \\
-    &\quad + \sum_{j=1}^{3} \beta^{-}_{j} \cdot NegDevInd_{i,t-1}(j) + \gamma \cdot \mathds{1}\{Round_{t} =1\} \ + \varepsilon_{i,t}
+    &=\alpha_0+ \sum_{l=1}^{2} \alpha_l \cdot Contribution_{i,t-l} + \beta^{+} \cdot PosDevInd_{i,t-1}   \\
+    &\quad + \beta^{-} \cdot NegDevInd_{i,t-1} + \gamma \cdot \mathds{1}\{Round_{t} =1\} \ + \varepsilon_{i,t}
 \end{split}
 \label{eq:dynamic_reg}
 \end{equation}
 where,
-$Contribution_{i,t}$ is the round-level individual contribution to the group account; \,\,\, $PosDevInd_{i,t-1}(j)$ and $NegDevInd_{i,t-1}(j)$ are binary indicators for whether $i$'s prior-round contribution exceeded or fell short of the $j$-th peer reference point; and 
+$Contribution_{i,t}$ is the round-level individual contribution to the group account; \,\,\, $PosDevInd_{i,t-1}$ and $NegDevInd_{i,t-1}$ are binary indicators for whether $i$'s prior-round contribution exceeded or fell short of the peer mean; and
 $Round_t$ is an indicator
-for the first round of a super game. 
+for the first round of a super game.
 
  The analysis is presented in Table \ref{tab:dynamic_regression}. If the overall group contribution is lower than the individual contribution, subjects seem to lower their individual contribution in the next consecutive rounds, as shown by (tell which coefficients and significance level). More specifically, when only the group allocation is known, individuals seem to drastically reduce their contributions in time $t+2$. by xxxx. A second variable of interest in this table is comparison to the minimum contribution in the past round. If subject X contributed more than the minimal contribution in past period, they immediately lower their contribution next period %this doesnot make sense for AF treatment we dont know min and max?? change T1 adn T2 top IF AF 
 
